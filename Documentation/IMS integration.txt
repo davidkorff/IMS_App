@@ -1,0 +1,254 @@
+Here is the typical instructions we provide to all clients to explain the full Quoting process through the webservices. Save a copy somewhere, create a template, move to a word doc. Does not matter, just keep it in case any other integrations are requested.
+
+
+https://webservices.mgasystems.com/ims_demo/logon.asmx (use LoginUser method passing the above)
+https://webservices.mgasystems.com/ims_demo/QuoteFuntions.asmx 
+https://webservices.mgasystems.com/ims_demo/ProducerFuntions.asmx 
+https://webservices.mgasystems.com/ims_demo/DocumentFunctions.asmx 
+https://webservices.mgasystems.com/ims_demo/Dataaccess.asmx 
+
+To get you up and running, I’ve provided the endpoints for the IMS Demo environment, which should have the necessary configs available to at least go through the Clearance and Quote creation processes. Here’s the sequence of calls you should be making. All the webservices are located at the root https://webservices.mgasystems.com/ims_demo/ and all ASMX files exist under that root. Note that you can navigate to any of the services in a browser to get a webmethod listing, and clicking on a webmethod will provide request/response SOAP envelope structure.
+
+https://webservices.mgasystems.com/ims_demo/logon.asmx 
+Use this to get a token (Guid) to use in the SOAP Headers of all subsequent calls.
+
+Before you make any other calls, I’d recommend using the DataAccess.asmx webservice to get the CompanyLine information. This data typically won’t change much over time, as this is the configuration of the products in the IMS (carrier, lines of coverage, commissions, payment terms, documents, etc.). For a new integration, this will change often, so it’s better to wait until the CompanyLine’s are fully configured in the IMS before caching this data.
+
+https://webservices.mgasystems.com/ims_demo/Dataaccess.asmx 
+Use ExecuteCommand with the following parameters:
+<procedureName>ValidCompanyLinesXml</procedureName>
+<parameters>
+    <string>@programCode</string>
+    <string>TFLOD</string>
+</parameters>
+
+Note this this is per environment. Return will be an XML structure that defines all the data necessary for the Quote creation process: Company Location, State, Issuing/Quoting Office, Underwriters, Billing types, etc. As this is a new integration, the set of valid CompanyLine configurations is small, but as the list of products grows you’ll get a larger result set back. Here’s the current extract:
+
+<ValidCompanyLines>
+  <CompanyLine>
+    <CompanyLineGUID>131B0698-7377-460A-A6C0-5AF5FC3E41B7</CompanyLineGUID>
+    <LocationName>Hartford Steam Boiler</LocationName>
+    <CompanyLocationGUID>C18FC061-22CB-494E-9D12-758CD2D577DC</CompanyLocationGUID>
+    <LineName> Federal Flood</LineName>
+    <LineGUID> 5525815b-160d-4865-bca6-7b8b0d696e74</LineGUID>
+    <StateID>AK</StateID>
+    <Offices>
+      <Office QuotingAndIssuingOffice="Measured Insurance" OfficeGuid=" f20f93a4-32e5-4f3f-b631-40f801ab58c1">
+        <CostCenters>
+          <CostCenter CostCenterID="1" />
+        </CostCenters>
+      </Office>
+    </Offices>
+    <Users>
+      <User UserName="TFlood" UserGUID=" 8a2d5f0a-c10d-4859-9ef4-a0d2e748d591" />
+    </Users>
+    <BillTypes>
+      <BillType BillingTypeID="2" BillingType="Direct Bill (MGA)" />
+      <BillType BillingTypeID="3" BillingType="Agency Bill" />
+    </BillTypes>
+  </CompanyLine></ValidCompanyLines>
+
+When you’re ready to perform the import, you’ll need to follow this sequence of steps:
+
+1.	Clearance
+a.	https://webservices.mgasystems.com/ims_demo/clearance.asmx 
+b.	ClearInsuredAsXml
+i.	Finds all insureds matching specified criteria, as well as all policies with matching risk information. The more parameters specified, the more limiting the search.
+ii.	StatusID column here represents the Insured entity status (1 = active, anything else can be considered inactive) or Quote status for matching policies (records with ControlNo)
+iii.	See attachment Demo_ClearInsuredAsXml.xml
+c.	ClearActiveInsuredAsXml
+i.	Only looks at active (non-cancelled) policies for matching risk information.
+ii.	StatusID column here represents the Quote status for the specified ControlNo. 
+iii.	See attachment Demo_ClearActiveInsuredAsXml.xml 
+iv.	The Insured entity (and primary location) is used as the basis for creating the policy/quote, which the underwriter/API can update the risk information after creation of the Quote to differ from the Insured entity. These outputs may differ, even if the search criteria was the same (InsuredName = “XXXXXXX”)
+d.	If no matching Insured entity is found, go to step 2. Otherwise, go to step 3.
+2.	Create Insured
+a.	Insured entities are a unifying entity, and do not change much after creation. They are used as the basis for setting the initial risk information on a new policy.
+b.	https://webservices.mgasystems.com/ims_demo/insuredfunctions.asmx  
+c.	AddInsuredWithLocation webmethod.
+d.	See supplementary table at the end of this email for field requirements.
+e.	Result will be the InsuredGUID of the inserted Insured record, to be used when creating the Submission.
+i.	Note that an insured without a location cannot be searched in the IMS. A primary location must also exist in order to create a policy.
+3.	Create Policy
+a.	https://webservices.mgasystems.com/ims_demo/quotefunctions.asmx 
+b.	AddSubmission webmethod
+i.	Using the InsuredGUID, the ProducerContactGUID (agent), and the UnderwriterGuid from ValidCompanyLines extract. Returns the SubmissionGroupGUID for the subsequent call.
+c.	AddQuoteWithAutoCalculateDetails webmethod
+i.	Using the SubmissionGroupGUID from prior call, and data retrieved from the ValidCompanyLines extract. Returns the QuoteGUID, which represents the created Quote transaction.
+ii.	Will provide a breakdown of the required fields in subsequent call. All the supplementary fields (BusinessTypes, LocationTypes, PolicyTypes, Document Folders) can be retrieved via another DataAccess call:
+1.	DataAccess.ExecuteDataSet("SupplementaryData", null)
+2.	See breakdown below (per environment).
+d.	AutoAddQuoteOptions webmethod
+i.	Premium is added at the option level, for each line/location associated to the CompanyLine.
+ii.	For Packages, an option will be created for each Line, with the same Carrier/CompanyLocation as the Quote
+iii.	For multi-carrier, an option will be created for each Carrier/CompanyLocation.
+iv.	Can be called directly prior to adding premiums, as the QuoteOptionGUIDs returned are necessary for adding premium. 
+v.	Can be called multiple times, as it will not create new/duplicate Options.
+4.	Add Premium
+a.	https://webservices.mgasystems.com/ims_demo/quotefunctions.asmx 
+b.	This is a broader conversation that we’ll need to have, as this requires determination of whether the premium/rating data will be stored in IMS database or not.
+c.	If data will be stored in IMS DB, then you can use AddPremiumHistoric webmethod (or AddPremiumHistoricCharge, if also adding “other” premium).
+i.	Each option can have multiple components. Premium, Terrorism, Excess, Excess Terrorism, or any custom charges defined by the client.
+ii.	The IMS calculates the endorsement premium (delta) between the transactions of the IMS, so total premium should be stored for each component.
+d.	If data is NOT stored in the IMS DB, then you’re limited to AddPremium webmethod, which requires additional information.
+i.	Provides most control over billed premium, as the amount you specify is the amount we bill/invoice on bind.
+ii.	OfficeID is NOT required, you can pass -1 to use the Office specified at the Quote level.
+iii.	Requires the ChargeCode for each component under the QuoteOption being rated.
+1.	ChargeCode represents charge type and state of exposure.
+2.	Cannot have duplicate charge type/state exposures per Option
+a.	IE: Only 1 NY premium allowed. 
+b.	However, can have NY Premium, NY Terrorism, NJ Premium, NJ Terrorism, etc. under the same option.
+iv.	Does not prorate the premium at all. The premium you pass in is the premium we bill.
+e.	Fees cannot be added via this method. Fees must be configured in the IMS, and are automatically added when premium is added to the policy via these webmethods. 
+i.	They are calculated according to the rules/configurations within the IMS for fee automation.
+ii.	There are ways to create “overrides” that can pull from external sources, but still require dummy fees to be created in the IMS that are then overridden from an external source (by a separate process, after rating).
+5.	Bind
+a.	If binding the business/transaction immediately, call BindQuote/BindQuoteWithInstallment (the latter requiring the CompanyInstallmentID obtained via GetAvailableInstallmentOptions webmethod).
+b.	Return is the PolicyNumber generated from the IMS.
+c.	Note that a policy number rule is required to bind through Webservices. If a PolicyNumber is generated external to the system, then we’ll need to discuss a way to specify the PolicyNumber prior to binding.
+d.	After binding and generating the Binder document, will need to Issue the policy via the IssuePolicy webmethod.
+6.	Documents
+a.	https://webservices.mgasystems.com/ims_demo/documentfunctions.asmx 
+b.	Your likely use will be to insert docs against a policy, using the InsertDocumentOnPolicyByQuoteGuid webmethod.
+c.	All other document generation functions are done through this webservice. If you need any specific IMS based document functionality, we can discuss on an as-needed basis.
+i.	Quote: CreateQuoteDocument
+ii.	Binder: CreateBinderDocument
+1.	After policy is Bound.
+iii.	Policy: CreatePolicyDocument
+1.	After policy is Issued.
+7.	DataAccess
+a.	https://webservices.mgasystems.com/ims_demo/DataAccess.asmx
+b.	Allows creation of ad-hoc stored procedures to handle custom requested functionality.
+c.	Can be used for reporting, data retrieval, or CRUD operation.
+d.	See sample SOAP request/response attached (Demo_ValidCompanyLines_SOAP.xml).
+e.	All parameters must be passed in pairs, and optional params can simply be omitted from the call entirely.
+
+Method Definitions
+
+AddInsuredWithLocation - Insured object
+Parameter	Type	Max Length/Value	Required	Notes
+BusinessTypeID	int	255	Yes	See Table BusinessTypes
+Salutation	string	4	No	 
+FirstName	string	50	No	 
+MiddleName	string	50	No	 
+LastName	string	50	See Note	Either LastName or CorporationName are required. Pass null to the other value.
+CorporationName	string	100	See Note	Either LastName or CorporationName are required. Pass null to the other value.
+NameOnPolicy	string	200	Yes	 
+DBA	string	100	No	 
+FEIN	int	 	No	 
+SSN	int	 	No	 
+DateOfBirth	DateTime	 	No	 
+RiskId	string	 	No	
+
+AddInsuredWithLocation - InsuredLocation object
+Parameter	Type	Max Length/Value	Required	Notes
+InsuredGuid	Guid	 	Yes	As part of AddInsuredWithLocation call, not required. Otherwise, would be the return from AddInsured call.
+LocationName	string	250	Yes	 
+Address1	string	250	Yes	 
+Address2	string	250	No	 
+City	string	250	Yes	 
+County	string	50	No	 
+State	string	2	Yes	State abbreviation
+Zip	string	5	Yes	 
+ZipPlus	string	4	No	 
+ISOCountryCode	string	3	Yes	 
+Region	string	100	No	 
+LocationType	int	 	No	Duplicate, just pass a 0 value for now.
+Phone	string	12	No	 
+Fax	string	12	No	 
+Email	string	50	No*	Cannot be null if DeliveryMethodID is set to Email
+Website	string	50	No	 
+DeliveryMethodID	int	255	Yes	See Table DeliveryMethods
+LocationTypeID	int	32,767	Yes	See Table LocationTypes
+MobileNumber	string	12	No	 
+
+AddSubmission - Submission object
+Parameter	Type	Max Length/Value	Required	Notes
+Insured	Guid	 	Yes	InsuredGuid returned back from the AddInsuredWithLocation call
+ProducerContact	Guid	 	Yes	Producing Agent. 
+ProducerLocation	Guid	 	No	It's part of the original struct, but is unnecessary for this call.
+Underwriter	Guid	 	No	Must refer to entity in tblUsers. If not specified here, must be specified when creating the Quote. See Underwriter from ValidCompanyLines
+TACSR	Guid	 	No	Must refer to entity in tblUsers
+InHouseProducer	Guid	 	No	 
+SubmissionDate	DateTime	 	Yes	 
+
+
+AddQuoteWithAutoCalculateDetailsQuote - Quote object
+Parameter	Type	Max Length/Value	Required	Notes
+Submission	Guid	 	Yes	SubmissionGuid returned back from AddSubmission call
+QuotingLocation	Guid	 	Yes	QuotingAndIssuingOffice from ValidCompanyLines
+IssuingLocation	Guid	 	Yes	QuotingAndIssuingOffice from ValidCompanyLines
+CompanyLocation	Guid	 	Yes	CompanyLocationGUID from ValidCompanyLines
+Line	Guid	 	Yes	LineGUID from ValidCompanyLines
+StateID	string	2	Yes	StateID from ValidCompanyLines
+ProducerContact	Guid	 	Yes	Producing Agent (should match ProducerContact on Submission)
+QuoteStatusID	int	255	Yes	1 (Submitted quote status)
+Effective	DateTime	 	Yes	 
+Expiration	DateTime	 	Yes	 
+BillingTypeID	int	255	Yes	1 (Direct Bill – Company)
+2 (Direct Bill – MGA)
+3 (Agency Bill) 
+(BillingType from ValidCompanyLines call)
+FinanceCompany	Guid	 	No	 
+NetRateQuoteID	int	 	No*	 -1 (prevents NetRate mapping)
+QuoteDetail	struct	 	No	Not required for this call (ignored).
+ExpiringQuoteGuid	Guid	 	No	 
+Underwriter	Guid	 	Yes	UserGUID from ValidCompanyLines
+ExpiringPolicyNumber	string	50	No	 
+ExpiringCompanyLocationGuid	Guid	 	No	 
+PolicyTypeID	int	255	No	See Table PolicyTypes, if not provided (default of 0) treats as New (1)
+RenewalOfQuoteGuid	Guid	 	No	 
+OnlineRaterID	int	 	No*	Either pass 0, or the new ID that we’ll be creating for this rating product (lstRatingTypes).
+CostCenterID	int	 	Yes*	 0, or CostCenterID from ValidCompanyLines
+Additional Notes
+•	Anything bolded in the Notes column indicates a hard-coded or reference field.
+•	All Insured* fields can be ignored for this call. They are primarily used for the UpdateInsuredPolicyInformation call.
+•	Any non-required GUID fields are not nullable. Pass an empty GUID value (00000000-0000-0000-0000-000000000000) instead.
+•	OnlineRaterID requires configuration of a Rating Type in the IMS. If not provided, then the Underwriter would need to select a Rater in the IMS when clicking the Rating button.
+•	CostCenterID of 0 will get the default cost center for the QuotingLocation. If specifying a positive, non-zero value, must be valid or the Bind call will fail.
+
+Supplementary Tables
+Mostly the same across environments, though some clients use custom values. These values can also be pulled from the SupplementaryData stored procedure call through DataAccess. For Billing Types (Table4) and Document Folders (Table5) there are other methods for obtaining that data, and are not necessary at this time (they will be omitted). Billing Types you should be getting from the ValidCompanyLines call, and Document Folders are only relevant when inserting documents to the IMS via WS (although you can specify -1 to insert into the “root” of the doc store).
+
+BusinessTypes (lstBusinessTypes)
+XPath: Results/Table
+BusinessTypeID	BusinessType	Individual
+2	Partnership	0
+3	Limited Partnership	0
+4	Individual	1
+5	Other	0
+9	LLC/LLP	0
+10	Joint Venture	0
+11	Trust	0
+13	Corporation	0
+
+DeliveryMethods (lstDeliveryMethod)
+XPath: Results/Table1
+DeliveryMethodID	Description
+1	Mail
+2	Fax
+3	Email
+
+LocationTypes (lstLocationType)
+XPath: Results/Table2
+LocationTypeID	LocationType
+1	Primary
+2	Billing
+3	Mailing Office
+4	Underwriting
+5	Claims
+6	Place Holder
+
+PolicyTypes (lstPolicyTypes)
+XPath: Results/Table3
+PolicyTypeID	Description
+1	New
+2	Renewal
+3	Rewrite
+4	Courtesy Filing
+5	Broker on Record (BOR)
+6	Carrier Renewal
+7	Purchased Book of Business
+
+You already have a user account, use LoginUser if you just need the token, or LoginIMSUser if you also plan to use this account as an underwriter during Quote creation (returns the UserGUID, which can be used when an UnderwriterGUID is expected). For the time being, I’ve omitted the ProducerFunctions calls. If they are required for integration and require agent onboarding, we can re-engage on that particular part of the integration.
+

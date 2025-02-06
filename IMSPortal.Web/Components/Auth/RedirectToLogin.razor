@@ -1,0 +1,20 @@
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+@code {
+    private bool _navigated = false;
+
+    protected override void OnInitialized()
+    {
+        if (!_navigated)
+        {
+            _navigated = true;
+            NavigationManager.NavigateTo("/login", replace: true);
+        }
+    }
+
+    public void Dispose()
+    {
+        // Cleanup if needed
+    }
+} 

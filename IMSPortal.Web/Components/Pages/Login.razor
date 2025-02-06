@@ -1,0 +1,92 @@
+@page "/login"
+@using IMSPortal.Core.Models
+@using IMSPortal.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@using IMSPortal.Web.Services
+@inject NavigationManager NavigationManager
+@inject ApplicationDbContext DbContext
+@inject AuthService AuthService
+@inject ILogger<Login> Logger
+
+<PageTitle>Login</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h3>Login</h3>
+
+            <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" FormName="loginForm">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="form-group mb-3">
+                    <label for="email">Email:</label>
+                    <InputText id="email" @bind-Value="loginModel.Email" class="form-control" />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="password">Password:</label>
+                    <InputText id="password" type="password" @bind-Value="loginModel.Password" class="form-control" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger">
+                        @errorMessage
+                    </div>
+                }
+
+                <button type="submit" class="btn btn-primary">Login</button>
+            </EditForm>
+
+            <div class="mt-3">
+                Don't have an account? <a href="/register">Register here</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthService.LoginRequest loginModel = new();
+    private string errorMessage = string.Empty;
+    private bool shouldRedirect = false;
+
+    protected override void OnInitialized()
+    {
+        if (AuthService.IsAuthenticated)
+        {
+            shouldRedirect = true;
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (shouldRedirect)
+        {
+            shouldRedirect = false;
+            NavigationManager.NavigateTo("/dashboard", true);
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            var result = await AuthService.Login(loginModel);
+            if (result)
+            {
+                NavigationManager.NavigateTo("/dashboard", true);
+            }
+            else
+            {
+                errorMessage = "Invalid email or password";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Login error: {ex.Message}";
+            Logger.LogError(ex, "Login failed");
+        }
+    }
+} 

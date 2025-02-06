@@ -1,0 +1,24 @@
+@using IMSPortal.Web.Services
+@using IMSPortal.Web.Components.Pages
+@inject AuthService AuthService
+
+@if (AuthService.IsAuthenticated)
+{
+    <Dashboard />
+}
+else
+{
+    <Login />
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        AuthService.OnAuthenticationStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthenticationStateChanged -= StateHasChanged;
+    }
+} 

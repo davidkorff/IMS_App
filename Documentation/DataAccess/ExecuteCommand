@@ -1,0 +1,113 @@
+DataAccess
+
+
+Click here for a complete list of operations.
+
+ExecuteCommand
+This method will call a stored procedure directly in the IMS database and return the result as an object. Use this method when expecting a single or no result from the database. The procedureName being passed in will be suffixed with '_WS' to prevent the calling of base procedures. The parameters must be passed in as ParameterName followed by Value.
+
+Test
+The test form is only available for methods with primitive types as parameters.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/Dataaccess.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/DataAccess/ExecuteCommand"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <ExecuteCommand xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+      <procedureName>string</procedureName>
+      <parameters>
+        <string>string</string>
+        <string>string</string>
+      </parameters>
+    </ExecuteCommand>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <ExecuteCommandResponse xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+      <ExecuteCommandResult>string</ExecuteCommandResult>
+    </ExecuteCommandResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/Dataaccess.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <ExecuteCommand xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+      <procedureName>string</procedureName>
+      <parameters>
+        <string>string</string>
+        <string>string</string>
+      </parameters>
+    </ExecuteCommand>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <ExecuteCommandResponse xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+      <ExecuteCommandResult>string</ExecuteCommandResult>
+    </ExecuteCommandResponse>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP GET
+The following is a sample HTTP GET request and response. The placeholders shown need to be replaced with actual values.
+
+GET /ims_demo/Dataaccess.asmx/ExecuteCommand?procedureName=string&parameters=string&parameters=string HTTP/1.1
+Host: webservices.mgasystems.com
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<string xmlns="http://tempuri.org/IMSWebServices/DataAccess">string</string>
+HTTP POST
+The following is a sample HTTP POST request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/Dataaccess.asmx/ExecuteCommand HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: length
+
+procedureName=string&parameters=string&parameters=string
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<string xmlns="http://tempuri.org/IMSWebServices/DataAccess">string</string>

@@ -1,0 +1,54 @@
+Authentication
+JSON Web Token
+JSON Web Token (JWT, usually pronounced ‘jot’) is an Internet standard for creating JSON-based access tokens that assert some number of claims. In the case of AIM web services, the /authenticate endpoint receives a login request, and upon succefful login, responds with a generated token that contains the claim "logged in as user USERX with role ROLE_USER ". The client could then use that token on subsequent requests to secured endpoints, to prove that it is logged in as USERX.
+
+The generated JWT is signed by the server’s private key, so that it cannot be altered, and the server is able to verify that the token is legitimate. The tokens are designed to be compact, URL-safe, and usable especially in a web-browsers, single-sign-on (SSO) contexts, and in all HTTP/HTTPS channels. JWT claims can be typically used to pass the identity of authenticated users between an identity provider and a service provider, or any other type of claims as required by your business processes.
+
+Obtaining a JWT
+A JWT is obtained by making a POST request to the /authenticate endpoint with a request as shown below:
+
+request
+
+POST /authenticate HTTP/1.1
+Content-Type: application/aim.api.v1+json;charset=UTF-8
+Content-Length: 34
+Accept: application/aim.api.v1+json;charset=UTF-8
+Host: localhost:8080
+
+{"username":"ws","password":"aim"}
+In particular the JSON object should contain the following properties:
+
+request JSON fields
+
+Path	Type	Required	Constraints	Description
+username	String	Yes	max length = 50	The username of the AIM user account.
+password	String	Yes	max length = any	The clear text web services password assigned to the AIM user.
+curl request example
+
+$ curl 'http://localhost:8080/authenticate' -i -X POST \
+    -H 'Content-Type: application/aim.api.v1+json;charset=UTF-8' \
+    -H 'Accept: application/aim.api.v1+json;charset=UTF-8' \
+    -d '{"username":"ws","password":"aim"}'
+Upon successful authentication, the service will response with a JSON object containing a single property named “token”. The value of this property is the url safe text of the actual JWT token.
+
+response
+
+HTTP/1.1 200 OK
+Content-Type: application/aim.api.v1+json;charset=UTF-8
+Content-Length: 182
+
+{"token":"eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ3cyIsImV4cCI6MTU5NTk0NTQ2NiwiaWF0IjoxNTk1OTI3NDY2fQ.EH_H3I8SRtfnorZU8pb-7HBxXSsgALCq0Lvw9qZTVMGOpmb7NL4ip9dAl4WifU1SwAitVExtNZSWWfHLh7mAqQ"}
+Using the JWT
+Once a valid JWT has been acquired, using it is as simple as adding an “Authorization” header to all requests made to secured endpoint requests. Since the JWT is in fact a form of a “bearer token”, the value of the Authorization header should start with the word “Bearer” followed by a space, and then the value of the JWT “token” value returned in the JSON response to your successful request to the /authenticate endpoint.
+
+authenticated request
+
+GET /api/quotes/000700014 HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ3cyIsImV4cCI6MTU4MjYyMjI3MiwiaWF0IjoxNTgyNjA0MjcyfQ.x6cSndnwBbg880tFtCrVZDn6GAPHRZZupTmAPGmIvXLqtFP6kQMN9CYiXeejvMRGqbLGgllMpJbrqjJB0MvwpQ
+Accept: application/aim.api.v1+json;charset=UTF-8
+Host: localhost:8080
+curl request example
+
+$ curl 'http://localhost:8080/api/quotes/000700014' -i -X GET \
+    -H 'Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ3cyIsImV4cCI6MTU4MjYyMjI3MiwiaWF0IjoxNTgyNjA0MjcyfQ.x6cSndnwBbg880tFtCrVZDn6GAPHRZZupTmAPGmIvXLqtFP6kQMN9CYiXeejvMRGqbLGgllMpJbrqjJB0MvwpQ' \
+    -H 'Accept: application/aim.api.v1+json;charset=UTF-8'

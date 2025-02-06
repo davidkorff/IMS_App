@@ -1,0 +1,11 @@
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\bin\Debug\net9.0\IMSPortal.Core.deps.json
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\bin\Debug\net9.0\IMSPortal.Core.dll
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\bin\Debug\net9.0\IMSPortal.Core.pdb
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\obj\Debug\net9.0\IMSPortal.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\obj\Debug\net9.0\IMSPortal.Core.AssemblyInfoInputs.cache
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\obj\Debug\net9.0\IMSPortal.Core.AssemblyInfo.cs
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\obj\Debug\net9.0\IMSPortal.Core.csproj.CoreCompileInputs.cache
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\obj\Debug\net9.0\IMSPortal.Core.dll
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\obj\Debug\net9.0\refint\IMSPortal.Core.dll
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\obj\Debug\net9.0\IMSPortal.Core.pdb
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Core\obj\Debug\net9.0\ref\IMSPortal.Core.dll

@@ -1,0 +1,17 @@
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\bin\Debug\net9.0\IMSPortal.Infrastructure.deps.json
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\bin\Debug\net9.0\IMSPortal.Infrastructure.runtimeconfig.json
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\bin\Debug\net9.0\IMSPortal.Infrastructure.dll
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\bin\Debug\net9.0\IMSPortal.Infrastructure.pdb
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\bin\Debug\net9.0\IMSPortal.Core.dll
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\bin\Debug\net9.0\IMSPortal.Core.pdb
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\IMSPortal.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\IMSPortal.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\IMSPortal.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\IMSPortal.Infrastructure.AssemblyInfo.cs
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\IMSPortal.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\IMSPorta.774BBDBF.Up2Date
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\IMSPortal.Infrastructure.dll
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\refint\IMSPortal.Infrastructure.dll
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\IMSPortal.Infrastructure.pdb
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\IMSPortal.Infrastructure.genruntimeconfig.cache
+C:\Users\david\OneDrive\Documents\IMS_Application\IMSPortal.Infrastructure\obj\Debug\net9.0\ref\IMSPortal.Infrastructure.dll

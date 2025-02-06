@@ -1,0 +1,108 @@
+Logon
+
+
+Click here for a complete list of operations.
+
+LoginIMSUser
+Test
+To test the operation using the HTTP POST protocol, click the 'Invoke' button.
+Parameter	Value
+userName:	
+tripleDESEncryptedPassword:	
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/logon.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/Logon/LoginIMSUser"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <LoginIMSUser xmlns="http://tempuri.org/IMSWebServices/Logon">
+      <userName>string</userName>
+      <tripleDESEncryptedPassword>string</tripleDESEncryptedPassword>
+    </LoginIMSUser>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <LoginIMSUserResponse xmlns="http://tempuri.org/IMSWebServices/Logon">
+      <LoginIMSUserResult>
+        <UserGuid>guid</UserGuid>
+        <Token>guid</Token>
+      </LoginIMSUserResult>
+    </LoginIMSUserResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/logon.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <LoginIMSUser xmlns="http://tempuri.org/IMSWebServices/Logon">
+      <userName>string</userName>
+      <tripleDESEncryptedPassword>string</tripleDESEncryptedPassword>
+    </LoginIMSUser>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <LoginIMSUserResponse xmlns="http://tempuri.org/IMSWebServices/Logon">
+      <LoginIMSUserResult>
+        <UserGuid>guid</UserGuid>
+        <Token>guid</Token>
+      </LoginIMSUserResult>
+    </LoginIMSUserResponse>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP GET
+The following is a sample HTTP GET request and response. The placeholders shown need to be replaced with actual values.
+
+GET /ims_demo/logon.asmx/LoginIMSUser?userName=string&tripleDESEncryptedPassword=string HTTP/1.1
+Host: webservices.mgasystems.com
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<LoginReturn xmlns="http://tempuri.org/IMSWebServices/Logon">
+  <UserGuid>guid</UserGuid>
+  <Token>guid</Token>
+</LoginReturn>
+HTTP POST
+The following is a sample HTTP POST request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/logon.asmx/LoginIMSUser HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: length
+
+userName=string&tripleDESEncryptedPassword=string
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<LoginReturn xmlns="http://tempuri.org/IMSWebServices/Logon">
+  <UserGuid>guid</UserGuid>
+  <Token>guid</Token>
+</LoginReturn>

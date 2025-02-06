@@ -1,0 +1,127 @@
+IMS Web Services.
+Introduction
+
+There is a small subset of IMS functionality that we expose through webservices that allows for external and vendor integrations. This allows for integrations to perform various functions such as managing insureds and producers, creating new submissions and quotes, generating documents, as well as implementing custom functionality through a simplified data access service. These base webservices should provide all the needed tools for implementing external integrations with the IMS product, and they continue to evolve as specific functions are deemed necessary for clients. We also provide custom webservices, which integrate entirely with the base IMS webservices, extending functions not currently possible through the base web service, and created on an as needed basis.
+Technologies
+
+The IMS webservices are created using .NET 4.0, hosted on IIS servers. They share the same requirements as the IMS, and utilize the same set of dependent libraries (particularly, Active Reports 9). We offer hosting solutions for the webservices, as most clients do not have the necessary infrastructure to either host or expose these services outside their internal domain. Each deployment is capable of utilizing existing IMS functionality developed within their customization assemblies or through client developed reporting libraries.
+Current versions of the IMS webservices utilize a shared set of base assemblies, which compromise the core of IMS specific functionality. They serve multiple IMS webservice applications, as well as provide a core framework for custom webservices to utilize within the same application domain.
+Requests to the IMS webservices are done using SOAP messages. 
+Overview
+
+The webservices are separated by the systems/entities in which they modify. The base web services consist of the following set of 8 ASMX webservices, in order of typical usage:
+Logon.asmx
+
+Used for authenticating external systems for use with the rest of the webservices. This particular service allows either IMS users or various contacts within the IMS system (Insured contacts, Producer contacts, Company contacts) to get an authentication token, which is then included as a SOAP header for all subsequent webservice calls.
+Clearance.asmx
+
+For all functions related to Clearance search within the IMS. The functions of this webservice take a given set of insured data (name, address, SSN/FEIN, etc), and match it to an existing IMS Insured entity, with a matching similarity score to indicate how likely the match is. For external systems containing their own clearance functionality (or for systems with direct IMS DB access), this service could be bypassed entirely. However, serious consideration needs to be made towards creating duplicate insureds within the IMS, and how that affects the client’s business model.
+InsuredFunctions.asmx
+
+For all functions related to creating and managing Insured entities within the IMS. This webservice allows for: creation of Insureds, Insured contacts, and Insured locations; updating of existing Insureds; retrieving Insured information from different sources of data; and obtaining policy info for a given Insured. The GUID’s obtained during creation of Insured based entities should be stored and/or used for subsequent calls to other webservices.
+ProducerFunctions.asmx
+
+For all functions related to creating and managing Producer entities within the IMS. This webservice allows for: creation of Producers, Producer contacts, Producer locations, Producer requirements, and Producer licenses; updating of existing Producer contacts; deleting Producer contacts; searching for Producers and Producer contacts given a set of criteria; retrieving Producer information from different sources of data; and managing Producer contact special types (used for specific functionality within the IMS). The GUID’s obtained during creation of Producer based entities should be stored and/or used for subsequent calls to other webservices.
+QuoteFunctions.asmx
+
+For all functions related to the creation and management of Quotes (the base record for Policies) within the IMS. This webservice allows for: creation of Submissions; creation of Quote records; adding Quote options; updating of Quote data; adding premium to a Quote; importing and rating of NetRate XML data; updating Quote status/reason; and binding a Policy. The QuoteGuid obtained from the various Quote creation methods must be stored in order to utilize subsequent webservices. 
+DocumentFunctions.asmx
+
+For all functions related to the creation, insertion, and retrieval of Documents in the IMS. This webservice is highly customizable from within the IMS through Document Automation of base/custom events. This webservice allows for: creation of Binder documents; creation of issued Policy documents; creation of documents for any specified Automation Event in the IMS; inserting of documents to various associated IMS entities; and retrieving documents from the IMS document store. 
+DataAccess.asmx
+
+For all functions related to simple Data Access via custom stored procedures. This webservice will not allow any stored procedure to be run, and must be created explicitly for this purpose (named with the “_WS” suffix). Anything that can be done via stored procedure is acceptable, and some examples include: importing rating XML from vendor integrations; querying premiums/rates; insertion of underwriting locations; and modification of Quote data. 
+ 
+Data Structures
+
+All entities within the IMS follow the same structure. Namely, for each base entity type, there exist 1…n locations, and for each location there exist 1…n contacts. Each location can have a different Type specified, indicating primary/secondary locations (with specific types applicable to each entity type itself). These additional entity types are indicated within the webservice itself via enumeration (enum) values. For purposes of this document, Entity refers to the base type, with Location referring to an Entity location, and Contact referring to an Entity contact.
+ 
+
+ 
+The basic hierarchical data structure in the IMS begins with the insured at the highest level. Under each insured, multiple submissions can exist from any number of producers. These “submission groups” are a way of grouping one or more quotes under one submission.
+ 
+
+ 
+Quotes are the basic building block of a policy within the IMS, and consist of 3 parts: the Quote itself, which holds the policy insured and producer information (which are stored at the Quote level, but can be updated/modified from base entities on request), assigned underwriter/TA/CSR, and company line information (Company Location, Line of Coverage, and Issuing State); Quote Details, which indicate the line(s) written for the policy, with associated rater/factor set, terms of payment, and commission structure; and Quote Options, which hold the rated premiums/fees for the policy. Each Quote Option must have a corresponding Quote Detail record, and package/multi-company policies will have multiple Quote Detail/Option records.
+ 
+
+Details for creating/managing each of these structures will be included in the implementation details and examples for each of the discussed webservices. Please keep in mind that even with an understanding of how the IMS operates, you will likely need specific details for integrating with the IMS through these services, as a lot of information is required before getting started (lines, companies, commission structures, raters, etc.).
+ 
+Setup
+
+We request that new deployments all follow a typical standard, so as to make updating and managing the different webservices easier. If no deployment is necessary (they already exist, or client already hosts), then proceed to the next section.
+Preparation
+
+The webservices require roughly 300 MB of space, and likely require consistent maintenance to ensure temporary resources are freed up. Although they work as any other web application (create an application in IIS as a virtual directory), we recommend keeping all webservices and shared base within the same physical location on the drive.
+Create a new physical directory at <Drive>:\MGASystems\WS on the drive of your choice. This is where all deployments will go. There will be a Shared directory under this path, which will be all the base IMS assemblies that will be referenced by all IMS webservice applications (unified base ensures the same functionality among the different environments). Every environment being hosted being hosted will have its own folder in this physical directory, named ims_<environment>, where <environment> refers to the specific version of the client environment we’re dealing with (e.g. clienttest, clientprod, clientqa, etc).
+Deployment
+
+The deployment itself will consist of at a minimum 2 archives: the current Shared directory (typically of the format IMS.WS.Shared.YYYY.MM.DD.zip, with the YYYY.MM.DD portion indicating the last updated version); and the base (IMS.WS.Base.YYYY.MM.DD.zip). If any customization assemblies are required, we will either package them up with the base webservices archive, or create an additional archive for you to deploy in the root of the web application itself.  As an example, here are the IMS preview webservices:
+ 
+Each environment can be created from the same set of base assemblies, but will require some additional setup in the web.config of each application. 
+Setup
+
+Now that the webservices are deployed, we need to update the web.config for each application we want to use. Open up the web.config in your text editor of choice (with admin privileges). Navigate to the appSettings section, as we need to update some settings specific to each environment.
+ 
+Each highlighted section needs to be configured for the current environment.
+1.	SharedDependenciesPath
+a.	Refers to the Shared directory you deployed from the first archive. This should be <Drive>:\MGASystems\WS\Shared.
+2.	AsposeVersion
+a.	Most new clients will be using V2, as V1 is legacy version of a library we use for document generation.
+b.	If you are unsure, we will provide which version to use.
+3.	ClientID
+a.	This is a unique ID assigned to the client for purposes of submitting error reports to our system.
+b.	Should be the same for all environments of a given client.
+c.	Certain handled errors are captured by the WS and submitted to our Support Center. This helps us troubleshoot any issues with deployments or functionality from both an IMS and webservice perspective.
+4.	Connection string
+a.	This is the connection string to the IMS database itself.
+b.	This webservice will have direct access to the DB, so if you are unable to access the database from this particular environment, the webservices will not work.
+c.	We provide a very basic tool to test access given a connection string.
+With the exception of the connection string, all the other data should be the same for all environments.
+Configuration
+
+The final step is to configure IIS to use this new application. Be sure IIS is installed, as well as all Windows Features related to IIS (.NET 2.0, 3.5, and 4.5; ASP and ASP.NET; ISAPI filters and extensions; all IIS Common HTTP Features; IIS Security; etc.). This should be done before attempting to configure the IMS webservices. If these features are missing, you will likely get HTTP 500 errors and configuration errors with the application itself when viewing any ASMX files locally. We have deployed to all versions of IIS from 6 up to 8.5.
+Keep in mind that this document does not discuss how to setup IIS or the webservices for external access. That needs to be coordinated with the local IT team that will be hosting the webservices. We assume that a website is already setup and configured for external access (the Default Web Site created on IIS installation is typically good enough), so we will simply be creating the webservices as web applications underneath an already accessible website.
+We’ve also had clients create each webservice as a standalone website, with each website being assigned a unique IP/port binding. This is not recommend, as managing the services requires intimate knowledge of the network topology, and creates confusion when attempting to troubleshoot.
+Application Pool
+
+First thing we will do is setup an application pool specifically for the IMS webservices. While you can create an app pool for each environment, a single one is recommended to service all environments. Create the application pool, running under .NET 4.0 under integrated mode, and select which Identity to run the application as after it is created. You can use the default ApplicationPoolIdentity, which resolves to the IUSR account on the local machine, but be sure to set the permissions on the base <Drive>:\MGASystems\WS folder to ensure it is able to access the Shared directory, as well as the applications themselves.
+ 
+Web Application
+
+Now we create the actual application itself in IIS. Right-click on the web site in IIS, and select Add Application:
+ 
+In IIS 6, this will be New  Virtual Directory:
+ 
+The Alias should be the name of the directory under <Drive>:\MGASystems\WS (which we suggested as ims_<environment>). For the MGA examples I provided earlier, this is what one of the Add Application dialog will look like:
+ 
+In IIS 6, you will need to go through the wizard, first setting the Alias, then the physical path, then the access permissions (select Read, Run Scripts, and Execute permissions). After it is created, you will need to right-click on the created application, go to Properties, set the Application Pool in the Virtual Directory tab, and finally set the .NET framework version to v4.0 in the ASP.NET tab.
+Verification
+
+Now that the webservices are created in IIS, we need to verify the settings are correct and the application starts up. Within IIS, click on any of the created web application, and select the Content View tab:
+ 
+Right-click on any ASMX page, and select Browse. Assuming the website itself is configured properly, you should see a webmethod listing for the ASMX page you are viewing. For example, here’s the Clearance.asmx listing for the created ims_development webservice.
+ 
+On application start, we perform significant setup of the application domain. This involves registering all functionality and types of any customization assemblies, verifying the connection string is valid, and setting up necessary IMS state for subsequent calls. If any process fails, we will know at this stage of the process.
+Usage
+
+The webservices themselves will get discussed in greater detail at the end of the document. For now, we begin with the typical steps involved with authenticating and using the webservices in the order discussed in the overview, as well as some notes about each step.
+Authenticating
+
+The first step is to get an authentication token from the Logon webservice. There are two methods for doing this: as an external contact, or as an IMS user. 
+External contacts are created within the IMS itself, and require an existing external program code (created by MGA Systems). Since we can create any number of external programs, we could theoretically use the different programs to control access to certain parts of an external site/integration (as access needs to be explicitly given within the IMS).
+Webservices
+
+This section will include the description of the most commonly used web methods for each webservice listed. As such, this is not a complete listing, as many of the overrides are rather self-explanatory (different parameters to accomplish the same task). There are many that will likely not be applicable to all integrations. If the listed web methods do not provide the necessary functionality, then we can provide direction as to which web method would be most suitable (or create one, if the need arises). 
+Logon.asmx
+
+The Logon webservices provide a means for external applications to authenticate against the rest of the webservice functionality. The primary goal is to get back a login token (a Guid) that will be included as a Soap header in all subsequent calls. This token is valid for 1 hour from authentication, and is tied into the originating IP that made the initial login request. Keep that in mind in case the integration shares the token across multiple function calls in a load balanced or server farm environment, as you will get an error indicating the IP address does not match.
+Login
+Parameters:
+      <programCode>string</programCode>
+      <contactType>string</contactType>
+      <email>string</email>
+      <password>string</password>
+      <projectName>string</projectName>
+
+Program code is a 5 character string (must be 5 characters) that is specified within the IMS itself. 

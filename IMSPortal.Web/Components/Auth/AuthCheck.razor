@@ -1,0 +1,13 @@
+@using IMSPortal.Web.Services
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!AuthService.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+    }
+} 

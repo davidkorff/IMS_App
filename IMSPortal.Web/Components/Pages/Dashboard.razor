@@ -1,0 +1,70 @@
+@page "/dashboard"
+@using IMSPortal.Core.Models
+@using IMSPortal.Infrastructure.Data
+@using IMSPortal.Web.Components.Auth
+@using IMSPortal.Web.Services
+@using Microsoft.AspNetCore.Authorization
+@inject NavigationManager NavigationManager
+@inject ApplicationDbContext DbContext
+@inject AuthService AuthService
+@attribute [Authorize]
+@implements IDisposable
+
+<PageTitle>Dashboard</PageTitle>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col">
+            <h1>Welcome to your Dashboard</h1>
+            
+            @if (AuthService.CurrentUser != null)
+            {
+                <p>Logged in as: @AuthService.CurrentUser.Email</p>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">IMS Instances</h5>
+                    <p class="card-text">Manage your IMS instances</p>
+                    <a href="/ims-instances" class="btn btn-primary">View Instances</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">External Connections</h5>
+                    <p class="card-text">Manage database connections</p>
+                    <a href="/connections" class="btn btn-primary">View Connections</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Cron Jobs</h5>
+                    <p class="card-text">Manage scheduled tasks</p>
+                    <a href="/cron-jobs" class="btn btn-primary">View Jobs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        AuthService.OnAuthenticationStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        AuthService.OnAuthenticationStateChanged -= StateHasChanged;
+    }
+} 
