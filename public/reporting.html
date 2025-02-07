@@ -30,6 +30,11 @@
             align-items: center;
         }
 
+        .header div {
+            display: flex;
+            gap: 10px;  /* Space between buttons */
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -129,6 +134,7 @@
             border-radius: 8px;
             padding: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--accent-color);
         }
 
         .report-card h3 {
@@ -146,12 +152,155 @@
             max-height: 90vh;
             overflow-y: auto;
         }
+
+        .dataTables_wrapper {
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .results-table {
+            width: 100% !important;
+            margin-top: 15px;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 12px !important;
+            white-space: nowrap !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px !important;
+            line-height: 1.2 !important;
+            height: 20px !important;
+        }
+
+        .results-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .results-table tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .add-report-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px dashed var(--secondary-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            min-height: 200px;
+            text-align: center;
+        }
+
+        .add-report-card:hover {
+            background: #f8f9fa;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .parameter-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .parameter-row select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-hint {
+            color: #666;
+            font-size: 0.8em;
+            margin-top: 4px;
+            display: block;
+        }
     </style>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- DataTables CSS & JS -->
+    <link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 </head>
 <body>
     <div class="header">
         <h1>IMS Reports</h1>
-        <button class="btn btn-danger" onclick="logout()">Logout</button>
+        <div>
+            <button class="btn btn-danger" onclick="logout()">Logout</button>
+        </div>
     </div>
 
     <div class="container">
@@ -163,6 +312,11 @@
             <h2>Available Reports</h2>
             <div class="reports-grid" id="reportsGrid">
                 <!-- Reports will be populated here -->
+                <div class="card add-report-card" onclick="addReport()">
+                    <div>
+                        <h3>+ Add New Report</h3>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -173,17 +327,39 @@
             <span class="close" onclick="closeResultsModal()">&times;</span>
             <h2 id="modalReportName"></h2>
             <div id="reportResults">
-                <table class="results-table">
-                    <thead id="resultsHeader">
-                    </thead>
-                    <tbody id="resultsBody">
-                    </tbody>
-                </table>
+                <!-- DataTable will be inserted here -->
             </div>
-            <div class="modal-buttons">
-                <button class="btn btn-primary" onclick="downloadCurrentReport()">Download CSV</button>
-                <button class="btn" onclick="closeResultsModal()">Close</button>
+            <div class="modal-buttons mt-3">
+                <button class="btn btn-secondary" onclick="closeResultsModal()">Close</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Add Report Modal -->
+    <div id="addReportModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddReportModal()">&times;</span>
+            <h2>Add New Report</h2>
+            <form id="addReportForm" onsubmit="handleAddReport(event)">
+                <div class="form-group">
+                    <label for="reportName">Procedure Name</label>
+                    <input type="text" id="reportName" required 
+                           placeholder="e.g., ExcelRating_RateOption4_WS">
+                    <small class="form-hint">Stored Proc must end in _WS</small>
+                </div>
+                <div class="form-group">
+                    <label for="displayName">Display Name</label>
+                    <input type="text" id="displayName" required 
+                           placeholder="e.g., Excel Rating Report">
+                </div>
+                <div id="parameterFields">
+                    <!-- Dynamic parameter fields will be added here -->
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn" onclick="closeAddReportModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Test Report</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -224,7 +400,8 @@
 
         async function loadAvailableReports() {
             try {
-                const response = await fetch('/api/reports/available', {
+                const instanceId = window.location.pathname.split('/')[2];
+                const response = await fetch(`/api/reports/available`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -258,12 +435,23 @@
                 `;
                 grid.appendChild(card);
             });
+
+            // Add the "Add New Report" card
+            const addCard = document.createElement('div');
+            addCard.className = 'card add-report-card';
+            addCard.onclick = addReport;
+            addCard.innerHTML = `
+                <div>
+                    <h3>+ Add New Report</h3>
+                </div>
+            `;
+            grid.appendChild(addCard);
         }
 
         async function runReport(report) {
             document.getElementById('modalReportName').textContent = report.name;
             document.getElementById('resultsModal').style.display = 'block';
-            document.getElementById('resultsBody').innerHTML = '<tr><td colspan="100%" class="loading">Loading report data...</td></tr>';
+            document.getElementById('reportResults').innerHTML = '<div class="loading">Loading report data...</div>';
 
             try {
                 const response = await fetch('/api/reports/run', {
@@ -337,37 +525,65 @@
 
             } catch (err) {
                 console.error('Error running report:', err);
-                document.getElementById('resultsBody').innerHTML = `
-                    <tr><td colspan="100%" style="color: red;">
+                document.getElementById('reportResults').innerHTML = `
+                    <div class="alert alert-danger">
                         Error loading report data: ${err.message}. Please try again.
-                    </td></tr>
+                    </div>
                 `;
             }
         }
 
         function displayResults(data, columns) {
-            const headerRow = document.getElementById('resultsHeader');
-            const resultsBody = document.getElementById('resultsBody');
-
-            // Set up headers
-            headerRow.innerHTML = columns.map(col => 
-                `<th>${col.header}</th>`
-            ).join('');
-
-            // Clear and populate results
-            resultsBody.innerHTML = '';
-
-            if (!data || data.length === 0) {
-                resultsBody.innerHTML = `<tr><td colspan="${columns.length}">No results found</td></tr>`;
-                return;
+            const resultsTable = document.getElementById('reportResults');
+            
+            // Destroy existing DataTable if it exists
+            if ($.fn.DataTable.isDataTable('#resultsTable')) {
+                $('#resultsTable').DataTable().destroy();
             }
 
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = columns.map(col => 
-                    `<td>${row[col.field] || ''}</td>`
-                ).join('');
-                resultsBody.appendChild(tr);
+            // Create table structure
+            resultsTable.innerHTML = `
+                <table id="resultsTable" class="results-table display">
+                    <thead>
+                        <tr>
+                            ${columns.map(col => `<th>${col.header}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(row => `
+                            <tr>
+                                ${columns.map(col => `
+                                    <td>${row[col.field] || ''}</td>
+                                `).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            // Initialize DataTable with options
+            $('#resultsTable').DataTable({
+                responsive: true,
+                pageLength: 25,
+                scrollX: true,
+                scrollY: '500px',
+                scrollCollapse: true,
+                dom: 'Bfrtip',
+                buttons: [
+                    'copy', 'csv', 'excel', 'pdf', 'print'
+                ],
+                columnDefs: [{
+                    targets: '_all',
+                    render: function(data, type, row) {
+                        if (type === 'display' && data != null) {
+                            return `<span title="${data}">${data.length > 30 ? data.substr(0, 30) + '...' : data}</span>`;
+                        }
+                        return data;
+                    }
+                }],
+                initComplete: function() {
+                    this.api().columns.adjust();
+                }
             });
         }
 
@@ -401,6 +617,168 @@
                 ...data.map(row => headers.map(header => JSON.stringify(row[header])).join(','))
             ];
             return rows.join('\n');
+        }
+
+        function addReport() {
+            document.getElementById('addReportModal').style.display = 'block';
+        }
+
+        function closeAddReportModal() {
+            document.getElementById('addReportModal').style.display = 'none';
+            document.getElementById('addReportForm').reset();
+            document.getElementById('parameterFields').innerHTML = '';
+            const submitButton = document.querySelector('#addReportForm button[type="submit"]');
+            submitButton.textContent = 'Test Report';
+        }
+
+        async function handleAddReport(event) {
+            event.preventDefault();
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            const isTestingPhase = submitButton.textContent === 'Test Report';
+            submitButton.disabled = true;
+
+            try {
+                if (isTestingPhase) {
+                    // Testing phase
+                    let procedureName = document.getElementById('reportName').value;
+                    // Remove _WS if present before testing
+                    procedureName = procedureName.replace(/_WS$/, '');
+                    
+                    const response = await fetch('/api/reports/test', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({
+                            instanceId: currentInstance.instance_id,
+                            procedureName: procedureName
+                        })
+                    });
+
+                    const result = await response.text();
+                    const paramMatch = result.match(/expects parameter '([^']+)'/);
+                    
+                    if (paramMatch) {
+                        const paramName = paramMatch[1];
+                        addParameterField(paramName);
+                        submitButton.textContent = 'Save Report';
+                    } else if (response.ok) {
+                        // No parameters needed, ready to save
+                        submitButton.textContent = 'Save Report';
+                    } else {
+                        throw new Error('Failed to test report: ' + result);
+                    }
+                } else {
+                    // Saving phase
+                    let procedureName = document.getElementById('reportName').value;
+                    // Remove _WS if present before saving
+                    procedureName = procedureName.replace(/_WS$/, '');
+                    
+                    const displayName = document.getElementById('displayName').value;
+                    const parameters = {};
+                    
+                    // Collect all parameter values with their types
+                    document.querySelectorAll('#parameterFields .parameter-row').forEach(row => {
+                        const paramInput = row.querySelector('input');
+                        const typeSelect = row.querySelector('select');
+                        const paramName = paramInput.id.replace('param_', '');
+                        parameters[paramName] = {
+                            type: typeSelect.value,
+                            required: true
+                        };
+                    });
+
+                    await saveReport(procedureName, displayName, parameters);
+                    closeAddReportModal();
+                    loadAvailableReports();
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                alert(err.message);
+            } finally {
+                submitButton.disabled = false;
+            }
+        }
+
+        async function saveReport(procedureName, displayName, parameters) {
+            const response = await fetch('/api/reports', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    instanceId: currentInstance.instance_id,
+                    name: displayName,
+                    procedure_name: procedureName,
+                    parameters: parameters
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to save report');
+            }
+
+            alert('Report saved successfully!');
+        }
+
+        function addParameterField(paramName) {
+            const parameterFields = document.getElementById('parameterFields');
+            
+            // Only add if the field doesn't already exist
+            if (!document.getElementById(`param_${paramName}`)) {
+                const fieldDiv = document.createElement('div');
+                fieldDiv.className = 'form-group';
+                fieldDiv.innerHTML = `
+                    <div class="parameter-row">
+                        <div>
+                            <label for="param_${paramName}">${paramName}</label>
+                            <input type="text" id="param_${paramName}" required 
+                                   placeholder="Enter ${paramName}">
+                        </div>
+                        <div>
+                            <label for="type_${paramName}">Type</label>
+                            <select id="type_${paramName}" required onchange="updateInputType('${paramName}', this.value)">
+                                <option value="string">String</option>
+                                <option value="integer">Integer</option>
+                                <option value="decimal">Decimal</option>
+                                <option value="date">Date</option>
+                                <option value="datetime">DateTime</option>
+                                <option value="boolean">Boolean</option>
+                                <option value="guid">GUID</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                parameterFields.appendChild(fieldDiv);
+            }
+        }
+
+        function updateInputType(paramName, type) {
+            const input = document.getElementById(`param_${paramName}`);
+            switch(type) {
+                case 'date':
+                    input.type = 'date';
+                    break;
+                case 'datetime':
+                    input.type = 'datetime-local';
+                    break;
+                case 'integer':
+                    input.type = 'number';
+                    input.step = '1';
+                    break;
+                case 'decimal':
+                    input.type = 'number';
+                    input.step = '0.01';
+                    break;
+                case 'boolean':
+                    input.type = 'checkbox';
+                    break;
+                default:
+                    input.type = 'text';
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {

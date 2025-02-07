@@ -4,6 +4,27 @@ const auth = require('../middleware/auth');
 const reports = require('../config/reports');
 const xml2js = require('xml2js');
 
+// Add this helper function at the top of the file
+function createSoapEnvelope(procedureName, parameters = []) {
+    return `<?xml version="1.0" encoding="utf-8"?>
+        <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                      xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                      xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+            <soap:Header>
+                <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+                    <Token>${parameters.token || ''}</Token>
+                    <Context>ImsMonitoring</Context>
+                </TokenHeader>
+            </soap:Header>
+            <soap:Body>
+                <ExecuteDataSet xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+                    <procedureName>${procedureName}</procedureName>
+                    <parameters></parameters>
+                </ExecuteDataSet>
+            </soap:Body>
+        </soap:Envelope>`;
+}
+
 // Get available reports
 router.get('/available', auth, async (req, res) => {
     res.json(reports);
@@ -226,6 +247,97 @@ router.get('/test', auth, async (req, res) => {
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: error.message });
+    }
+});
+
+// Test a report procedure
+router.post('/test', auth, async (req, res) => {
+    try {
+        const { instanceId, procedureName } = req.body;
+        
+        // Get instance details
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+
+        // First, authenticate with LoginIMSUser
+        console.log('Authenticating with IMS...');
+        const loginResponse = await fetch(`${instance.rows[0].url}/logon.asmx/LoginIMSUser`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                userName: instance.rows[0].username,
+                tripleDESEncryptedPassword: instance.rows[0].password
+            })
+        });
+
+        const loginResult = await loginResponse.text();
+        console.log('Login response:', loginResult);
+
+        const tokenMatch = loginResult.match(/<Token>(.*?)<\/Token>/);
+        if (!tokenMatch) {
+            throw new Error('Could not extract token from login response');
+        }
+        const token = tokenMatch[1];
+
+        // Try to execute the procedure without parameters to see what's required
+        const response = await fetch(`${instance.rows[0].url}/DataAccess.asmx`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/xml; charset=utf-8',
+                'SOAPAction': 'http://tempuri.org/IMSWebServices/DataAccess/ExecuteDataSet'
+            },
+            body: createSoapEnvelope(procedureName, { token })
+        });
+
+        const responseText = await response.text();
+        console.log('Test response:', responseText);
+
+        res.send(responseText);
+
+    } catch (err) {
+        console.error('Error testing report:', err);
+        res.status(500).json({ message: 'Failed to test report', error: err.message });
+    }
+});
+
+// Get reports for an instance
+router.get('/:instanceId', auth, async (req, res) => {
+    try {
+        const reports = await pool.query(
+            'SELECT * FROM ims_reports WHERE instance_id = $1',
+            [req.params.instanceId]
+        );
+        res.json(reports.rows);
+    } catch (err) {
+        console.error('Error getting reports:', err);
+        res.status(500).json({ message: 'Failed to get reports', error: err.message });
+    }
+});
+
+// Save a new report
+router.post('/', auth, async (req, res) => {
+    try {
+        const { instanceId, name, procedure_name, parameters } = req.body;
+        
+        const result = await pool.query(
+            `INSERT INTO ims_reports (instance_id, name, procedure_name, parameters)
+             VALUES ($1, $2, $3, $4)
+             RETURNING *`,
+            [instanceId, name, procedure_name, parameters]
+        );
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Error saving report:', err);
+        res.status(500).json({ message: 'Failed to save report', error: err.message });
     }
 });
 
