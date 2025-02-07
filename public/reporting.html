@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMS Reporting</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+            --warning-color: #f1c40f;
+            --danger-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f6fa;
+        }
+
+        .header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .nav-links {
+            margin-bottom: 20px;
+        }
+
+        .nav-links a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .report-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .report-filters {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .results-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #666;
+        }
+
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .report-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .report-card h3 {
+            margin: 0 0 10px 0;
+            color: var(--primary-color);
+        }
+
+        .report-card p {
+            color: #666;
+            margin: 0 0 15px 0;
+        }
+
+        .modal-large {
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>IMS Reports</h1>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="container">
+        <div class="nav-links">
+            <a href="#" onclick="goBack()">← Back to Instance</a>
+        </div>
+
+        <div class="reports-list">
+            <h2>Available Reports</h2>
+            <div class="reports-grid" id="reportsGrid">
+                <!-- Reports will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Modal -->
+    <div id="resultsModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" onclick="closeResultsModal()">&times;</span>
+            <h2 id="modalReportName"></h2>
+            <div id="reportResults">
+                <table class="results-table">
+                    <thead id="resultsHeader">
+                    </thead>
+                    <tbody id="resultsBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" onclick="downloadCurrentReport()">Download CSV</button>
+                <button class="btn" onclick="closeResultsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentInstance = null;
+        let currentReportData = null;
+
+        function goBack() {
+            const instanceId = window.location.pathname.split('/')[2];
+            window.location.href = `/instance/${instanceId}`;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/index.html';
+        }
+
+        async function loadInstanceDetails() {
+            const instanceId = window.location.pathname.split('/')[2];
+            try {
+                const response = await fetch(`/api/instances/${instanceId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load instance details');
+                }
+
+                currentInstance = await response.json();
+                loadAvailableReports();
+            } catch (err) {
+                console.error('Error loading instance:', err);
+                alert('Failed to load instance details');
+            }
+        }
+
+        async function loadAvailableReports() {
+            try {
+                const response = await fetch('/api/reports/available', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load reports');
+                }
+
+                const reports = await response.json();
+                displayReports(reports);
+            } catch (err) {
+                console.error('Error loading reports:', err);
+                alert('Failed to load available reports');
+            }
+        }
+
+        function displayReports(reports) {
+            const grid = document.getElementById('reportsGrid');
+            grid.innerHTML = '';
+
+            reports.forEach(report => {
+                const card = document.createElement('div');
+                card.className = 'report-card';
+                card.innerHTML = `
+                    <h3>${report.name}</h3>
+                    <p>${report.description}</p>
+                    <button class="btn btn-primary" onclick='runReport(${JSON.stringify(report)})'>
+                        Run Report
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function runReport(report) {
+            document.getElementById('modalReportName').textContent = report.name;
+            document.getElementById('resultsModal').style.display = 'block';
+            document.getElementById('resultsBody').innerHTML = '<tr><td colspan="100%" class="loading">Loading report data...</td></tr>';
+
+            try {
+                const response = await fetch('/api/reports/run', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        reportId: report.id
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to run report');
+                }
+
+                const xmlText = await response.text();
+                console.log('Raw XML response:', xmlText);
+
+                // Extract the Results XML from the SOAP response
+                const resultsMatch = xmlText.match(/<ExecuteDataSetResult>(.*?)<\/ExecuteDataSetResult>/s);
+                if (!resultsMatch) {
+                    console.log('No ExecuteDataSetResult found in response');
+                    throw new Error('Could not find results in response');
+                }
+
+                // Decode the HTML entities in the XML
+                const decodedXML = resultsMatch[1]
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&amp;/g, '&');
+                console.log('Decoded XML:', decodedXML);
+
+                // Parse the XML to JSON
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(decodedXML, "text/xml");
+                const tables = xmlDoc.getElementsByTagName('Table');
+                
+                if (tables.length === 0) {
+                    throw new Error('No data found in response');
+                }
+
+                // Get columns from the first row
+                const firstRow = tables[0];
+                const columns = Array.from(firstRow.children).map(child => ({
+                    field: child.tagName,
+                    header: child.tagName.replace(/([A-Z])/g, ' $1').trim() // Add spaces between camel case
+                }));
+
+                // Parse all rows
+                const submissions = Array.from(tables).map(table => {
+                    const data = {};
+                    Array.from(table.children).forEach(child => {
+                        data[child.tagName] = child.textContent;
+                    });
+                    return data;
+                });
+
+                console.log('Columns:', columns);
+                console.log('Parsed submissions:', submissions);
+                
+                // Store the current report data for download
+                currentReportData = {
+                    data: submissions,
+                    columns: columns
+                };
+
+                displayResults(submissions, columns);
+
+            } catch (err) {
+                console.error('Error running report:', err);
+                document.getElementById('resultsBody').innerHTML = `
+                    <tr><td colspan="100%" style="color: red;">
+                        Error loading report data: ${err.message}. Please try again.
+                    </td></tr>
+                `;
+            }
+        }
+
+        function displayResults(data, columns) {
+            const headerRow = document.getElementById('resultsHeader');
+            const resultsBody = document.getElementById('resultsBody');
+
+            // Set up headers
+            headerRow.innerHTML = columns.map(col => 
+                `<th>${col.header}</th>`
+            ).join('');
+
+            // Clear and populate results
+            resultsBody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                resultsBody.innerHTML = `<tr><td colspan="${columns.length}">No results found</td></tr>`;
+                return;
+            }
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = columns.map(col => 
+                    `<td>${row[col.field] || ''}</td>`
+                ).join('');
+                resultsBody.appendChild(tr);
+            });
+        }
+
+        function closeResultsModal() {
+            document.getElementById('resultsModal').style.display = 'none';
+        }
+
+        function downloadCurrentReport() {
+            if (!currentReportData) {
+                alert('Please run the report first');
+                return;
+            }
+
+            const csvContent = convertToCSV(currentReportData.data);
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `submissions_report_${new Date().toISOString()}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function convertToCSV(data) {
+            if (!data || !data.length) return '';
+            const headers = Object.keys(data[0]);
+            const rows = [
+                headers.join(','),
+                ...data.map(row => headers.map(header => JSON.stringify(row[header])).join(','))
+            ];
+            return rows.join('\n');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/index.html';
+            } else {
+                loadInstanceDetails();
+            }
+        });
+    </script>
+</body>
+</html> 
