@@ -27,16 +27,52 @@ function createSoapEnvelope(procedureName, parameters = []) {
 
 // Get available reports
 router.get('/available', auth, async (req, res) => {
-    res.json(reports);
+    try {
+        // Get instanceId from query params
+        const instanceId = req.query.instanceId;
+        
+        if (!instanceId) {
+            return res.status(400).json({ message: 'Instance ID is required' });
+        }
+
+        console.log('Fetching reports for instance:', instanceId);
+        
+        // Fetch reports from database for this instance
+        const result = await pool.query(
+            `SELECT 
+                report_id as id,
+                name,
+                procedure_name as procedure,
+                parameters,
+                created_at
+             FROM ims_reports 
+             WHERE instance_id = $1
+             ORDER BY created_at DESC`,
+            [instanceId]
+        );
+
+        console.log('Query result:', result.rows);
+        res.json(result.rows);
+        
+    } catch (err) {
+        // Detailed error logging
+        console.error('Database Error:', err);
+        console.error('Error Stack:', err.stack);
+        res.status(500).json({ 
+            message: 'Failed to fetch reports', 
+            error: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
+    }
 });
 
-// Run a report
+// Run a report with parameters
 router.post('/run', auth, async (req, res) => {
-    console.log('POST /api/reports/run called');
-    console.log('Running report');
     try {
-        const { instanceId, reportId } = req.body;
-        
+        const { instanceId, reportId, parameters } = req.body;
+        console.log('\n=== Starting Report Run ===');
+        console.log('Input:', { instanceId, reportId, parameters });
+
         // Get instance details
         const instance = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
@@ -47,13 +83,37 @@ router.post('/run', auth, async (req, res) => {
             return res.status(404).json({ message: 'Instance not found' });
         }
 
-        const report = reports.find(r => r.id === reportId);
-        if (!report) {
+        // Get report details from database
+        const reportResult = await pool.query(
+            'SELECT * FROM ims_reports WHERE report_id = $1',
+            [reportId]
+        );
+
+        if (reportResult.rows.length === 0) {
             return res.status(404).json({ message: 'Report not found' });
         }
 
+        const report = reportResult.rows[0];
+        console.log('Report config:', report);
+
+        // Remove _WS suffix if it exists, as the service will add it automatically
+        const procedureName = report.procedure_name.endsWith('_WS') 
+            ? report.procedure_name.slice(0, -3)  // Remove _WS suffix
+            : report.procedure_name;
+
+        console.log('Using base procedure name:', procedureName);
+
+        // Format parameters as separate key and value strings
+        const formattedParams = [];
+        Object.entries(parameters).forEach(([key, value]) => {
+            const paramName = key.startsWith('@') ? key : `@${key}`;
+            formattedParams.push(`<string>${paramName}</string>`);  // Key
+            formattedParams.push(`<string>${value}</string>`);      // Value
+        });
+
+        console.log('Formatted parameters:', formattedParams);
+
         // First, authenticate with LoginIMSUser
-        console.log('Authenticating with IMS...');
         const loginResponse = await fetch(`${instance.rows[0].url}/logon.asmx/LoginIMSUser`, {
             method: 'POST',
             headers: {
@@ -73,8 +133,9 @@ router.post('/run', auth, async (req, res) => {
             throw new Error('Could not extract token from login response');
         }
         const token = tokenMatch[1];
-        
-        // Create SOAP envelope for the report request
+        console.log('Using token:', token);
+
+        // Create SOAP envelope
         const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
                xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
@@ -87,15 +148,16 @@ router.post('/run', auth, async (req, res) => {
     </soap:Header>
     <soap:Body>
         <ExecuteDataSet xmlns="http://tempuri.org/IMSWebServices/DataAccess">
-            <procedureName>GetSubmissions</procedureName>
-            <parameters></parameters>
+            <procedureName>${procedureName}</procedureName>
+            <parameters>
+                ${formattedParams.join('\n                ')}
+            </parameters>
         </ExecuteDataSet>
     </soap:Body>
 </soap:Envelope>`;
 
-        console.log('\n=== SOAP Request XML ===\n', soapEnvelope, '\n=====================\n');
+        console.log('\n=== SOAP Request ===\n', soapEnvelope);
 
-        // Make the SOAP request
         const response = await fetch(`${instance.rows[0].url}/DataAccess.asmx`, {
             method: 'POST',
             headers: {
@@ -105,18 +167,84 @@ router.post('/run', auth, async (req, res) => {
             body: soapEnvelope
         });
 
-        console.log('Response status:', response.status);
         const responseText = await response.text();
-        console.log('\n=== SOAP Response ===\n', responseText, '\n==================\n');
+        console.log('\n=== SOAP Response ===\n', responseText);
 
-        // Send the raw XML response back to the client
-        res.send(responseText);
+        // Check for SOAP fault and parameter requirements
+        if (responseText.includes('soap:Fault')) {
+            // Check for missing parameter
+            const paramMatch = responseText.match(/expects parameter '(@[^']+)'/);
+            if (paramMatch) {
+                console.log('Found required parameter:', paramMatch[1]);
+                return res.json({ 
+                    status: 'parameter_required',
+                    parameter: paramMatch[1]
+                });
+            }
+            
+            // Check for parameter format issues
+            if (responseText.includes('Parameters must be specified in Key/Value pairs')) {
+                const faultMatch = responseText.match(/<faultstring>(.*?)<\/faultstring>/s);
+                return res.json({
+                    status: 'error',
+                    message: faultMatch ? faultMatch[1].trim() : 'Parameter format error'
+                });
+            }
+            
+            // Extract error message from SOAP fault
+            const faultMatch = responseText.match(/<faultstring>(.*?)<\/faultstring>/s);
+            throw new Error(faultMatch ? faultMatch[1].trim() : 'Unknown SOAP error');
+        }
+
+        // Extract the Results XML from the SOAP response
+        const resultsMatch = responseText.match(/<ExecuteDataSetResult>(.*?)<\/ExecuteDataSetResult>/s);
+        if (!resultsMatch) {
+            throw new Error('Could not find results in response');
+        }
+
+        // Decode the HTML entities in the XML
+        const decodedXML = resultsMatch[1]
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&');
+
+        console.log('Decoded XML:', decodedXML);
+
+        // Parse the XML to JSON
+        const parser = new xml2js.Parser({ 
+            explicitArray: false,
+            valueProcessors: [xml2js.processors.parseNumbers],
+            attrValueProcessors: [xml2js.processors.parseNumbers],
+            explicitRoot: false  // Add this option
+        });
+        
+        const result = await new Promise((resolve, reject) => {
+            parser.parseString(decodedXML, (err, result) => {
+                if (err) {
+                    console.error('XML parsing error:', err);
+                    reject(err);
+                } else {
+                    console.log('Parsed result:', result);
+                    resolve(result);
+                }
+            });
+        });
+
+        // Ensure we have a consistent format for single vs multiple rows
+        let finalResult = result;
+        if (result && result.Table && !Array.isArray(result.Table)) {
+            finalResult = { Table: [result.Table] };
+        }
+
+        console.log('Final formatted result:', finalResult);
+        res.json(finalResult);
 
     } catch (err) {
         console.error('Error running report:', err);
         res.status(500).json({ 
             message: 'Failed to run report',
-            error: err.message 
+            error: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
     }
 });
@@ -250,61 +378,100 @@ router.get('/test', auth, async (req, res) => {
     }
 });
 
-// Test a report procedure
+// Test a report procedure to discover required parameters
 router.post('/test', auth, async (req, res) => {
     try {
         const { instanceId, procedureName } = req.body;
-        
+        console.log('Testing procedure:', { instanceId, procedureName });
+
         // Get instance details
-        const instance = await pool.query(
+        const instanceResult = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
             [instanceId, req.user.user_id]
         );
 
-        if (instance.rows.length === 0) {
+        if (instanceResult.rows.length === 0) {
             return res.status(404).json({ message: 'Instance not found' });
         }
 
+        const instance = instanceResult.rows[0];
+
         // First, authenticate with LoginIMSUser
-        console.log('Authenticating with IMS...');
-        const loginResponse = await fetch(`${instance.rows[0].url}/logon.asmx/LoginIMSUser`, {
+        const loginResponse = await fetch(`${instance.url}/logon.asmx/LoginIMSUser`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: new URLSearchParams({
-                userName: instance.rows[0].username,
-                tripleDESEncryptedPassword: instance.rows[0].password
+                userName: instance.username,
+                tripleDESEncryptedPassword: instance.password
             })
         });
 
         const loginResult = await loginResponse.text();
-        console.log('Login response:', loginResult);
-
         const tokenMatch = loginResult.match(/<Token>(.*?)<\/Token>/);
         if (!tokenMatch) {
             throw new Error('Could not extract token from login response');
         }
         const token = tokenMatch[1];
 
-        // Try to execute the procedure without parameters to see what's required
-        const response = await fetch(`${instance.rows[0].url}/DataAccess.asmx`, {
+        // Create SOAP envelope with empty parameters to discover required ones
+        const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Header>
+        <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+            <Token>${token}</Token>
+            <Context>ImsMonitoring</Context>
+        </TokenHeader>
+    </soap:Header>
+    <soap:Body>
+        <ExecuteDataSet xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+            <procedureName>${procedureName}</procedureName>
+            <parameters></parameters>
+        </ExecuteDataSet>
+    </soap:Body>
+</soap:Envelope>`;
+
+        console.log('Sending SOAP request:', soapEnvelope);
+
+        const response = await fetch(`${instance.url}/DataAccess.asmx`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'text/xml; charset=utf-8',
                 'SOAPAction': 'http://tempuri.org/IMSWebServices/DataAccess/ExecuteDataSet'
             },
-            body: createSoapEnvelope(procedureName, { token })
+            body: soapEnvelope
         });
 
         const responseText = await response.text();
-        console.log('Test response:', responseText);
+        console.log('SOAP Response:', responseText);
 
-        res.send(responseText);
+        // Check for parameter requirement in the error message
+        if (responseText.includes('soap:Fault')) {
+            const paramMatch = responseText.match(/expects parameter '(@[^']+)'/);
+            if (paramMatch) {
+                return res.json({ 
+                    status: 'parameter_required',
+                    parameter: paramMatch[1]
+                });
+            }
+            
+            // Extract error message from SOAP fault
+            const faultMatch = responseText.match(/<faultstring>(.*?)<\/faultstring>/s);
+            throw new Error(faultMatch ? faultMatch[1].trim() : 'Unknown SOAP error');
+        }
+
+        // If we get here, the procedure executed successfully with no parameters
+        res.json({ status: 'success' });
 
     } catch (err) {
-        console.error('Error testing report:', err);
-        res.status(500).json({ message: 'Failed to test report', error: err.message });
+        console.error('Error testing procedure:', err);
+        res.status(500).json({ 
+            message: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
     }
 });
 

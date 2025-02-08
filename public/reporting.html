@@ -218,8 +218,8 @@
 
         .modal-content {
             background: white;
-            width: 90%;
-            max-width: 500px;
+            width: 95%;
+            max-width: 1200px;
             margin: 50px auto;
             padding: 20px;
             border-radius: 8px;
@@ -285,6 +285,25 @@
             margin-top: 4px;
             display: block;
         }
+
+        #reportResults {
+            margin-top: 20px;
+            padding: 10px;
+        }
+
+        .dataTables_wrapper {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        table.dataTable {
+            width: 100% !important;
+            margin: 0 !important;
+        }
+
+        .dt-buttons {
+            margin-bottom: 15px;
+        }
     </style>
     
     <!-- jQuery -->
@@ -294,6 +313,13 @@
     <link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css">
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
 </head>
 <body>
     <div class="header">
@@ -323,14 +349,18 @@
 
     <!-- Results Modal -->
     <div id="resultsModal" class="modal">
-        <div class="modal-content modal-large">
-            <span class="close" onclick="closeResultsModal()">&times;</span>
-            <h2 id="modalReportName"></h2>
-            <div id="reportResults">
-                <!-- DataTable will be inserted here -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalReportName"></h2>
+                <span class="close" onclick="closeResultsModal()">&times;</span>
             </div>
-            <div class="modal-buttons mt-3">
-                <button class="btn btn-secondary" onclick="closeResultsModal()">Close</button>
+            <div class="modal-body">
+                <form id="parameterForm">
+                    <!-- Parameter inputs will be added here dynamically -->
+                </form>
+                <div id="reportResults" style="width: 100%; overflow-x: auto;">
+                    <!-- Results will be displayed here -->
+                </div>
             </div>
         </div>
     </div>
@@ -374,34 +404,53 @@
 
         function logout() {
             localStorage.removeItem('token');
+            sessionStorage.clear();
             window.location.href = '/index.html';
         }
 
         async function loadInstanceDetails() {
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                console.log('No token found, redirecting to login');
+                window.location.href = '/index.html';
+                return;
+            }
+
             const instanceId = window.location.pathname.split('/')[2];
             try {
                 const response = await fetch(`/api/instances/${instanceId}`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     }
                 });
 
+                if (response.status === 401) {
+                    console.log('Token expired or invalid, redirecting to login');
+                    localStorage.removeItem('token');
+                    window.location.href = '/index.html';
+                    return;
+                }
+
                 if (!response.ok) {
-                    throw new Error('Failed to load instance details');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 currentInstance = await response.json();
+                console.log('Instance loaded:', currentInstance);
                 loadAvailableReports();
             } catch (err) {
                 console.error('Error loading instance:', err);
-                alert('Failed to load instance details');
+                alert('Failed to load instance details. Please try logging in again.');
+                window.location.href = '/index.html';
             }
         }
 
         async function loadAvailableReports() {
             try {
                 const instanceId = window.location.pathname.split('/')[2];
-                const response = await fetch(`/api/reports/available`, {
+                const response = await fetch(`/api/reports/available?instanceId=${instanceId}`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -428,8 +477,9 @@
                 card.className = 'report-card';
                 card.innerHTML = `
                     <h3>${report.name}</h3>
-                    <p>${report.description}</p>
-                    <button class="btn btn-primary" onclick='runReport(${JSON.stringify(report)})'>
+                    <p>${report.description || 'No description available'}</p>
+                    <p class="text-muted">Procedure: ${report.procedure}</p>
+                    <button class="btn btn-primary" onclick='showReportForm(${JSON.stringify(report)})'>
                         Run Report
                     </button>
                 `;
@@ -449,11 +499,21 @@
         }
 
         async function runReport(report) {
-            document.getElementById('modalReportName').textContent = report.name;
-            document.getElementById('resultsModal').style.display = 'block';
-            document.getElementById('reportResults').innerHTML = '<div class="loading">Loading report data...</div>';
-
             try {
+                const parameterForm = document.getElementById('parameterForm');
+                const resultsDiv = document.getElementById('reportResults');
+                
+                // Get parameter values
+                const parameters = {};
+                const paramInputs = document.querySelectorAll('.parameter-input');
+                paramInputs.forEach(input => {
+                    const paramName = input.dataset.paramName;
+                    parameters[paramName] = input.value;
+                });
+
+                console.log('Running report with parameters:', parameters);
+                resultsDiv.innerHTML = '<div class="loading">Running report...</div>';
+
                 const response = await fetch('/api/reports/run', {
                     method: 'POST',
                     headers: {
@@ -462,129 +522,128 @@
                     },
                     body: JSON.stringify({
                         instanceId: currentInstance.instance_id,
-                        reportId: report.id
+                        reportId: report.id,
+                        parameters: parameters
                     })
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to run report');
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to run report');
                 }
 
-                const xmlText = await response.text();
-                console.log('Raw XML response:', xmlText);
+                const result = await response.json();
+                console.log('Report results:', result);
 
-                // Extract the Results XML from the SOAP response
-                const resultsMatch = xmlText.match(/<ExecuteDataSetResult>(.*?)<\/ExecuteDataSetResult>/s);
-                if (!resultsMatch) {
-                    console.log('No ExecuteDataSetResult found in response');
-                    throw new Error('Could not find results in response');
+                if (!result || !result.Table || result.Table.length === 0) {
+                    resultsDiv.innerHTML = '<p>No results found</p>';
+                    return;
                 }
 
-                // Decode the HTML entities in the XML
-                const decodedXML = resultsMatch[1]
-                    .replace(/&lt;/g, '<')
-                    .replace(/&gt;/g, '>')
-                    .replace(/&amp;/g, '&');
-                console.log('Decoded XML:', decodedXML);
-
-                // Parse the XML to JSON
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(decodedXML, "text/xml");
-                const tables = xmlDoc.getElementsByTagName('Table');
-                
-                if (tables.length === 0) {
-                    throw new Error('No data found in response');
+                // Destroy existing DataTable if it exists
+                if ($.fn.DataTable.isDataTable('#resultsTable')) {
+                    $('#resultsTable').DataTable().destroy();
                 }
 
-                // Get columns from the first row
-                const firstRow = tables[0];
-                const columns = Array.from(firstRow.children).map(child => ({
-                    field: child.tagName,
-                    header: child.tagName.replace(/([A-Z])/g, ' $1').trim() // Add spaces between camel case
-                }));
+                // Create table structure
+                const headers = Object.keys(result.Table[0]);
+                let tableHtml = `
+                    <table id="resultsTable" class="display">
+                        <thead>
+                            <tr>
+                                ${headers.map(h => `<th>${h}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${result.Table.map(row => `
+                                <tr>
+                                    ${headers.map(header => {
+                                        let value = row[header] || '';
+                                        if (value && (header.toLowerCase().includes('date') || header.toLowerCase().includes('created'))) {
+                                            try {
+                                                value = new Date(value).toLocaleString();
+                                            } catch (e) {
+                                                console.warn('Failed to format date:', value);
+                                            }
+                                        }
+                                        return `<td>${value}</td>`;
+                                    }).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
 
-                // Parse all rows
-                const submissions = Array.from(tables).map(table => {
-                    const data = {};
-                    Array.from(table.children).forEach(child => {
-                        data[child.tagName] = child.textContent;
-                    });
-                    return data;
+                resultsDiv.innerHTML = tableHtml;
+
+                // Initialize DataTable
+                $('#resultsTable').DataTable({
+                    dom: 'Bfrtip',
+                    buttons: [
+                        'copy', 'csv', 'excel'
+                    ],
+                    pageLength: 25,
+                    order: [[0, 'asc']],
+                    scrollX: true,
+                    scrollY: '400px',
+                    scrollCollapse: true,
+                    fixedHeader: true
                 });
-
-                console.log('Columns:', columns);
-                console.log('Parsed submissions:', submissions);
-                
-                // Store the current report data for download
-                currentReportData = {
-                    data: submissions,
-                    columns: columns
-                };
-
-                displayResults(submissions, columns);
 
             } catch (err) {
                 console.error('Error running report:', err);
-                document.getElementById('reportResults').innerHTML = `
+                resultsDiv.innerHTML = `
                     <div class="alert alert-danger">
-                        Error loading report data: ${err.message}. Please try again.
+                        Error: ${err.message}
                     </div>
                 `;
             }
         }
 
-        function displayResults(data, columns) {
-            const resultsTable = document.getElementById('reportResults');
+        // Add this function to handle the initial report click
+        function showReportForm(report) {
+            const modal = document.getElementById('resultsModal');
+            const parameterForm = document.getElementById('parameterForm');
+            const resultsDiv = document.getElementById('reportResults');
             
-            // Destroy existing DataTable if it exists
-            if ($.fn.DataTable.isDataTable('#resultsTable')) {
-                $('#resultsTable').DataTable().destroy();
+            // Clear previous content
+            parameterForm.innerHTML = '';
+            resultsDiv.innerHTML = '';
+            
+            // Set modal title
+            document.getElementById('modalReportName').textContent = report.name;
+            
+            // Create parameter inputs
+            if (report.parameters) {
+                Object.entries(report.parameters).forEach(([paramName, paramType]) => {
+                    const div = document.createElement('div');
+                    div.className = 'form-group';
+                    div.innerHTML = `
+                        <label for="${paramName}">${paramName}</label>
+                        <input type="text" 
+                               id="${paramName}"
+                               class="parameter-input"
+                               data-param-name="${paramName}"
+                               data-param-type="${paramType}"
+                               required>
+                    `;
+                    parameterForm.appendChild(div);
+                });
             }
 
-            // Create table structure
-            resultsTable.innerHTML = `
-                <table id="resultsTable" class="results-table display">
-                    <thead>
-                        <tr>
-                            ${columns.map(col => `<th>${col.header}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.map(row => `
-                            <tr>
-                                ${columns.map(col => `
-                                    <td>${row[col.field] || ''}</td>
-                                `).join('')}
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
+            // Add run button
+            const runButton = document.createElement('button');
+            runButton.textContent = 'Run Report';
+            runButton.className = 'btn btn-primary';
+            runButton.type = 'button';
+            runButton.onclick = (e) => {
+                e.preventDefault();
+                runReport(report);
+            };
+            parameterForm.appendChild(runButton);
 
-            // Initialize DataTable with options
-            $('#resultsTable').DataTable({
-                responsive: true,
-                pageLength: 25,
-                scrollX: true,
-                scrollY: '500px',
-                scrollCollapse: true,
-                dom: 'Bfrtip',
-                buttons: [
-                    'copy', 'csv', 'excel', 'pdf', 'print'
-                ],
-                columnDefs: [{
-                    targets: '_all',
-                    render: function(data, type, row) {
-                        if (type === 'display' && data != null) {
-                            return `<span title="${data}">${data.length > 30 ? data.substr(0, 30) + '...' : data}</span>`;
-                        }
-                        return data;
-                    }
-                }],
-                initComplete: function() {
-                    this.api().columns.adjust();
-                }
-            });
+            // Show modal
+            modal.style.display = 'block';
         }
 
         function closeResultsModal() {
@@ -639,11 +698,13 @@
 
             try {
                 if (isTestingPhase) {
-                    // Testing phase
+                    console.log('Starting test phase...');
                     let procedureName = document.getElementById('reportName').value;
-                    // Remove _WS if present before testing
                     procedureName = procedureName.replace(/_WS$/, '');
                     
+                    console.log('Testing procedure:', procedureName);
+                    console.log('Current instance:', currentInstance);
+
                     const response = await fetch('/api/reports/test', {
                         method: 'POST',
                         headers: {
@@ -656,18 +717,24 @@
                         })
                     });
 
-                    const result = await response.text();
-                    const paramMatch = result.match(/expects parameter '([^']+)'/);
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error('Test response error:', errorData);
+                        throw new Error(errorData.message || 'Failed to test report');
+                    }
+
+                    const result = await response.json();
+                    console.log('Test result:', result);
                     
-                    if (paramMatch) {
-                        const paramName = paramMatch[1];
-                        addParameterField(paramName);
+                    if (result.status === 'parameter_required') {
+                        console.log('Adding parameter field:', result.parameter);
+                        addParameterField(result.parameter);
                         submitButton.textContent = 'Save Report';
-                    } else if (response.ok) {
-                        // No parameters needed, ready to save
+                    } else if (result.status === 'success') {
+                        console.log('No parameters needed');
                         submitButton.textContent = 'Save Report';
                     } else {
-                        throw new Error('Failed to test report: ' + result);
+                        throw new Error('Unexpected test result: ' + JSON.stringify(result));
                     }
                 } else {
                     // Saving phase
@@ -683,10 +750,7 @@
                         const paramInput = row.querySelector('input');
                         const typeSelect = row.querySelector('select');
                         const paramName = paramInput.id.replace('param_', '');
-                        parameters[paramName] = {
-                            type: typeSelect.value,
-                            required: true
-                        };
+                        parameters[paramName] = typeSelect.value;
                     });
 
                     await saveReport(procedureName, displayName, parameters);
@@ -694,7 +758,7 @@
                     loadAvailableReports();
                 }
             } catch (err) {
-                console.error('Error:', err);
+                console.error('Error in handleAddReport:', err);
                 alert(err.message);
             } finally {
                 submitButton.disabled = false;
@@ -784,10 +848,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             const token = localStorage.getItem('token');
             if (!token) {
+                console.log('No token found on page load, redirecting to login');
                 window.location.href = '/index.html';
-            } else {
-                loadInstanceDetails();
+                return;
             }
+            loadInstanceDetails();
         });
     </script>
 </body>
