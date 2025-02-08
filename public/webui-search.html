@@ -179,10 +179,23 @@
 
         async function searchPolicies(event) {
             event.preventDefault();
-            const controlNo = document.getElementById('controlNumber').value;
-            const customerName = document.getElementById('customerName').value;
+            const controlNo = document.getElementById('controlNumber').value.trim();
+            const customerName = document.getElementById('customerName').value.trim();
 
-            console.log('Searching with:', { controlNo, customerName });
+            console.log('Raw inputs:', { controlNo, customerName });
+
+            // Create search parameters object
+            const searchParams = {
+                instanceId: currentInstance.instance_id
+            };
+
+            // Only add parameters if they have values
+            if (controlNo) {
+                searchParams.controlNo = controlNo;
+            }
+            if (customerName) {
+                searchParams.customerName = customerName;
+            }
 
             // Require at least one search field
             if (!controlNo && !customerName) {
@@ -197,11 +210,7 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
-                    body: JSON.stringify({
-                        instanceId: currentInstance.instance_id,
-                        controlNo: controlNo || null,
-                        customerName: customerName || null
-                    })
+                    body: JSON.stringify(searchParams)
                 });
 
                 if (!response.ok) {
@@ -210,11 +219,6 @@
 
                 const results = await response.json();
                 console.log('Search response:', results);
-                
-                // Check if we have any results
-                const policies = results[0]?.Table || [];
-                console.log('Policies to display:', policies);
-                
                 displayResults(results);
             } catch (err) {
                 console.error('Error:', err);

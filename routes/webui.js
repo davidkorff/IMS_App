@@ -68,7 +68,8 @@ router.get('/api/instances/:id/webui', auth, async (req, res) => {
 router.post('/search', auth, async (req, res) => {
     try {
         const { instanceId, controlNo, customerName } = req.body;
-        console.log('Search parameters:', { controlNo, customerName });
+        
+        console.log('Received parameters:', { controlNo, customerName });
 
         // Get instance details
         const instance = await pool.query(
@@ -80,19 +81,27 @@ router.post('/search', auth, async (req, res) => {
             return res.status(404).json({ message: 'Instance not found' });
         }
 
+        // Build parameters object - only include parameters that were sent
+        const parameters = {};
+        if (controlNo !== undefined) {
+            parameters.controlno = controlNo;
+        }
+        if (customerName !== undefined) {
+            parameters.customername = customerName;
+        }
+
+        console.log('Executing procedure with parameters:', parameters);
+
         // Call the stored procedure using dataAccess service
         const results = await dataAccess.executeProc({
             url: instance.rows[0].url,
             username: instance.rows[0].username,
             password: instance.rows[0].password,
             procedure: 'DK_Submission_Search_WS',
-            parameters: {
-                controlno: controlNo || null,
-                customername: customerName || null
-            }
+            parameters
         });
 
-        console.log('Raw SP results:', results);
+        console.log('Result count:', results.Table?.length || 0);
         res.json(results);
     } catch (err) {
         console.error('Search error:', err);
