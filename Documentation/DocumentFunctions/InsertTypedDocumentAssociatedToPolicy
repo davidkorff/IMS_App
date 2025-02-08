@@ -1,0 +1,91 @@
+DocumentFunctions
+
+
+Click here for a complete list of operations.
+
+InsertTypedDocumentAssociatedToPolicy
+Inserts a document into the IMS Document System, associating it To the specified policy, And also allowing the sender To also specify the 'type' of the document.
+
+Test
+The test form is only available for requests from the local machine.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/DocumentFunctions.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/DocumentFunctions/InsertTypedDocumentAssociatedToPolicy"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <InsertTypedDocumentAssociatedToPolicy xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <userGuid>guid</userGuid>
+      <fileName>string</fileName>
+      <fileData>base64Binary</fileData>
+      <typeGuid>guid</typeGuid>
+      <description>string</description>
+      <policyNumber>string</policyNumber>
+      <entityName>string</entityName>
+    </InsertTypedDocumentAssociatedToPolicy>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <InsertTypedDocumentAssociatedToPolicyResponse xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <InsertTypedDocumentAssociatedToPolicyResult>guid</InsertTypedDocumentAssociatedToPolicyResult>
+    </InsertTypedDocumentAssociatedToPolicyResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/DocumentFunctions.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <InsertTypedDocumentAssociatedToPolicy xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <userGuid>guid</userGuid>
+      <fileName>string</fileName>
+      <fileData>base64Binary</fileData>
+      <typeGuid>guid</typeGuid>
+      <description>string</description>
+      <policyNumber>string</policyNumber>
+      <entityName>string</entityName>
+    </InsertTypedDocumentAssociatedToPolicy>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <InsertTypedDocumentAssociatedToPolicyResponse xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <InsertTypedDocumentAssociatedToPolicyResult>guid</InsertTypedDocumentAssociatedToPolicyResult>
+    </InsertTypedDocumentAssociatedToPolicyResponse>
+  </soap12:Body>
+</soap12:Envelope>

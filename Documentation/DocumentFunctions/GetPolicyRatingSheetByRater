@@ -1,0 +1,93 @@
+DocumentFunctions
+
+
+Click here for a complete list of operations.
+
+GetPolicyRatingSheetByRater
+Returns the associated Excel spreadsheet used to rate the policy. Specifying -1 as the RaterID will attempt to resolve to a single spreadsheet, and will throw an exception if multiple are found. Throws an exception if not allowed by the system or not rated using an Excel spreadsheet.
+
+Test
+The test form is only available for requests from the local machine.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/DocumentFunctions.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/DocumentFunctions/GetPolicyRatingSheetByRater"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <GetPolicyRatingSheetByRater xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <QuoteGuid>guid</QuoteGuid>
+      <RaterID>int</RaterID>
+    </GetPolicyRatingSheetByRater>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetPolicyRatingSheetByRaterResponse xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <GetPolicyRatingSheetByRaterResult>
+        <Name>string</Name>
+        <Data>base64Binary</Data>
+        <Description>string</Description>
+        <MetaXml>string</MetaXml>
+        <CopyForwardOnRenewal>boolean</CopyForwardOnRenewal>
+      </GetPolicyRatingSheetByRaterResult>
+    </GetPolicyRatingSheetByRaterResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/DocumentFunctions.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <GetPolicyRatingSheetByRater xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <QuoteGuid>guid</QuoteGuid>
+      <RaterID>int</RaterID>
+    </GetPolicyRatingSheetByRater>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <GetPolicyRatingSheetByRaterResponse xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <GetPolicyRatingSheetByRaterResult>
+        <Name>string</Name>
+        <Data>base64Binary</Data>
+        <Description>string</Description>
+        <MetaXml>string</MetaXml>
+        <CopyForwardOnRenewal>boolean</CopyForwardOnRenewal>
+      </GetPolicyRatingSheetByRaterResult>
+    </GetPolicyRatingSheetByRaterResponse>
+  </soap12:Body>
+</soap12:Envelope>

@@ -1,0 +1,89 @@
+DocumentFunctions
+
+
+Click here for a complete list of operations.
+
+CreateQuoteDocumentResult
+Creates the quote document result, with filename and DocumentStoreGuid.
+[Setting: Webservices.Documents.Quote.MarkOptions] Marks all options as Quoted.
+[Setting: Webservices.Documents.OFAC.CheckOnQuote] Performs compliance check if Quote specified is original, unbound transaction.
+
+Test
+The test form is only available for requests from the local machine.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/DocumentFunctions.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/DocumentFunctions/CreateQuoteDocumentResult"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <CreateQuoteDocumentResult xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <quoteGuid>guid</quoteGuid>
+    </CreateQuoteDocumentResult>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <CreateQuoteDocumentResultResponse xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <CreateQuoteDocumentResultResult>
+        <DocumentStoreGuid>guid</DocumentStoreGuid>
+        <Filename>string</Filename>
+        <Data>base64Binary</Data>
+      </CreateQuoteDocumentResultResult>
+    </CreateQuoteDocumentResultResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/DocumentFunctions.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <CreateQuoteDocumentResult xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <quoteGuid>guid</quoteGuid>
+    </CreateQuoteDocumentResult>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <CreateQuoteDocumentResultResponse xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <CreateQuoteDocumentResultResult>
+        <DocumentStoreGuid>guid</DocumentStoreGuid>
+        <Filename>string</Filename>
+        <Data>base64Binary</Data>
+      </CreateQuoteDocumentResultResult>
+    </CreateQuoteDocumentResultResponse>
+  </soap12:Body>
+</soap12:Envelope>

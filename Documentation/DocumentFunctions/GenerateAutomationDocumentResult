@@ -1,0 +1,91 @@
+DocumentFunctions
+
+
+Click here for a complete list of operations.
+
+GenerateAutomationDocumentResult
+Generates policy event document for the specified QuoteGUID, result includes filename and DocumentStoreGuid. If generating Policy Issued event, calls the CreatePolicyDocument method.
+
+Test
+The test form is only available for requests from the local machine.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/DocumentFunctions.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/DocumentFunctions/GenerateAutomationDocumentResult"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <GenerateAutomationDocumentResult xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <quoteGuid>guid</quoteGuid>
+      <eventGuid>guid</eventGuid>
+      <printTypeId>int</printTypeId>
+    </GenerateAutomationDocumentResult>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GenerateAutomationDocumentResultResponse xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <GenerateAutomationDocumentResultResult>
+        <DocumentStoreGuid>guid</DocumentStoreGuid>
+        <Filename>string</Filename>
+        <Data>base64Binary</Data>
+      </GenerateAutomationDocumentResultResult>
+    </GenerateAutomationDocumentResultResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_demo/DocumentFunctions.asmx HTTP/1.1
+Host: webservices.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <GenerateAutomationDocumentResult xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <quoteGuid>guid</quoteGuid>
+      <eventGuid>guid</eventGuid>
+      <printTypeId>int</printTypeId>
+    </GenerateAutomationDocumentResult>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <GenerateAutomationDocumentResultResponse xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+      <GenerateAutomationDocumentResultResult>
+        <DocumentStoreGuid>guid</DocumentStoreGuid>
+        <Filename>string</Filename>
+        <Data>base64Binary</Data>
+      </GenerateAutomationDocumentResultResult>
+    </GenerateAutomationDocumentResultResponse>
+  </soap12:Body>
+</soap12:Envelope>
