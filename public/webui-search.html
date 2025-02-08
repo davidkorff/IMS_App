@@ -110,6 +110,13 @@
         .results-table tr:hover {
             background: #f5f5f5;
         }
+
+        .form-hint {
+            display: block;
+            color: #666;
+            font-size: 0.8rem;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -127,8 +134,14 @@
             <form id="searchForm" onsubmit="searchPolicies(event)">
                 <div class="form-group">
                     <label for="controlNumber">Control Number</label>
-                    <input type="text" id="controlNumber" required 
-                           placeholder="Enter control number">
+                    <input type="text" id="controlNumber" 
+                           placeholder="Enter exact control number">
+                </div>
+                <div class="form-group">
+                    <label for="customerName">Customer Name</label>
+                    <input type="text" id="customerName" 
+                           placeholder="Enter partial or full customer name">
+                    <small class="form-hint">Partial matches are supported</small>
                 </div>
                 <button type="submit" class="btn btn-primary">Search</button>
             </form>
@@ -167,6 +180,15 @@
         async function searchPolicies(event) {
             event.preventDefault();
             const controlNo = document.getElementById('controlNumber').value;
+            const customerName = document.getElementById('customerName').value;
+
+            console.log('Searching with:', { controlNo, customerName });
+
+            // Require at least one search field
+            if (!controlNo && !customerName) {
+                alert('Please enter either a Control Number or Customer Name');
+                return;
+            }
 
             try {
                 const response = await fetch('/api/webui/search', {
@@ -177,7 +199,8 @@
                     },
                     body: JSON.stringify({
                         instanceId: currentInstance.instance_id,
-                        controlNo: controlNo
+                        controlNo: controlNo || null,
+                        customerName: customerName || null
                     })
                 });
 
@@ -186,6 +209,12 @@
                 }
 
                 const results = await response.json();
+                console.log('Search response:', results);
+                
+                // Check if we have any results
+                const policies = results[0]?.Table || [];
+                console.log('Policies to display:', policies);
+                
                 displayResults(results);
             } catch (err) {
                 console.error('Error:', err);
@@ -196,11 +225,11 @@
         function displayResults(results) {
             const resultsDiv = document.getElementById('results');
             
-            console.log('Raw results:', results); // Debug log
+            console.log('Raw results:', results);
             
-            // Results is an array containing an object with Table property
-            const policies = results[0]?.Table || [];
-            console.log('Policies array:', policies); // Debug log
+            // Results is an object with a Table property
+            const policies = results.Table || [];
+            console.log('Policies array:', policies);
             
             if (!Array.isArray(policies) || policies.length === 0) {
                 resultsDiv.innerHTML = '<p>No results found</p>';

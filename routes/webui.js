@@ -67,7 +67,8 @@ router.get('/api/instances/:id/webui', auth, async (req, res) => {
 
 router.post('/search', auth, async (req, res) => {
     try {
-        const { instanceId, controlNo } = req.body;
+        const { instanceId, controlNo, customerName } = req.body;
+        console.log('Search parameters:', { controlNo, customerName });
 
         // Get instance details
         const instance = await pool.query(
@@ -86,16 +87,13 @@ router.post('/search', auth, async (req, res) => {
             password: instance.rows[0].password,
             procedure: 'DK_Submission_Search_WS',
             parameters: {
-                controlno: controlNo
+                controlno: controlNo || null,
+                customername: customerName || null
             }
         });
 
-        console.log('XML Response:', results);  // Log the results
-
-        // Ensure we're sending an array
-        const policies = Array.isArray(results) ? results : [results];
-        
-        res.json(policies);
+        console.log('Raw SP results:', results);
+        res.json(results);
     } catch (err) {
         console.error('Search error:', err);
         res.status(500).json({ message: 'Error searching policies' });
