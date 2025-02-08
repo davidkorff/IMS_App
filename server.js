@@ -10,10 +10,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Routes
+// API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/instances', require('./routes/instances'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/webui', require('./routes/webui')); // Changed to /api/webui
 
 // HTML Routes
 app.get('/', (req, res) => {
@@ -30,6 +31,10 @@ app.get('/instance/:id', (req, res) => {
 
 app.get('/instance/:id/reporting', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'reporting.html'));
+});
+
+app.get('/instance/:id/webui', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webui.html'));
 });
 
 const PORT = process.env.PORT || 5000;

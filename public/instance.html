@@ -55,9 +55,94 @@
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            padding: 24px;
+        }
+
+        .tile {
+            background: white;
+            border: none;
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .tile:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .tile:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        .tile-icon {
+            background: var(--accent-color);
+            color: white;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .tile:hover .tile-icon {
+            transform: scale(1.1);
+        }
+
+        .tile h3 {
+            color: var(--primary-color);
+            margin: 0 0 8px 0;
+            font-size: 1.25rem;
+        }
+
+        .tile p {
+            color: #666;
+            margin: 0 0 24px 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .tile-action {
+            color: var(--accent-color);
+            font-weight: 500;
+            margin-top: auto;
+            transition: all 0.2s ease;
+        }
+
+        .tile:hover .tile-action {
+            transform: translateX(5px);
+        }
+
+        .tile::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--accent-color);
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+                padding: 16px;
+            }
         }
 
         .btn {
@@ -180,27 +265,55 @@
         </div>
 
         <div class="grid">
-            <div class="section">
-                <h3>Integrations</h3>
-                <div>
-                    <h4>AIM Integration</h4>
-                    <button class="btn btn-primary" onclick="configureAIM()">Configure AIM</button>
+            <button class="tile" onclick="openIMSWeb()">
+                <div class="tile-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 10h-4V6"></path>
+                        <path d="M22 10v12H2V10h20z"></path>
+                        <path d="M2 10l10-8 10 8"></path>
+                    </svg>
                 </div>
-                <!-- Add more integrations here -->
-            </div>
+                <h3>IMS Web</h3>
+                <p>Access the IMS Web interface directly</p>
+                <span class="tile-action">Open IMS →</span>
+            </button>
 
-            <div class="section">
+            <button class="tile" onclick="configureAIM()">
+                <div class="tile-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                    </svg>
+                </div>
+                <h3>AIM Integration</h3>
+                <p>Configure and manage AIM integration settings</p>
+                <span class="tile-action">Configure →</span>
+            </button>
+
+            <button class="tile" onclick="createCronJob()">
+                <div class="tile-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                </div>
                 <h3>Cron Jobs</h3>
-                <button class="btn btn-primary" onclick="createCronJob()">Create New Job</button>
-                <div id="cronJobs">
-                    <!-- Cron jobs will be listed here -->
-                </div>
-            </div>
+                <p>Schedule and manage automated tasks</p>
+                <span class="tile-action">Create Job →</span>
+            </button>
 
-            <div class="section">
+            <button class="tile" onclick="viewReporting()">
+                <div class="tile-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                </div>
                 <h3>Reports</h3>
-                <button class="btn btn-primary" onclick="viewReporting()">View Reporting</button>
-            </div>
+                <p>Generate and view custom reports</p>
+                <span class="tile-action">View Reports →</span>
+            </button>
         </div>
     </div>
 
@@ -369,6 +482,16 @@
         function viewReporting() {
             const instanceId = window.location.pathname.split('/').pop();
             window.location.href = `/instance/${instanceId}/reporting`;
+        }
+
+        function openIMSWeb() {
+            const instanceId = currentInstance.instance_id;
+            if (instanceId) {
+                window.location.href = `/instance/${instanceId}/webui`;
+            } else {
+                console.error('No instance ID available');
+                alert('Error: Instance ID not found');
+            }
         }
 
         // Check authentication and load instance details
