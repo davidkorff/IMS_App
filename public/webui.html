@@ -176,11 +176,8 @@
         }
 
         function openPolicy() {
-            if (currentInstance) {
-                window.open(`${currentInstance.url}/Policy`, '_blank');
-            } else {
-                alert('Instance data not loaded');
-            }
+            const instanceId = window.location.pathname.split('/')[2];
+            window.location.href = `/instance/${instanceId}/webui/search`;
         }
 
         function logout() {

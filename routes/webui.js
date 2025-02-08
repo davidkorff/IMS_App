@@ -2,6 +2,7 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const pool = require('../config/db');
 const authService = require('../services/authService');
+const dataAccess = require('../services/dataAccess');
 
 router.get('/:id/webui', auth, async (req, res) => {
     try {
@@ -61,6 +62,43 @@ router.get('/api/instances/:id/webui', auth, async (req, res) => {
     } catch (err) {
         console.error('Error:', err);
         res.status(500).json({ message: 'Server error' });
+    }
+});
+
+router.post('/search', auth, async (req, res) => {
+    try {
+        const { instanceId, controlNo } = req.body;
+
+        // Get instance details
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+
+        // Call the stored procedure using dataAccess service
+        const results = await dataAccess.executeProc({
+            url: instance.rows[0].url,
+            username: instance.rows[0].username,
+            password: instance.rows[0].password,
+            procedure: 'DK_Submission_Search_WS',
+            parameters: {
+                controlno: controlNo
+            }
+        });
+
+        console.log('XML Response:', results);  // Log the results
+
+        // Ensure we're sending an array
+        const policies = Array.isArray(results) ? results : [results];
+        
+        res.json(policies);
+    } catch (err) {
+        console.error('Search error:', err);
+        res.status(500).json({ message: 'Error searching policies' });
     }
 });
 

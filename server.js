@@ -37,6 +37,10 @@ app.get('/instance/:id/webui', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webui.html'));
 });
 
+app.get('/instance/:id/webui/search', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webui-search.html'));
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
