@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Insurance Submission & Rating Form</title>
+  <style>
+    /* Basic styles for the tabbed interface and form elements */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 20px;
+    }
+    .tabs button {
+      background: #f1f1f1;
+      border: none;
+      outline: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    .tabs button:hover {
+      background: #ddd;
+    }
+    .tabs button.active {
+      background: #fff;
+      border-bottom: 2px solid #007BFF;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .section {
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #eee;
+      background: #fafafa;
+    }
+    .section h2 {
+      margin-top: 0;
+    }
+    .field {
+      margin-bottom: 10px;
+    }
+    .field label {
+      display: inline-block;
+      width: 150px;
+      font-weight: bold;
+    }
+    .field input, .field select, .field textarea {
+      padding: 5px;
+      width: 250px;
+    }
+    .field small {
+      display: block;
+      color: #666;
+      margin-top: 4px;
+    }
+    /* Styles for the dynamic list */
+    .dynamic-list-container {
+      margin-top: 10px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+    .dynamic-list-item {
+      border: 1px dashed #aaa;
+      padding: 10px;
+      margin-bottom: 10px;
+      position: relative;
+    }
+    .dynamic-list-item button {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+    }
+    /* Action Buttons and Export Area */
+    .action-buttons {
+      margin-top: 20px;
+    }
+    #exportArea {
+      margin-top: 10px;
+      width: 100%;
+      height: 150px;
+    }
+  </style>
+</head>
+<body>
+  <div id="formContainer"></div>
+
+  <!-- Action buttons for saving, loading, exporting, and printing the form data -->
+  <div class="action-buttons">
+    <button id="saveBtn">Save Progress</button>
+    <button id="loadBtn">Load Progress</button>
+    <button id="exportBtn">Export JSON</button>
+    <button id="printBtn">Print Full Form Object</button>
+  </div>
+  <!-- A text area to show exported JSON -->
+  <textarea id="exportArea" readonly placeholder="Exported JSON will appear here..."></textarea>
+
+  <script>
+    // JSON definition for the form, including prepopulated values
+    const formDefinition = {
+      "form": {
+        "id": "insuranceSubmissionRatingForm",
+        "version": "1.0",
+        "title": "Insurance Submission & Rating Engine",
+        "description": "A dynamic, fully configurable insurance submission form integrated with a rating engine.",
+        "tabs": [
+          {
+            "id": "tab_policy_info",
+            "title": "Policy Information",
+            "sections": [
+              {
+                "id": "section_policy_details",
+                "title": "Policy Details",
+                "fields": [
+                  {
+                    "id": "policyType",
+                    "label": "Policy Type",
+                    "type": "select",
+                    "options": [
+                      "Auto",
+                      "Life"
+                    ],
+                    "validation": {
+                      "required": true
+                    }
+                  },
+                  {
+                    "id": "policyNumber",
+                    "label": "Policy Number",
+                    "type": "text",
+                    "validation": {
+                      "required": true
+                    },
+                    "value": "hhhhhhhhhhhhhhhhhhhhhhhhhhh"
+                  },
+                  {
+                    "id": "effectiveDate",
+                    "label": "Effective Date",
+                    "type": "date",
+                    "validation": {
+                      "required": true
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "tab_life_details",
+            "title": "Life Details",
+            "displayWhen": {
+              "policyType": "Life"
+            },
+            "sections": [
+              {
+                "id": "section_life_info",
+                "title": "Life Insurance Details",
+                "fields": [
+                  {
+                    "id": "beneficiaries",
+                    "label": "Beneficiaries",
+                    "type": "textarea",
+                    "validation": {
+                      "required": true
+                    }
+                  },
+                  {
+                    "id": "healthQuestions",
+                    "label": "Health Questions",
+                    "type": "textarea"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "tab_auto_details",
+            "title": "Auto Details",
+            "displayWhen": {
+              "policyType": "Auto"
+            },
+            "sections": [
+              {
+                "id": "section_vehicle_info",
+                "title": "Vehicle Details",
+                "fields": [
+                  {
+                    "id": "driverRecord",
+                    "label": "Driver Record",
+                    "type": "select",
+                    "options": [
+                      "Clean",
+                      "Minor Violations",
+                      "Major Violations"
+                    ],
+                    "validation": {
+                      "required": true
+                    }
+                  },
+                  {
+                    "id": "vehicleMake",
+                    "label": "Vehicle Make",
+                    "type": "text"
+                  },
+                  {
+                    "id": "vehicleModel",
+                    "label": "Vehicle Model",
+                    "type": "text"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "tab_locations",
+            "title": "Locations",
+            "sections": [
+              {
+                "id": "section_locations",
+                "title": "Property Locations",
+                "fields": [
+                  {
+                    "id": "locationsList",
+                    "label": "Locations",
+                    "type": "dynamicList",
+                    "template": {
+                      "fields": [
+                        {
+                          "id": "locationAddress",
+                          "label": "Address",
+                          "type": "text",
+                          "validation": {
+                            "required": true
+                          }
+                        },
+                        {
+                          "id": "locationCity",
+                          "label": "City",
+                          "type": "text",
+                          "validation": {
+                            "required": true
+                          }
+                        },
+                        {
+                          "id": "locationState",
+                          "label": "State",
+                          "type": "text"
+                        }
+                      ]
+                    },
+                    "value": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    };
+
+    /**
+     * Renders the form based on the JSON definition.
+     * It creates tabs, sections, and fields (including dynamic lists) and
+     * prepopulates fields with any existing "value" properties.
+     */
+    function renderForm(definition) {
+      const container = document.getElementById('formContainer');
+      container.innerHTML = ''; // Clear previous content
+      const form = definition.form;
+
+      // Create and append the form title and description
+      const formTitle = document.createElement('h1');
+      formTitle.textContent = form.title;
+      container.appendChild(formTitle);
+
+      const formDesc = document.createElement('p');
+      formDesc.textContent = form.description;
+      container.appendChild(formDesc);
+
+      // Create the tab navigation (only including tabs that meet any displayWhen condition)
+      const tabsNav = document.createElement('div');
+      tabsNav.className = 'tabs';
+      form.tabs.forEach((tab) => {
+        // Check displayWhen condition if specified
+        if (tab.displayWhen) {
+          const fieldId = Object.keys(tab.displayWhen)[0];
+          const expectedValue = tab.displayWhen[fieldId];
+          const fieldDef = findFieldDefinition(form, fieldId);
+          if (fieldDef && fieldDef.value !== expectedValue) {
+            return; // Skip this tab if condition is not met
+          }
+        }
+        const tabButton = document.createElement('button');
+        tabButton.textContent = tab.title;
+        tabButton.dataset.tabId = tab.id;
+        tabButton.addEventListener('click', () => activateTab(tab.id));
+        // Mark the first rendered tab as active
+        if (tabsNav.children.length === 0) {
+          tabButton.classList.add('active');
+        }
+        tabsNav.appendChild(tabButton);
+      });
+      container.appendChild(tabsNav);
+
+      // Create content areas for each tab
+      form.tabs.forEach((tab) => {
+        // Skip tab if displayWhen condition not met
+        if (tab.displayWhen) {
+          const fieldId = Object.keys(tab.displayWhen)[0];
+          const expectedValue = tab.displayWhen[fieldId];
+          const fieldDef = findFieldDefinition(form, fieldId);
+          if (fieldDef && fieldDef.value !== expectedValue) {
+            return;
+          }
+        }
+        const tabContent = document.createElement('div');
+        tabContent.className = 'tab-content';
+        tabContent.id = tab.id;
+        // Set the tab's content as active if its button is active
+        if (document.querySelector(`.tabs button[data-tab-id="${tab.id}"]`).classList.contains('active')) {
+          tabContent.classList.add('active');
+        }
+
+        // Render sections within the tab
+        tab.sections.forEach(section => {
+          const sectionDiv = document.createElement('div');
+          sectionDiv.className = 'section';
+
+          const sectionTitle = document.createElement('h2');
+          sectionTitle.textContent = section.title;
+          sectionDiv.appendChild(sectionTitle);
+
+          // Render each field within the section
+          section.fields.forEach(field => {
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'field';
+
+            const label = document.createElement('label');
+            label.htmlFor = field.id;
+            label.textContent = field.label + ': ';
+            fieldDiv.appendChild(label);
+
+            let inputElement;
+            switch(field.type) {
+              case 'select':
+                inputElement = document.createElement('select');
+                inputElement.id = field.id;
+                if (field.options && Array.isArray(field.options)) {
+                  field.options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt;
+                    option.textContent = opt;
+                    inputElement.appendChild(option);
+                  });
+                }
+                break;
+              case 'textarea':
+                inputElement = document.createElement('textarea');
+                inputElement.id = field.id;
+                break;
+              case 'date':
+              case 'text':
+              case 'number':
+                inputElement = document.createElement('input');
+                inputElement.type = field.type;
+                inputElement.id = field.id;
+                break;
+              case 'signature':
+                inputElement = document.createElement('canvas');
+                inputElement.id = field.id;
+                inputElement.style.border = '1px solid #000';
+                inputElement.width = 300;
+                inputElement.height = 100;
+                break;
+              case 'dynamicList':
+                inputElement = createDynamicListField(field);
+                break;
+              default:
+                inputElement = document.createElement('input');
+                inputElement.type = 'text';
+                inputElement.id = field.id;
+            }
+
+            // Prepopulate the field if a value exists and type is not dynamicList
+            if (field.type !== 'dynamicList' && field.hasOwnProperty('value')) {
+              inputElement.value = field.value;
+            }
+            fieldDiv.appendChild(inputElement);
+
+            // Optionally add a description if provided
+            if (field.description) {
+              const desc = document.createElement('small');
+              desc.textContent = field.description;
+              fieldDiv.appendChild(desc);
+            }
+            sectionDiv.appendChild(fieldDiv);
+          });
+          tabContent.appendChild(sectionDiv);
+        });
+        container.appendChild(tabContent);
+      });
+    }
+
+    /**
+     * Searches for a field definition by its ID within the form.
+     */
+    function findFieldDefinition(form, fieldId) {
+      for (let tab of form.tabs) {
+        for (let section of tab.sections) {
+          for (let field of section.fields) {
+            if (field.id === fieldId) {
+              return field;
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    /**
+     * Activates a tab by showing its content and marking its button as active.
+     */
+    function activateTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      document.querySelectorAll('.tabs button').forEach(button => {
+        button.classList.remove('active');
+      });
+      document.getElementById(tabId).classList.add('active');
+      document.querySelector(`.tabs button[data-tab-id="${tabId}"]`).classList.add('active');
+    }
+
+    /**
+     * Creates a dynamic list field based on the provided field definition.
+     */
+    function createDynamicListField(field) {
+      const container = document.createElement('div');
+      container.className = 'dynamic-list-container';
+      container.id = field.id;
+
+      // Helper function to add a new list item (with optional data)
+      function addListItem(data) {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'dynamic-list-item';
+
+        field.template.fields.forEach(templateField => {
+          const fieldDiv = document.createElement('div');
+          fieldDiv.className = 'field';
+
+          const label = document.createElement('label');
+          label.textContent = templateField.label + ': ';
+          fieldDiv.appendChild(label);
+
+          let input;
+          switch(templateField.type) {
+            case 'select':
+              input = document.createElement('select');
+              if (templateField.options && Array.isArray(templateField.options)) {
+                templateField.options.forEach(opt => {
+                  const option = document.createElement('option');
+                  option.value = opt;
+                  option.textContent = opt;
+                  input.appendChild(option);
+                });
+              }
+              break;
+            case 'textarea':
+              input = document.createElement('textarea');
+              break;
+            default:
+              input = document.createElement('input');
+              input.type = templateField.type;
+          }
+          // For demo purposes the ID isn’t made unique per item.
+          input.id = templateField.id;
+          if (data && data.hasOwnProperty(templateField.id)) {
+            input.value = data[templateField.id];
+          }
+          fieldDiv.appendChild(input);
+          itemDiv.appendChild(fieldDiv);
+        });
+
+        // Add a Remove button for this item
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remove Item';
+        removeBtn.addEventListener('click', () => container.removeChild(itemDiv));
+        itemDiv.appendChild(removeBtn);
+
+        container.insertBefore(itemDiv, addBtn);
+      }
+
+      // Prepopulate the dynamic list if a value (array) exists
+      if (Array.isArray(field.value)) {
+        field.value.forEach(itemData => {
+          addListItem(itemData);
+        });
+      }
+
+      // Button to add a new list item
+      const addBtn = document.createElement('button');
+      addBtn.textContent = 'Add Item';
+      addBtn.addEventListener('click', () => addListItem());
+      container.appendChild(addBtn);
+
+      return container;
+    }
+
+    /**
+     * Exports the current form state as a plain JavaScript object.
+     * It reads values from all fields (including dynamic list items).
+     */
+    function exportFormData() {
+      const formData = {};
+      formDefinition.form.tabs.forEach(tab => {
+        tab.sections.forEach(section => {
+          section.fields.forEach(field => {
+            const element = document.getElementById(field.id);
+            if (element) {
+              let value;
+              if (field.type === 'dynamicList') {
+                // For dynamic lists, collect each list item's data.
+                value = [];
+                element.querySelectorAll('.dynamic-list-item').forEach(itemDiv => {
+                  const itemData = {};
+                  itemDiv.querySelectorAll('input, select, textarea').forEach(input => {
+                    itemData[input.id] = input.value;
+                  });
+                  value.push(itemData);
+                });
+              } else if (
+                element.tagName === 'SELECT' ||
+                element.tagName === 'TEXTAREA' ||
+                element.type === 'date' ||
+                element.type === 'text' ||
+                element.type === 'number'
+              ) {
+                value = element.value;
+              } else if (element.tagName === 'CANVAS') {
+                value = element.toDataURL();
+              } else {
+                value = element.value;
+              }
+              formData[field.id] = value;
+            }
+          });
+        });
+      });
+      return formData;
+    }
+
+    /**
+     * Loads saved data into the form fields.
+     */
+    function loadFormData(savedData) {
+      if (!savedData) {
+        alert("No saved data found!");
+        return;
+      }
+      Object.keys(savedData).forEach(fieldId => {
+        const element = document.getElementById(fieldId);
+        if (element) {
+          if (element.classList.contains('dynamic-list-container')) {
+            // Clear current items
+            element.querySelectorAll('.dynamic-list-item').forEach(item => item.remove());
+            const fieldDef = findFieldDefinition(formDefinition.form, fieldId);
+            if (Array.isArray(savedData[fieldId])) {
+              savedData[fieldId].forEach(itemData => {
+                const addBtn = element.querySelector('button:last-of-type');
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'dynamic-list-item';
+                fieldDef.template.fields.forEach(templateField => {
+                  const fieldDiv = document.createElement('div');
+                  fieldDiv.className = 'field';
+                  const label = document.createElement('label');
+                  label.textContent = templateField.label + ': ';
+                  fieldDiv.appendChild(label);
+                  let input;
+                  switch(templateField.type) {
+                    case 'select':
+                      input = document.createElement('select');
+                      if (templateField.options && Array.isArray(templateField.options)) {
+                        templateField.options.forEach(opt => {
+                          const option = document.createElement('option');
+                          option.value = opt;
+                          option.textContent = opt;
+                          input.appendChild(option);
+                        });
+                      }
+                      break;
+                    case 'textarea':
+                      input = document.createElement('textarea');
+                      break;
+                    default:
+                      input = document.createElement('input');
+                      input.type = templateField.type;
+                  }
+                  input.id = templateField.id;
+                  if (itemData && itemData.hasOwnProperty(templateField.id)) {
+                    input.value = itemData[templateField.id];
+                  }
+                  fieldDiv.appendChild(input);
+                  itemDiv.appendChild(fieldDiv);
+                });
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove Item';
+                removeBtn.addEventListener('click', () => element.removeChild(itemDiv));
+                itemDiv.appendChild(removeBtn);
+                element.insertBefore(itemDiv, addBtn);
+              });
+            }
+          } else if (
+            element.tagName === 'SELECT' ||
+            element.tagName === 'TEXTAREA' ||
+            element.type === 'date' ||
+            element.type === 'text' ||
+            element.type === 'number'
+          ) {
+            element.value = savedData[fieldId];
+          } else if (element.tagName === 'CANVAS') {
+            const img = new Image();
+            img.onload = function() {
+              const ctx = element.getContext('2d');
+              ctx.clearRect(0, 0, element.width, element.height);
+              ctx.drawImage(img, 0, 0);
+            };
+            img.src = savedData[fieldId];
+          } else {
+            element.value = savedData[fieldId];
+          }
+        }
+      });
+    }
+
+    /**
+     * Updates the original form definition object with current form field values.
+     * Then prints the updated form definition to the console.
+     */
+    function printFullFormObject() {
+      const currentData = exportFormData();
+      // Iterate through the form definition and update each field's "value"
+      formDefinition.form.tabs.forEach(tab => {
+        tab.sections.forEach(section => {
+          section.fields.forEach(field => {
+            if (currentData.hasOwnProperty(field.id)) {
+              field.value = currentData[field.id];
+            }
+          });
+        });
+      });
+      console.log("Full Form Object with Amendments:", JSON.stringify(formDefinition, null, 2));
+    }
+
+    // Attach event listeners to action buttons.
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      const data = exportFormData();
+      localStorage.setItem("savedFormData", JSON.stringify(data));
+      alert("Progress saved!");
+    });
+
+    document.getElementById('loadBtn').addEventListener('click', () => {
+      const savedData = JSON.parse(localStorage.getItem("savedFormData"));
+      loadFormData(savedData);
+      alert("Progress loaded!");
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const data = exportFormData();
+      document.getElementById('exportArea').value = JSON.stringify(data, null, 2);
+    });
+
+    document.getElementById('printBtn').addEventListener('click', () => {
+      printFullFormObject();
+      alert("Full form object printed to the console.");
+    });
+
+    // Render the form on page load.
+    renderForm(formDefinition);
+  </script>
+</body>
+</html>

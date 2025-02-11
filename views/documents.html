@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document Management</title>
+    <style>
+        .button-group {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .button {
+            margin: 5px;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="button-group">
+        <h3>Document Creation</h3>
+        <button class="button" onclick="createBinderDocument()">Create Binder</button>
+        <button class="button" onclick="createPolicyDocument()">Create Policy</button>
+        <!-- Add more document creation buttons -->
+    </div>
+
+    <div class="button-group">
+        <h3>Document Retrieval</h3>
+        <button class="button" onclick="getDocumentFromFolder()">Get from Folder</button>
+        <button class="button" onclick="getDocumentFromStore()">Get from Store</button>
+        <!-- Add more document retrieval buttons -->
+    </div>
+
+    <div class="button-group">
+        <h3>Document Management</h3>
+        <button class="button" onclick="insertAssociatedDocument()">Insert Associated</button>
+        <button class="button" onclick="applyPolicyForms()">Apply Policy Forms</button>
+        <!-- Add more document management buttons -->
+    </div>
+
+    <script>
+        // Document Creation Functions
+        async function createBinderDocument() {
+            try {
+                const response = await fetch('/api/documents/createBinder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        // Add required data
+                    })
+                });
+                const result = await response.json();
+                console.log(result);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Add more document function implementations
+    </script>
+</body>
+</html> 

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Robust Form Builder</title>
+  <style>
+    /* Basic reset and typography */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      height: 100vh;
+    }
+    /* Two-column layout: left for builder, right for JSON preview */
+    #builderContainer, #previewContainer {
+      padding: 20px;
+      overflow-y: auto;
+    }
+    #builderContainer {
+      width: 60%;
+      border-right: 1px solid #ccc;
+    }
+    #previewContainer {
+      width: 40%;
+      background: #f8f8f8;
+    }
+    h1, h2, h3, h4 {
+      margin: 10px 0;
+    }
+    label {
+      display: block;
+      margin-top: 5px;
+      font-weight: bold;
+    }
+    input[type="text"], input[type="number"], input[type="date"], textarea, select {
+      width: 100%;
+      padding: 5px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 5px 10px;
+      margin: 5px 0;
+      cursor: pointer;
+    }
+    .container {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      background: #fff;
+    }
+    .container-header {
+      background: #eee;
+      padding: 5px;
+      margin: -10px -10px 10px -10px;
+      font-weight: bold;
+    }
+    .sectionContainer, .fieldsContainer, .logicContainer {
+      margin-left: 20px;
+      padding-left: 10px;
+      border-left: 2px solid #ccc;
+    }
+    .removeBtn {
+      background: #f44336;
+      color: #fff;
+      border: none;
+      float: right;
+    }
+    #jsonOutput {
+      width: 100%;
+      height: 80%;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <!-- Left: The Form Builder -->
+  <div id="builderContainer">
+    <h1>Form Builder</h1>
+    <!-- Form Properties -->
+    <div class="container" id="formProperties">
+      <div class="container-header">Form Properties</div>
+      <label for="formId">Form ID:</label>
+      <input type="text" id="formId" value="myForm">
+      <label for="formTitle">Title:</label>
+      <input type="text" id="formTitle" value="My Custom Form">
+      <label for="formVersion">Version:</label>
+      <input type="text" id="formVersion" value="1.0">
+      <label for="formDescription">Description:</label>
+      <textarea id="formDescription">Describe your form here...</textarea>
+    </div>
+    
+    <!-- Tabs Section -->
+    <div class="container" id="tabsContainer">
+      <div class="container-header">Tabs</div>
+      <!-- Tabs will be appended here -->
+    </div>
+    <button id="addTabBtn">Add Tab</button>
+    
+    <!-- Logic Rules Section -->
+    <div class="container" id="logicRulesContainer">
+      <div class="container-header">Logic Rules</div>
+      <!-- Logic rules will be appended here -->
+    </div>
+    <button id="addLogicBtn">Add Logic Rule</button>
+    
+    <!-- Generate and Load JSON Buttons -->
+    <button id="generateJsonBtn">Generate JSON</button>
+    
+    <!-- Load JSON Section -->
+    <div class="container" id="loadJsonContainer">
+      <div class="container-header">Load JSON</div>
+      <textarea id="loadJsonInput" style="width:100%;height:100px;"></textarea>
+      <button id="loadJsonBtn">Load JSON</button>
+    </div>
+    
+  </div>
+  
+  <!-- Right: JSON Preview -->
+  <div id="previewContainer">
+    <h2>Generated JSON</h2>
+    <textarea id="jsonOutput" readonly></textarea>
+  </div>
+  
+  <script>
+    /*****************************
+     * UTILITY FUNCTIONS
+     *****************************/
+    function uniqueId(prefix = "id") {
+      return prefix + "_" + Math.random().toString(36).substr(2, 9);
+    }
+    
+    /*****************************
+     * STATE VARIABLES
+     *****************************/
+    // We'll store tabs and logic rules in arrays.
+    let tabs = [];
+    let logicRules = [];
+    
+    /*****************************
+     * BUILDER FUNCTIONS: TABS, SECTIONS, FIELDS
+     *****************************/
+    
+    // Add a new tab.
+    function addTab() {
+      const tabId = uniqueId("tab");
+      const tab = {
+        id: tabId,
+        title: "New Tab",
+        sections: []
+      };
+      tabs.push(tab);
+      renderTabs();
+    }
+    
+    // Render all tabs inside the #tabsContainer.
+    function renderTabs() {
+      const container = document.getElementById("tabsContainer");
+      container.innerHTML = "";
+      tabs.forEach((tab, tabIndex) => {
+        const tabDiv = document.createElement("div");
+        tabDiv.className = "container";
+        tabDiv.dataset.tabId = tab.id;
+        
+        // Header with tab title and remove button.
+        const header = document.createElement("div");
+        header.className = "container-header";
+        header.innerHTML = `<span>Tab: </span>`;
+        const titleInput = document.createElement("input");
+        titleInput.type = "text";
+        titleInput.value = tab.title;
+        titleInput.oninput = (e) => { tab.title = e.target.value; };
+        header.appendChild(titleInput);
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "removeBtn";
+        removeBtn.textContent = "Remove";
+        removeBtn.onclick = () => { removeTab(tab.id); };
+        header.appendChild(removeBtn);
+        tabDiv.appendChild(header);
+        
+        // Container for sections.
+        const sectionsContainer = document.createElement("div");
+        sectionsContainer.className = "sectionContainer";
+        tab.sections.forEach((section) => {
+          const sectionDiv = renderSection(section);
+          sectionsContainer.appendChild(sectionDiv);
+        });
+        tabDiv.appendChild(sectionsContainer);
+        
+        // Button to add section to this tab.
+        const addSectionBtn = document.createElement("button");
+        addSectionBtn.textContent = "Add Section";
+        addSectionBtn.onclick = () => { addSection(tab.id); };
+        tabDiv.appendChild(addSectionBtn);
+        
+        container.appendChild(tabDiv);
+      });
+    }
+    
+    // Remove a tab by id.
+    function removeTab(tabId) {
+      tabs = tabs.filter(tab => tab.id !== tabId);
+      renderTabs();
+    }
+    
+    // Add a new section to a tab.
+    function addSection(tabId) {
+      const section = {
+        id: uniqueId("section"),
+        title: "New Section",
+        fields: []
+      };
+      const tab = tabs.find(t => t.id === tabId);
+      if (tab) {
+        tab.sections.push(section);
+        renderTabs();
+      }
+    }
+    
+    // Render a section.
+    function renderSection(section) {
+      const sectionDiv = document.createElement("div");
+      sectionDiv.className = "container";
+      sectionDiv.style.background = "#fafafa";
+      
+      const header = document.createElement("div");
+      header.className = "container-header";
+      header.innerHTML = `<span>Section: </span>`;
+      const titleInput = document.createElement("input");
+      titleInput.type = "text";
+      titleInput.value = section.title;
+      titleInput.oninput = (e) => { section.title = e.target.value; };
+      header.appendChild(titleInput);
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "removeBtn";
+      removeBtn.textContent = "Remove";
+      removeBtn.onclick = () => { removeSection(section.id); };
+      header.appendChild(removeBtn);
+      sectionDiv.appendChild(header);
+      
+      // Container for fields.
+      const fieldsContainer = document.createElement("div");
+      fieldsContainer.className = "fieldsContainer";
+      section.fields.forEach((field) => {
+        const fieldDiv = renderField(field);
+        fieldsContainer.appendChild(fieldDiv);
+      });
+      sectionDiv.appendChild(fieldsContainer);
+      
+      // Button to add a field.
+      const addFieldBtn = document.createElement("button");
+      addFieldBtn.textContent = "Add Field";
+      addFieldBtn.onclick = () => { addField(section.id); };
+      sectionDiv.appendChild(addFieldBtn);
+      
+      // Attach section container to a global structure.
+      section._container = fieldsContainer;
+      return sectionDiv;
+    }
+    
+    // Remove a section (find it within tabs).
+    function removeSection(sectionId) {
+      tabs.forEach(tab => {
+        tab.sections = tab.sections.filter(sec => sec.id !== sectionId);
+      });
+      renderTabs();
+    }
+    
+    // Add a new field to a section.
+    function addField(sectionId) {
+      const field = {
+        id: uniqueId("field"),
+        label: "New Field",
+        type: "text",
+        value: "",
+        options: []  // used for select or radio types
+      };
+      // Find the section in our tabs array.
+      tabs.forEach(tab => {
+        tab.sections.forEach(section => {
+          if (section.id === sectionId) {
+            section.fields.push(field);
+          }
+        });
+      });
+      renderTabs();
+    }
+    
+    // Render an individual field.
+    function renderField(field) {
+      const fieldDiv = document.createElement("div");
+      fieldDiv.className = "container";
+      fieldDiv.style.background = "#fff";
+      
+      const header = document.createElement("div");
+      header.className = "container-header";
+      header.innerHTML = `<span>Field: </span>`;
+      
+      // Label input.
+      const labelInput = document.createElement("input");
+      labelInput.type = "text";
+      labelInput.value = field.label;
+      labelInput.style.width = "40%";
+      labelInput.oninput = (e) => { field.label = e.target.value; };
+      header.appendChild(labelInput);
+      
+      // Type select.
+      const typeSelect = document.createElement("select");
+      ["text", "number", "date", "textarea", "select", "checkbox", "radio"].forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        if (field.type === t) opt.selected = true;
+        typeSelect.appendChild(opt);
+      });
+      typeSelect.onchange = (e) => { field.type = e.target.value; renderTabs(); };
+      header.appendChild(typeSelect);
+      
+      // Remove field button.
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "removeBtn";
+      removeBtn.textContent = "Remove";
+      removeBtn.onclick = () => { removeField(field.id); };
+      header.appendChild(removeBtn);
+      
+      fieldDiv.appendChild(header);
+      
+      // Default Value input.
+      const defaultLabel = document.createElement("label");
+      defaultLabel.textContent = "Default Value:";
+      fieldDiv.appendChild(defaultLabel);
+      const defaultInput = document.createElement("input");
+      defaultInput.type = "text";
+      defaultInput.value = field.value;
+      defaultInput.oninput = (e) => { field.value = e.target.value; };
+      fieldDiv.appendChild(defaultInput);
+      
+      // Options (for select or radio) – comma separated.
+      if (field.type === "select" || field.type === "radio") {
+        const optionsLabel = document.createElement("label");
+        optionsLabel.textContent = "Options (comma separated):";
+        fieldDiv.appendChild(optionsLabel);
+        const optionsInput = document.createElement("input");
+        optionsInput.type = "text";
+        optionsInput.value = field.options.join(", ");
+        optionsInput.oninput = (e) => {
+          field.options = e.target.value.split(",").map(s => s.trim()).filter(s => s);
+        };
+        fieldDiv.appendChild(optionsInput);
+      }
+      
+      return fieldDiv;
+    }
+    
+    // Remove a field by id (search through all sections).
+    function removeField(fieldId) {
+      tabs.forEach(tab => {
+        tab.sections.forEach(section => {
+          section.fields = section.fields.filter(f => f.id !== fieldId);
+        });
+      });
+      renderTabs();
+    }
+    
+    /*****************************
+     * LOGIC RULES FUNCTIONS
+     *****************************/
+    
+    // Add a new logic rule.
+    function addLogicRule() {
+      const rule = {
+        id: uniqueId("logic"),
+        trigger: "",  // trigger field id
+        condition: "", // condition value
+        action: "show", // default action (show, hide, require, disable, setValue, warn)
+        targets: "",  // comma-separated target field ids
+        message: ""   // optional message (for warn actions)
+      };
+      logicRules.push(rule);
+      renderLogicRules();
+    }
+    
+    // Render all logic rules.
+    function renderLogicRules() {
+      const container = document.getElementById("logicRulesContainer");
+      container.innerHTML = "";
+      logicRules.forEach(rule => {
+        const ruleDiv = document.createElement("div");
+        ruleDiv.className = "container";
+        
+        // Header with remove button.
+        const header = document.createElement("div");
+        header.className = "container-header";
+        header.innerHTML = `<span>Logic Rule</span>`;
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "removeBtn";
+        removeBtn.textContent = "Remove";
+        removeBtn.onclick = () => { removeLogicRule(rule.id); };
+        header.appendChild(removeBtn);
+        ruleDiv.appendChild(header);
+        
+        // Trigger field input.
+        const triggerLabel = document.createElement("label");
+        triggerLabel.textContent = "Trigger Field ID:";
+        ruleDiv.appendChild(triggerLabel);
+        const triggerInput = document.createElement("input");
+        triggerInput.type = "text";
+        triggerInput.value = rule.trigger;
+        triggerInput.oninput = (e) => { rule.trigger = e.target.value; };
+        ruleDiv.appendChild(triggerInput);
+        
+        // Condition input.
+        const conditionLabel = document.createElement("label");
+        conditionLabel.textContent = "Condition Value:";
+        ruleDiv.appendChild(conditionLabel);
+        const conditionInput = document.createElement("input");
+        conditionInput.type = "text";
+        conditionInput.value = rule.condition;
+        conditionInput.oninput = (e) => { rule.condition = e.target.value; };
+        ruleDiv.appendChild(conditionInput);
+        
+        // Action select.
+        const actionLabel = document.createElement("label");
+        actionLabel.textContent = "Action:";
+        ruleDiv.appendChild(actionLabel);
+        const actionSelect = document.createElement("select");
+        ["show", "hide", "require", "disable", "setValue", "warn"].forEach(act => {
+          const opt = document.createElement("option");
+          opt.value = act;
+          opt.textContent = act;
+          if (rule.action === act) opt.selected = true;
+          actionSelect.appendChild(opt);
+        });
+        actionSelect.onchange = (e) => { rule.action = e.target.value; };
+        ruleDiv.appendChild(actionSelect);
+        
+        // Target fields.
+        const targetLabel = document.createElement("label");
+        targetLabel.textContent = "Target Field IDs (comma separated):";
+        ruleDiv.appendChild(targetLabel);
+        const targetInput = document.createElement("input");
+        targetInput.type = "text";
+        targetInput.value = rule.targets;
+        targetInput.oninput = (e) => { rule.targets = e.target.value; };
+        ruleDiv.appendChild(targetInput);
+        
+        // Optional message.
+        const messageLabel = document.createElement("label");
+        messageLabel.textContent = "Optional Message:";
+        ruleDiv.appendChild(messageLabel);
+        const messageInput = document.createElement("input");
+        messageInput.type = "text";
+        messageInput.value = rule.message;
+        messageInput.oninput = (e) => { rule.message = e.target.value; };
+        ruleDiv.appendChild(messageInput);
+        
+        container.appendChild(ruleDiv);
+      });
+    }
+    
+    // Remove a logic rule by id.
+    function removeLogicRule(ruleId) {
+      logicRules = logicRules.filter(rule => rule.id !== ruleId);
+      renderLogicRules();
+    }
+    
+    /*****************************
+     * GENERATE JSON
+     *****************************/
+    function generateJSON() {
+      // Build the form object from builder state.
+      const formObj = {
+        id: document.getElementById("formId").value,
+        title: document.getElementById("formTitle").value,
+        version: document.getElementById("formVersion").value,
+        description: document.getElementById("formDescription").value,
+        tabs: tabs.map(tab => ({
+          id: tab.id,
+          title: tab.title,
+          sections: tab.sections.map(section => ({
+            id: section.id,
+            title: section.title,
+            fields: section.fields.map(field => {
+              // For fields, include label, type, value, and options if applicable.
+              const f = {
+                id: field.id,
+                label: field.label,
+                type: field.type,
+                value: field.value
+              };
+              if (field.type === "select" || field.type === "radio") {
+                f.options = field.options;
+              }
+              return f;
+            })
+          }))
+        })),
+        logic: {
+          dependencies: logicRules.map(rule => ({
+            trigger: rule.trigger,
+            condition: rule.condition,
+            action: rule.action,
+            targets: rule.targets.split(",").map(s => s.trim()).filter(s => s),
+            message: rule.message
+          }))
+        }
+      };
+      
+      // (Optional) Add a "calculations" property if needed.
+      formObj.calculations = {};
+      
+      // Output the JSON.
+      const jsonOutput = document.getElementById("jsonOutput");
+      jsonOutput.value = JSON.stringify({ form: formObj }, null, 2);
+      console.log("Generated JSON:", formObj);
+    }
+    
+    /*****************************
+     * LOAD JSON FUNCTIONALITY
+     *****************************/
+    function loadJSONFromText() {
+      const inputText = document.getElementById("loadJsonInput").value;
+      try {
+        const jsonData = JSON.parse(inputText);
+        if (jsonData.form) {
+          const form = jsonData.form;
+          // Update form properties.
+          document.getElementById("formId").value = form.id || "";
+          document.getElementById("formTitle").value = form.title || "";
+          document.getElementById("formVersion").value = form.version || "";
+          document.getElementById("formDescription").value = form.description || "";
+          
+          // Update tabs and logic rules.
+          tabs = form.tabs || [];
+          logicRules = (form.logic && form.logic.dependencies) ? form.logic.dependencies.map(rule => {
+            rule.id = uniqueId("logic");
+            return rule;
+          }) : [];
+          
+          renderTabs();
+          renderLogicRules();
+          alert("Form loaded successfully!");
+        } else {
+          alert("Invalid JSON: no 'form' property found.");
+        }
+      } catch (e) {
+        alert("Error parsing JSON: " + e);
+      }
+    }
+    
+    /*****************************
+     * EVENT LISTENERS
+     *****************************/
+    document.getElementById("addTabBtn").addEventListener("click", addTab);
+    document.getElementById("addLogicBtn").addEventListener("click", addLogicRule);
+    document.getElementById("generateJsonBtn").addEventListener("click", generateJSON);
+    document.getElementById("loadJsonBtn").addEventListener("click", loadJSONFromText);
+    
+    /*****************************
+     * INITIALIZATION
+     *****************************/
+    // Start with one default tab.
+    addTab();
+  </script>
+</body>
+</html>

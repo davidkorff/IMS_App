@@ -1,5 +1,6 @@
 const xml2js = require('xml2js');
 const authService = require('./authService');
+const axios = require('axios');
 
 class DataAccessService {
     constructor() {
@@ -110,6 +111,84 @@ class DataAccessService {
 
         } catch (error) {
             console.error('Error executing procedure:', error);
+            throw error;
+        }
+    }
+
+    async getLoginToken({ url, username, password }) {
+        const loginEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                         xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                         xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                <soap:Body>
+                    <LoginIMSUser xmlns="http://tempuri.org/IMSWebServices/Logon">
+                        <username>${username}</username>
+                        <password>${password}</password>
+                    </LoginIMSUser>
+                </soap:Body>
+            </soap:Envelope>`;
+
+        const response = await axios.post(
+            `${url}/Logon.asmx`,
+            loginEnvelope,
+            {
+                headers: {
+                    'Content-Type': 'text/xml; charset=utf-8',
+                    'SOAPAction': 'http://tempuri.org/IMSWebServices/Logon/LoginIMSUser'
+                }
+            }
+        );
+
+        const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: true });
+        const result = await parser.parseStringPromise(response.data);
+        return result['soap:Envelope']['soap:Body']['LoginIMSUserResponse']['LoginIMSUserResult'];
+    }
+
+    async executeWebMethod({ url, username, password, webservice, method, parameters }) {
+        try {
+            // Get login token
+            const token = await this.getLoginToken({ url, username, password });
+            console.log('Got token:', token);
+
+            // Make web method call with token
+            const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+                <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+                             xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+                             xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                    <soap:Header>
+                        <TokenHeader xmlns="http://tempuri.org/IMSWebServices/${webservice}">
+                            <Token>${token}</Token>
+                        </TokenHeader>
+                    </soap:Header>
+                    <soap:Body>
+                        <${method} xmlns="http://tempuri.org/IMSWebServices/${webservice}">
+                            ${Object.entries(parameters).map(([key, value]) => 
+                                `<${key}>${value}</${key}>`
+                            ).join('')}
+                        </${method}>
+                    </soap:Body>
+                </soap:Envelope>`;
+
+            const response = await axios.post(
+                `${url}/${webservice}.asmx`,
+                soapEnvelope,
+                {
+                    headers: {
+                        'Content-Type': 'text/xml; charset=utf-8',
+                        'SOAPAction': `http://tempuri.org/IMSWebServices/${webservice}/${method}`
+                    }
+                }
+            );
+
+            // Parse response
+            const parser = new xml2js.Parser({ explicitArray: false, ignoreAttrs: true });
+            const result = await parser.parseStringPromise(response.data);
+            const soapBody = result['soap:Envelope']['soap:Body'];
+            const methodResponse = soapBody[`${method}Response`];
+            return methodResponse[`${method}Result`];
+
+        } catch (error) {
+            console.error('Web method error:', error?.response?.data || error);
             throw error;
         }
     }

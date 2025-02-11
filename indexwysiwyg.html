@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Drag and Drop Form Tree Builder</title>
+  <!-- Include Interact.js from a CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+  <style>
+    /* General page styles */
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f0f0f0;
+    }
+    /* Container: left palette and right canvas */
+    #container {
+      display: flex;
+      height: 100vh;
+    }
+    /* Palette on the left */
+    #palette {
+      width: 250px;
+      background: #fafafa;
+      border-right: 1px solid #ccc;
+      padding: 10px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+    #palette h3 {
+      text-align: center;
+      margin-top: 0;
+    }
+    .palette-item {
+      margin: 10px 0;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid #ccc;
+      text-align: center;
+      cursor: grab;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    .palette-item:hover {
+      background: #e0f7fa;
+    }
+    /* Canvas (the form tree area) */
+    #canvas {
+      flex: 1;
+      position: relative;
+      background: #fff;
+      overflow: auto;
+    }
+    /* Draggable boxes that represent form fields */
+    .draggable-box {
+      position: absolute;
+      padding: 10px 20px;
+      background: #e1f5fe;
+      border: 1px solid #81d4fa;
+      border-radius: 4px;
+      cursor: move;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+      user-select: none;
+    }
+    /* A small delete button in the corner */
+    .draggable-box .delete-btn {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: red;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      display: none;
+    }
+    /* Show the delete button when hovering on the box */
+    .draggable-box:hover .delete-btn {
+      display: block;
+    }
+    /* Controls below the canvas */
+    #controls {
+      padding: 10px;
+      background: #fff;
+      border-top: 1px solid #ccc;
+      text-align: center;
+    }
+    #jsonOutput {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f8f8f8;
+      border: 1px solid #ccc;
+      max-height: 150px;
+      overflow-y: auto;
+      font-family: monospace;
+      text-align: left;
+    }
+    button {
+      padding: 6px 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      background: #007BFF;
+      color: #fff;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <!-- Left: Palette of available field types -->
+    <div id="palette">
+      <h3>Palette</h3>
+      <div class="palette-item" data-type="text">Text Field</div>
+      <div class="palette-item" data-type="textarea">Textarea Field</div>
+      <div class="palette-item" data-type="select">Select Field</div>
+      <div class="palette-item" data-type="number">Number Field</div>
+      <div class="palette-item" data-type="date">Date Field</div>
+    </div>
+    <!-- Right: Canvas (form tree) -->
+    <div id="canvas"></div>
+  </div>
+  <!-- Controls and JSON preview -->
+  <div id="controls">
+    <button id="generateJsonBtn">Generate JSON</button>
+    <div id="jsonOutput" readonly></div>
+  </div>
+
+  <script>
+    // We'll use Interact.js to handle drag and drop.
+    // This array will store our form components.
+    let formComponents = [];
+
+    // Utility: Generate a unique ID.
+    function uniqueId(prefix = 'comp') {
+      return prefix + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // Get the canvas element.
+    const canvas = document.getElementById('canvas');
+
+    // Setup draggable behavior for palette items.
+    interact('.palette-item').draggable({
+      inertia: true,
+      autoScroll: true,
+      onstart: function(event) {
+        // When starting a drag from the palette, create a clone
+        const type = event.target.getAttribute('data-type');
+        const newBox = document.createElement('div');
+        newBox.classList.add('draggable-box');
+        const newId = uniqueId();
+        newBox.setAttribute('data-id', newId);
+        newBox.setAttribute('data-type', type);
+        // Set a default label (editable later)
+        newBox.innerHTML = type.charAt(0).toUpperCase() + type.slice(1) + " Field";
+        
+        // Create a delete button.
+        const delBtn = document.createElement('button');
+        delBtn.classList.add('delete-btn');
+        delBtn.textContent = '×';
+        delBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          canvas.removeChild(newBox);
+          formComponents = formComponents.filter(c => c.id !== newId);
+        });
+        newBox.appendChild(delBtn);
+        
+        // Set initial position where the pointer is.
+        newBox.style.left = (event.clientX - canvas.getBoundingClientRect().left) + 'px';
+        newBox.style.top = (event.clientY - canvas.getBoundingClientRect().top) + 'px';
+        canvas.appendChild(newBox);
+
+        // Save this new component.
+        formComponents.push({
+          id: newId,
+          type: type,
+          label: newBox.childNodes[0].nodeValue.trim(),
+          x: parseFloat(newBox.style.left),
+          y: parseFloat(newBox.style.top)
+        });
+
+        // Make the new box draggable.
+        interact(newBox).draggable({
+          inertia: true,
+          modifiers: [
+            interact.modifiers.restrictRect({
+              restriction: canvas,
+              endOnly: true
+            })
+          ],
+          autoScroll: true,
+          onmove: dragMoveListener,
+          onend: function (event) {
+            const id = event.target.getAttribute('data-id');
+            const comp = formComponents.find(c => c.id === id);
+            if (comp) {
+              comp.x = parseFloat(event.target.style.left);
+              comp.y = parseFloat(event.target.style.top);
+            }
+          }
+        });
+      }
+    });
+
+    // (Optional) Make the canvas a dropzone.
+    interact('#canvas').dropzone({
+      accept: '.palette-item'
+      // We already create the new box on dragstart.
+    });
+
+    // Listener for moving dragged boxes.
+    function dragMoveListener (event) {
+      const target = event.target;
+      // Keep the dragged position in data-x and data-y attributes.
+      let x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+      let y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+
+      target.style.left = x + 'px';
+      target.style.top = y + 'px';
+
+      target.setAttribute('data-x', x);
+      target.setAttribute('data-y', y);
+    }
+
+    // Allow editing the label on double-click.
+    canvas.addEventListener('dblclick', function(event) {
+      // Check if the double-click occurred on a draggable box.
+      if (event.target.classList.contains('draggable-box')) {
+        const currentLabel = event.target.childNodes[0].nodeValue.trim();
+        const newLabel = prompt("Edit the label:", currentLabel);
+        if (newLabel !== null) {
+          // Update the text node (preserving the delete button).
+          event.target.childNodes[0].nodeValue = newLabel + " ";
+          // Update the stored value.
+          const id = event.target.getAttribute('data-id');
+          const comp = formComponents.find(c => c.id === id);
+          if (comp) {
+            comp.label = newLabel;
+          }
+        }
+      }
+    });
+
+    // Generate JSON based on current components.
+    document.getElementById('generateJsonBtn').addEventListener('click', function() {
+      // Update positions and labels from the DOM.
+      document.querySelectorAll('.draggable-box').forEach(box => {
+        const id = box.getAttribute('data-id');
+        const comp = formComponents.find(c => c.id === id);
+        if (comp) {
+          comp.x = parseFloat(box.style.left);
+          comp.y = parseFloat(box.style.top);
+          comp.label = box.childNodes[0].nodeValue.trim();
+        }
+      });
+      const formJson = { components: formComponents };
+      document.getElementById('jsonOutput').textContent = JSON.stringify(formJson, null, 2);
+      console.log("Form JSON:", formJson);
+    });
+  </script>
+</body>
+</html>

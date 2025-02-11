@@ -261,7 +261,7 @@
                         <td>${new Date(policy.DateCreated).toLocaleDateString() || 'N/A'}</td>
                         <td>
                             <button class="btn btn-primary" 
-                                    onclick="openPolicy('${policy.ControlNo}')">
+                                    onclick="openPolicy('${policy.ControlNo}', '${policy.QuoteGUID}', ${policy.QuoteID})">
                                 View
                             </button>
                         </td>
@@ -273,9 +273,53 @@
             resultsDiv.innerHTML = html;
         }
 
-        function openPolicy(controlNo) {
+        async function openPolicy(controlNo, quoteGuid, quoteId) {
             if (currentInstance) {
-                window.open(`${currentInstance.url}/Policy/${controlNo}`, '_blank');
+                try {
+                    console.log('Calling VM_CRMPortal_QuoteDetails_WS with:', {
+                        controlNo,
+                        quoteGuid,
+                        quoteId
+                    });
+
+                    // Get policy details using our API endpoint
+                    const response = await fetch('/api/webui/ims-login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({
+                            instanceId: currentInstance.instance_id,
+                            quoteId: quoteId
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to get policy details');
+                    }
+
+                    const policyDetails = await response.json();
+                    console.log('Policy Details Response:', policyDetails);
+
+                    // Add QuoteGUID to the stored details
+                    const parsedDetails = {
+                        policyInfo: policyDetails.Table[0],
+                        documents: policyDetails.Table1 || [],
+                        QuoteGuid: quoteGuid  // Store the QuoteGUID
+                    };
+
+                    // Store the parsed details
+                    sessionStorage.setItem('policyDetails', JSON.stringify(parsedDetails));
+
+                    // Navigate to the policy details page
+                    const instanceId = currentInstance.instance_id;
+                    window.location.href = `/instance/${instanceId}/webui/policy/${controlNo}`;
+
+                } catch (err) {
+                    console.error('Error opening policy:', err);
+                    alert('Failed to open policy view');
+                }
             }
         }
 

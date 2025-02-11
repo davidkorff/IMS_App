@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMS Forms Library</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+            --warning-color: #f1c40f;
+            --danger-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f6fa;
+        }
+
+        .header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .nav-links {
+            margin-bottom: 20px;
+        }
+
+        .nav-links a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .breadcrumb {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .breadcrumb-item {
+            color: var(--accent-color);
+            cursor: pointer;
+        }
+
+        .breadcrumb-item:hover {
+            text-decoration: underline;
+        }
+
+        .forms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .folder-item {
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .folder-item:hover {
+            background: #f5f5f5;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .folder-icon {
+            color: var(--warning-color);
+            font-size: 1.5rem;
+        }
+
+        .folder-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .no-forms {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+
+        .loading::after {
+            content: '';
+            width: 30px;
+            height: 30px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .lines-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .lines-table th,
+        .lines-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .lines-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .lines-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .no-lines {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .lines-table td:last-child {
+            white-space: nowrap;
+        }
+    </style>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- DataTables CSS & JS -->
+    <link href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css" rel="stylesheet">
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <link href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="header">
+        <h1>IMS Forms Library</h1>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="container">
+        <div class="nav-links">
+            <a href="javascript:history.back()">← Back to Instance</a>
+        </div>
+
+        <div class="section">
+            <div class="breadcrumb">
+                <span class="breadcrumb-item" onclick="loadFolders(0)">Root</span>
+            </div>
+
+            <div id="formsContainer" class="forms-grid">
+                <!-- Forms will be loaded here -->
+                <div class="loading"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Available Lines</h2>
+            <div id="linesContainer" class="lines-grid">
+                <!-- Lines will be loaded here -->
+                <div class="loading"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentInstance = null;
+        let currentPath = [];
+
+        async function loadInstanceDetails() {
+            const instanceId = window.location.pathname.split('/')[2]; // Get ID from URL
+            try {
+                const response = await fetch(`/api/instances/${instanceId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load instance details');
+                }
+
+                currentInstance = await response.json();
+                await loadFolders(0); // Load root folder
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load instance details');
+            }
+        }
+
+        async function loadFolders(folderId) {
+            const container = document.getElementById('formsContainer');
+            container.innerHTML = '<div class="loading"></div>';
+
+            try {
+                const response = await fetch(`/api/webui/documents/folders/${folderId}?instanceId=${currentInstance.instance_id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load folders');
+                }
+
+                const folders = await response.json();
+                updateFoldersView(folders, folderId);
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = '<div class="no-forms">Failed to load forms</div>';
+            }
+        }
+
+        function updateFoldersView(folders, currentFolderId) {
+            const container = document.getElementById('formsContainer');
+            container.innerHTML = '';
+
+            if (folders && folders.length > 0) {
+                folders.forEach(folder => {
+                    const folderElement = document.createElement('div');
+                    folderElement.className = 'folder-item';
+                    folderElement.onclick = () => loadFolders(folder.folderId);
+                    folderElement.innerHTML = `
+                        <div class="folder-icon">📁</div>
+                        <div class="folder-name">${folder.folderName || 'Unnamed Folder'}</div>
+                    `;
+                    container.appendChild(folderElement);
+                });
+            } else {
+                container.innerHTML = '<div class="no-forms">No forms found in this location</div>';
+            }
+
+            updateBreadcrumb(currentFolderId);
+        }
+
+        function updateBreadcrumb(currentFolderId) {
+            // Update breadcrumb logic here if needed
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+
+        async function loadLines() {
+            const container = document.getElementById('linesContainer');
+            container.innerHTML = '<div class="loading"></div>';
+
+            try {
+                console.log('Fetching lines for instance:', currentInstance.instance_id);
+                const response = await fetch(`/api/webui/data/lines?instanceId=${currentInstance.instance_id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                console.log('Response status:', response.status);
+                const responseData = await response.json();
+                console.log('Response data:', responseData);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load lines: ${responseData.message}`);
+                }
+
+                displayLines(responseData);
+            } catch (error) {
+                console.error('Detailed error:', error);
+                container.innerHTML = `<div class="no-lines">Failed to load lines: ${error.message}</div>`;
+            }
+        }
+
+        function displayLines(lines) {
+            const container = document.getElementById('linesContainer');
+            
+            console.log('Lines to display:', lines);
+            
+            // Lines is an object with a Table property
+            const linesList = lines.Table || [];
+            console.log('Lines array:', linesList);
+            
+            if (!Array.isArray(linesList) || linesList.length === 0) {
+                container.innerHTML = '<div class="no-lines">No lines found</div>';
+                return;
+            }
+
+            let html = `
+                <table class="lines-table">
+                    <thead>
+                        <tr>
+                            <th>Line Name</th>
+                            <th>Line ID</th>
+                            <th>Line GUID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            linesList.forEach(line => {
+                html += `
+                    <tr>
+                        <td>${line.LineName || 'N/A'}</td>
+                        <td>${line.LineID || 'N/A'}</td>
+                        <td>${line.GUID || 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-primary" onclick="viewAllForms('${line.LineID}')">
+                                View All
+                            </button>
+                            <button class="btn btn-secondary" onclick="viewIndividualForms('${line.LineID}')">
+                                View Individual
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Add these functions to handle the button clicks
+        async function viewAllForms(lineId) {
+            try {
+                console.log('Viewing all forms for line:', lineId);
+                // Add your logic here for viewing all forms
+            } catch (error) {
+                console.error('Error viewing all forms:', error);
+                alert('Failed to load forms');
+            }
+        }
+
+        async function viewIndividualForms(lineId) {
+            try {
+                console.log('Viewing individual forms for line:', lineId);
+                // Add your logic here for viewing individual forms
+            } catch (error) {
+                console.error('Error viewing individual forms:', error);
+                alert('Failed to load forms');
+            }
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadInstanceDetails();
+            await loadLines();
+        });
+    </script>
+</body>
+</html> 

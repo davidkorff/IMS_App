@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Policy Details</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f6fa;
+        }
+
+        .header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .policy-details {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .document-list {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .error {
+            color: red;
+            padding: 10px;
+            background: #fee;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .button-group {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .button {
+            margin: 5px;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        .folder-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+            min-width: 300px;
+            z-index: 1000;
+        }
+
+        .folder {
+            padding: 8px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+
+        .folder:hover {
+            background: #f5f5f5;
+        }
+
+        .no-folders {
+            padding: 8px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .close-button:hover {
+            color: #000;
+        }
+
+        .forms-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .forms-modal .modal-content {
+            background: white;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .forms-modal .modal-header {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .forms-modal .modal-body {
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .forms-navigation {
+            margin-bottom: 1rem;
+        }
+
+        .breadcrumb {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .breadcrumb-item {
+            color: #0066cc;
+            cursor: pointer;
+        }
+
+        .breadcrumb-item:hover {
+            text-decoration: underline;
+        }
+
+        .forms-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .form-item {
+            padding: 1rem;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-item:hover {
+            background: #f5f5f5;
+        }
+
+        .form-item i {
+            color: #ffd700;
+        }
+
+        .no-forms {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Policy Details</h1>
+        <div>
+            <button onclick="goBack()" class="btn btn-secondary">Back</button>
+            <button onclick="logout()" class="btn btn-secondary">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="policy-details">
+            <h2>Policy Details</h2>
+            <div id="policyInfo">Loading...</div>
+
+            <div class="button-group">
+                <h3>Document Functions</h3>
+                <button class="button" onclick="openRater()">View Rating Sheet</button>
+                <button class="button" onclick="createBinderDocument()">Create Binder</button>
+                <button class="button" onclick="createPolicyDocument()">Create Policy</button>
+                <button class="button" onclick="getDocumentFromFolder()">Get from Folder</button>
+                <button class="button" onclick="getDocumentFromStore()">Get from Store</button>
+                <button class="button" onclick="insertAssociatedDocument()">Insert Associated</button>
+                <button class="button" onclick="applyPolicyForms()">Apply Policy Forms</button>
+                <button class="button" onclick="getFolderList()">View Folders</button>
+                <button class="button" onclick="verifyFolder()">Verify Folder</button>
+            </div>
+        </div>
+
+        <div class="document-list">
+            <h2>Documents</h2>
+            <div id="documents">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentInstance = null;
+
+        async function loadInstanceDetails() {
+            const instanceId = window.location.pathname.split('/')[2];
+            try {
+                const response = await fetch(`/api/instances/${instanceId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load instance');
+                }
+
+                currentInstance = await response.json();
+                loadPolicyDetails();
+            } catch (err) {
+                console.error('Error:', err);
+                alert('Failed to load instance details');
+                goBack();
+            }
+        }
+
+        async function loadPolicyDetails() {
+            try {
+                // Get the stored policy details
+                const policyDetails = JSON.parse(sessionStorage.getItem('policyDetails'));
+                
+                if (!policyDetails) {
+                    throw new Error('No policy details found');
+                }
+
+                // Display the policy info
+                const policyInfoDiv = document.getElementById('policyInfo');
+                const documentsDiv = document.getElementById('documents');
+
+                // Basic policy info from Table[0]
+                if (policyDetails.policyInfo) {
+                    let html = '<h3>Policy Information</h3>';
+                    html += '<div class="policy-details">';
+                    html += `<button onclick="openRater('${policyDetails.policyInfo.QuoteGUID}')" class="btn btn-primary">
+                                View Rating Sheet
+                            </button>`;
+                    for (const [key, value] of Object.entries(policyDetails.policyInfo)) {
+                        if (value !== null) {
+                            html += `<p><strong>${key}:</strong> ${value}</p>`;
+                        }
+                    }
+                    html += '</div>';
+                    policyInfoDiv.innerHTML = html;
+                }
+
+                // Documents from Table1 if available
+                if (policyDetails.documents && policyDetails.documents.length > 0) {
+                    let html = '<h3>Documents</h3><ul>';
+                    policyDetails.documents.forEach(doc => {
+                        html += `<li>${doc.DocumentName} - ${doc.DocumentType}</li>`;
+                    });
+                    html += '</ul>';
+                    documentsDiv.innerHTML = html;
+                }
+
+            } catch (err) {
+                console.error('Error loading policy details:', err);
+                document.getElementById('error').textContent = 'Failed to load policy details';
+            }
+        }
+
+        async function loadPolicyDocuments(quoteGuid) {
+            try {
+                const response = await fetch('/api/webui/policy-documents', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        quoteGuid: quoteGuid
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load documents');
+                }
+
+                const documents = await response.json();
+                displayDocuments(documents);
+            } catch (err) {
+                console.error('Error:', err);
+                document.getElementById('documents').innerHTML = 
+                    '<div class="error">Failed to load documents</div>';
+            }
+        }
+
+        function displayPolicyDetails(policy) {
+            const policyInfo = document.getElementById('policyInfo');
+            policyInfo.innerHTML = `
+                <div>
+                    <p><strong>Control Number:</strong> ${policy.ControlNo}</p>
+                    <p><strong>Customer Name:</strong> ${policy.CustomerName}</p>
+                    <p><strong>Date Created:</strong> ${new Date(policy.DateCreated).toLocaleDateString()}</p>
+                    <button onclick="openRater('${policy.QuoteGUID}')" class="btn btn-primary">
+                        Open Rater
+                    </button>
+                </div>
+            `;
+        }
+
+        function displayDocuments(documents) {
+            const documentsDiv = document.getElementById('documents');
+            if (!documents || documents.length === 0) {
+                documentsDiv.innerHTML = '<p>No documents found</p>';
+                return;
+            }
+
+            let html = '<ul>';
+            documents.forEach(doc => {
+                html += `
+                    <li>
+                        ${doc.DocumentName}
+                        <button onclick="viewDocument('${doc.DocumentGUID}')" 
+                                class="btn btn-primary">
+                            View
+                        </button>
+                    </li>
+                `;
+            });
+            html += '</ul>';
+            documentsDiv.innerHTML = html;
+        }
+
+        async function openRater() {
+            try {
+                const policyDetails = JSON.parse(sessionStorage.getItem('policyDetails'));
+                if (!policyDetails?.QuoteGuid) {
+                    throw new Error('No quote GUID found');
+                }
+
+                console.log('Requesting rating sheet for QuoteGuid:', policyDetails.QuoteGuid);
+
+                const response = await fetch('/api/webui/rating-sheet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        quoteGuid: policyDetails.QuoteGuid
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Response not OK:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        error: errorText
+                    });
+                    throw new Error('Failed to get rating sheet');
+                }
+
+                const result = await response.json();
+                console.log('Rating Sheet Response:', result);
+
+                // Convert base64 to blob and download if needed
+                if (result?.Data) {
+                    const byteCharacters = atob(result.Data);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { 
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                    });
+
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = result.Name || 'ratingSheet.xlsx';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                }
+
+            } catch (err) {
+                console.error('Error in openRater:', err);
+                alert('Failed to open rating sheet');
+            }
+        }
+
+        async function viewDocument(documentGuid) {
+            try {
+                const response = await fetch('/api/webui/view-document', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        documentGuid: documentGuid
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get document');
+                }
+
+                const data = await response.blob();
+                const url = window.URL.createObjectURL(data);
+                window.open(url, '_blank');
+            } catch (err) {
+                console.error('Error:', err);
+                alert('Failed to view document');
+            }
+        }
+
+        function goBack() {
+            const instanceId = window.location.pathname.split('/')[2];
+            window.location.href = `/instance/${instanceId}/webui/search`;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/index.html';
+        }
+
+        async function createBinderDocument() {
+            try {
+                const response = await fetch('/api/webui/documents/createBinder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        quoteGuid: policyDetails.QuoteGuid
+                    })
+                });
+                const result = await response.json();
+                console.log('Create Binder Result:', result);
+            } catch (error) {
+                console.error('Error creating binder:', error);
+                alert('Failed to create binder document');
+            }
+        }
+
+        async function createPolicyDocument() {
+            try {
+                const response = await fetch('/api/webui/documents/createPolicy', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        quoteGuid: policyDetails.QuoteGuid
+                    })
+                });
+                const result = await response.json();
+                console.log('Create Policy Result:', result);
+            } catch (error) {
+                console.error('Error creating policy:', error);
+                alert('Failed to create policy document');
+            }
+        }
+
+        async function getDocumentFromFolder() {
+            const folderId = prompt('Enter Folder ID:');
+            if (!folderId) return;
+
+            try {
+                const response = await fetch('/api/webui/documents/fromFolder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        folderId: folderId
+                    })
+                });
+                const result = await response.json();
+                console.log('Get Document Result:', result);
+            } catch (error) {
+                console.error('Error getting document:', error);
+                alert('Failed to get document from folder');
+            }
+        }
+
+        async function getDocumentFromStore() {
+            const documentGuid = prompt('Enter Document GUID:');
+            if (!documentGuid) return;
+
+            try {
+                const response = await fetch('/api/webui/documents/fromStore', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        documentGuid: documentGuid
+                    })
+                });
+                const result = await response.json();
+                console.log('Get Document Result:', result);
+            } catch (error) {
+                console.error('Error getting document:', error);
+                alert('Failed to get document from store');
+            }
+        }
+
+        async function insertAssociatedDocument() {
+            const documentGuid = prompt('Enter Document GUID to associate:');
+            if (!documentGuid) return;
+
+            try {
+                const response = await fetch('/api/webui/documents/insertAssociated', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        quoteGuid: policyDetails.QuoteGuid,
+                        documentGuid: documentGuid
+                    })
+                });
+                const result = await response.json();
+                console.log('Insert Associated Result:', result);
+            } catch (error) {
+                console.error('Error inserting document:', error);
+                alert('Failed to insert associated document');
+            }
+        }
+
+        async function applyPolicyForms() {
+            try {
+                const response = await fetch('/api/webui/documents/applyForms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        quoteGuid: policyDetails.QuoteGuid
+                    })
+                });
+                const result = await response.json();
+                console.log('Apply Forms Result:', result);
+            } catch (error) {
+                console.error('Error applying forms:', error);
+                alert('Failed to apply policy forms');
+            }
+        }
+
+        async function getFolderList(parentId = 0) {
+            try {
+                const response = await fetch(`/api/webui/documents/folders/${parentId}?instanceId=${currentInstance.instance_id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get folder list');
+                }
+
+                const folders = await response.json();
+                console.log('Received folders:', folders);
+
+                // Create folder display
+                const modal = document.createElement('div');
+                modal.className = 'folder-modal';
+                
+                let content = '<h3>Folders</h3>';
+                
+                // Add "up" folder if not at root
+                if (parentId !== 0) {
+                    content += `<div class="folder" onclick="getFolderList(0)">📁 ..</div>`;
+                }
+                
+                // Add folders or "no folders" message
+                if (folders && folders.length > 0) {
+                    content += folders.map(folder => `
+                        <div class="folder" onclick="getFolderList(${folder.folderId})">
+                            📁 ${folder.folderName || 'Unnamed Folder'}
+                        </div>
+                    `).join('');
+                } else {
+                    content += '<div class="no-folders">No folders found</div>';
+                }
+                
+                modal.innerHTML = content;
+                
+                // Remove any existing folder modal
+                const existingModal = document.querySelector('.folder-modal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+                
+                // Add close button
+                const closeButton = document.createElement('button');
+                closeButton.innerHTML = '✖';
+                closeButton.className = 'close-button';
+                closeButton.onclick = () => modal.remove();
+                modal.appendChild(closeButton);
+                
+                document.body.appendChild(modal);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to get folder list');
+            }
+        }
+
+        async function verifyFolder() {
+            const folderId = prompt('Enter folder ID to verify:');
+            if (!folderId) return;
+
+            try {
+                const response = await fetch(`/api/webui/documents/verify-folder/${folderId}?instanceId=${currentInstance.instance_id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to verify folder');
+                }
+
+                const result = await response.json();
+                alert(`Folder ${folderId} ${result.exists ? 'exists' : 'does not exist'}`);
+                console.log('Verify folder result:', result);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to verify folder');
+            }
+        }
+
+        async function viewFormsLibrary() {
+            try {
+                const response = await fetch(`/api/webui/documents/folders/0?instanceId=${currentInstance.instance_id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get forms library');
+                }
+
+                const folders = await response.json();
+                console.log('Forms Library:', folders);
+
+                // Create modal for forms display
+                const modal = document.createElement('div');
+                modal.className = 'modal forms-modal';
+                
+                let content = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>Forms Library</h2>
+                            <button class="close-button" onclick="this.closest('.modal').remove()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="forms-navigation">
+                                <div class="breadcrumb">
+                                    <span class="breadcrumb-item" onclick="viewFormsLibrary()">Root</span>
+                                </div>
+                            </div>
+                            <div class="forms-list">
+                `;
+                
+                if (folders && folders.length > 0) {
+                    content += folders.map(folder => `
+                        <div class="form-item" onclick="openFolder(${folder.folderId})">
+                            <i class="fas fa-folder"></i>
+                            <span>${folder.folderName || 'Unnamed Folder'}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    content += '<div class="no-forms">No forms found in this location</div>';
+                }
+                
+                content += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                modal.innerHTML = content;
+                document.body.appendChild(modal);
+
+            } catch (error) {
+                console.error('Error viewing forms library:', error);
+                alert('Failed to load forms library');
+            }
+        }
+
+        async function openFolder(folderId) {
+            try {
+                const response = await fetch(`/api/webui/documents/folders/${folderId}?instanceId=${currentInstance.instance_id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to open folder');
+                }
+
+                const folders = await response.json();
+                console.log('Folder contents:', folders);
+
+                // Update the forms list in the modal
+                const formsList = document.querySelector('.forms-list');
+                formsList.innerHTML = '';
+
+                if (folders && folders.length > 0) {
+                    folders.forEach(folder => {
+                        const formItem = document.createElement('div');
+                        formItem.className = 'form-item';
+                        formItem.onclick = () => openFolder(folder.folderId);
+                        formItem.innerHTML = `
+                            <i class="fas fa-folder"></i>
+                            <span>${folder.folderName || 'Unnamed Folder'}</span>
+                        `;
+                        formsList.appendChild(formItem);
+                    });
+                } else {
+                    formsList.innerHTML = '<div class="no-forms">No forms found in this folder</div>';
+                }
+
+                // Update breadcrumb
+                const breadcrumb = document.querySelector('.breadcrumb');
+                const breadcrumbItem = document.createElement('span');
+                breadcrumbItem.className = 'breadcrumb-item';
+                breadcrumbItem.textContent = `> ${folders[0]?.folderName || 'Unnamed Folder'}`;
+                breadcrumb.appendChild(breadcrumbItem);
+
+            } catch (error) {
+                console.error('Error opening folder:', error);
+                alert('Failed to open folder');
+            }
+        }
+
+        // Check authentication and load instance details
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/index.html';
+            } else {
+                loadInstanceDetails();
+            }
+        });
+    </script>
+</body>
+</html> 

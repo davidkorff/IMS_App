@@ -29,6 +29,11 @@ app.get('/instance/:id', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'instance.html'));
 });
 
+// Add this route for forms
+app.get('/instance/:id/forms', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'forms.html'));
+});
+
 app.get('/instance/:id/reporting', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'reporting.html'));
 });
@@ -39,6 +44,10 @@ app.get('/instance/:id/webui', (req, res) => {
 
 app.get('/instance/:id/webui/search', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webui-search.html'));
+});
+
+app.get('/instance/:id/webui/policy/:controlNo', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webui-policy.html'));
 });
 
 const PORT = process.env.PORT || 5000;

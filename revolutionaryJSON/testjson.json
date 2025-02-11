@@ -1,0 +1,395 @@
+{
+    "form": {
+      "id": "robustInsuranceForm",
+      "version": "2.0",
+      "title": "Robust Insurance Submission & Rating Engine",
+      "description": "A comprehensive form that covers a wide array of field types, dynamic logic, nested objects, and calculations to handle nearly every scenario.",
+      "tabs": [
+        {
+          "id": "tab_policy_info",
+          "title": "Policy Information",
+          "sections": [
+            {
+              "id": "section_policy_details",
+              "title": "Policy Details",
+              "fields": [
+                {
+                  "id": "policyType",
+                  "label": "Policy Type",
+                  "type": "select",
+                  "options": ["Auto", "Home", "Life", "Commercial"],
+                  "value": "Auto",
+                  "validation": { "required": true }
+                },
+                {
+                  "id": "policyNumber",
+                  "label": "Policy Number",
+                  "type": "text",
+                  "value": "ABC123",
+                  "validation": { "required": true, "pattern": "^[A-Z0-9]+$" }
+                },
+                {
+                  "id": "effectiveDate",
+                  "label": "Effective Date",
+                  "type": "date",
+                  "value": "2025-01-01",
+                  "validation": { "required": true }
+                },
+                {
+                  "id": "expirationDate",
+                  "label": "Expiration Date",
+                  "type": "date",
+                  "value": "2025-12-31",
+                  "validation": { "required": true }
+                },
+                {
+                  "id": "renewal",
+                  "label": "Renewal?",
+                  "type": "checkbox",
+                  "value": false
+                },
+                {
+                  "id": "premium",
+                  "label": "Calculated Premium",
+                  "type": "number",
+                  "readonly": true,
+                  "calculation": "calculatePremium"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tab_insured_info",
+          "title": "Insured & Risk Information",
+          "sections": [
+            {
+              "id": "section_insured_details",
+              "title": "Insured Details",
+              "fields": [
+                {
+                  "id": "insuredName",
+                  "label": "Name",
+                  "type": "text",
+                  "value": "John Doe",
+                  "validation": { "required": true }
+                },
+                {
+                  "id": "insuredDOB",
+                  "label": "Date of Birth",
+                  "type": "date",
+                  "value": "1990-01-01",
+                  "validation": { "required": true }
+                },
+                {
+                  "id": "insuredAddress",
+                  "label": "Address",
+                  "type": "textarea",
+                  "value": "123 Main St, Anytown, USA",
+                  "validation": { "required": true }
+                },
+                {
+                  "id": "creditScore",
+                  "label": "Credit Score",
+                  "type": "number",
+                  "value": 700,
+                  "validation": { "min": 300, "max": 850 }
+                }
+              ]
+            },
+            {
+              "id": "section_risk_factors",
+              "title": "Risk Factors",
+              "fields": [
+                {
+                  "id": "riskLocation",
+                  "label": "Risk Location",
+                  "type": "text",
+                  "value": "Urban",
+                  "validation": { "required": true }
+                },
+                {
+                  "id": "riskScore",
+                  "label": "Risk Score",
+                  "type": "number",
+                  "readonly": true,
+                  "calculation": "calculateRiskScore"
+                },
+                {
+                  "id": "accidentHistory",
+                  "label": "Accident History",
+                  "type": "radio",
+                  "options": ["None", "Minor", "Major"],
+                  "value": "None",
+                  "validation": { "required": true }
+                },
+                {
+                  "id": "safetyDiscount",
+                  "label": "Safety Discount (%)",
+                  "type": "number",
+                  "readonly": true,
+                  "calculation": "calculateSafetyDiscount"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tab_coverage",
+          "title": "Coverage Options",
+          "sections": [
+            {
+              "id": "section_coverage_options",
+              "title": "Coverage Options",
+              "fields": [
+                {
+                  "id": "coverageType",
+                  "label": "Coverage Type",
+                  "type": "select",
+                  "options": ["Standard", "Premium", "Deluxe"],
+                  "value": "Standard",
+                  "validation": { "required": true }
+                },
+                {
+                  "id": "coverageLimits",
+                  "label": "Coverage Limits",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "id": "liability",
+                      "label": "Liability Limit",
+                      "type": "number",
+                      "validation": { "required": true }
+                    },
+                    {
+                      "id": "collision",
+                      "label": "Collision Limit",
+                      "type": "number"
+                    },
+                    {
+                      "id": "comprehensive",
+                      "label": "Comprehensive Limit",
+                      "type": "number"
+                    }
+                  ]
+                },
+                {
+                  "id": "deductibles",
+                  "label": "Deductibles",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "id": "deductibleAmount",
+                      "label": "Deductible Amount",
+                      "type": "number",
+                      "validation": { "required": true }
+                    },
+                    {
+                      "id": "deductibleType",
+                      "label": "Deductible Type",
+                      "type": "select",
+                      "options": ["Fixed", "Percentage"],
+                      "value": "Fixed"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tab_submission",
+          "title": "Submission & Review",
+          "sections": [
+            {
+              "id": "section_review",
+              "title": "Review & Confirm",
+              "fields": [
+                {
+                  "id": "summary",
+                  "label": "Summary",
+                  "type": "textarea",
+                  "readonly": true,
+                  "calculation": "generateSummary"
+                },
+                {
+                  "id": "eSign",
+                  "label": "Electronic Signature",
+                  "type": "signature",
+                  "validation": { "required": true }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tab_dynamic",
+          "title": "Dynamic List Example",
+          "sections": [
+            {
+              "id": "section_dynamic",
+              "title": "Additional Items",
+              "fields": [
+                {
+                  "id": "items",
+                  "label": "Items",
+                  "type": "dynamicList",
+                  "template": {
+                    "fields": [
+                      {
+                        "id": "itemName",
+                        "label": "Item Name",
+                        "type": "text",
+                        "validation": { "required": true }
+                      },
+                      {
+                        "id": "itemQuantity",
+                        "label": "Quantity",
+                        "type": "number",
+                        "validation": { "required": true, "min": 1 }
+                      },
+                      {
+                        "id": "itemPrice",
+                        "label": "Price",
+                        "type": "number",
+                        "validation": { "required": true, "min": 0 }
+                      }
+                    ]
+                  },
+                  "value": []
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "logic": {
+        "dependencies": [
+          {
+            "trigger": "policyType",
+            "conditions": [
+              {
+                "value": "Auto",
+                "actions": [
+                  { "action": "show", "fields": ["driverRecord", "vehicleMake", "vehicleModel"] },
+                  { "action": "hide", "fields": ["beneficiaries", "healthQuestions"] },
+                  { "action": "disable", "fields": ["creditScore"] }
+                ]
+              },
+              {
+                "value": "Life",
+                "actions": [
+                  { "action": "show", "fields": ["beneficiaries", "healthQuestions"] },
+                  { "action": "hide", "fields": ["driverRecord", "vehicleMake", "vehicleModel"] },
+                  { "action": "require", "fields": ["insuredDOB"] }
+                ]
+              },
+              {
+                "value": "Commercial",
+                "actions": [
+                  { "action": "enable", "fields": ["businessRevenue", "businessType"] },
+                  { "action": "setDefault", "fields": [
+                      { "field": "coverageType", "value": "Premium" },
+                      { "field": "deductibleType", "value": "Percentage" }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "trigger": "renewal",
+            "conditions": [
+              {
+                "value": true,
+                "actions": [
+                  { "action": "show", "fields": ["renewalDiscount"] },
+                  { "action": "require", "fields": ["renewalDiscount"] }
+                ]
+              },
+              {
+                "value": false,
+                "actions": [
+                  { "action": "hide", "fields": ["renewalDiscount"] }
+                ]
+              }
+            ]
+          },
+          {
+            "trigger": "accidentHistory",
+            "conditions": [
+              {
+                "value": "Major",
+                "actions": [
+                  { "action": "setValue", "fields": [ { "field": "safetyDiscount", "value": 0 } ] },
+                  { "action": "disable", "fields": ["premium"] }
+                ]
+              },
+              {
+                "value": "Minor",
+                "actions": [
+                  { "action": "setValue", "fields": [ { "field": "safetyDiscount", "value": 5 } ] }
+                ]
+              },
+              {
+                "value": "None",
+                "actions": [
+                  { "action": "setValue", "fields": [ { "field": "safetyDiscount", "value": 10 } ] }
+                ]
+              }
+            ]
+          },
+          {
+            "trigger": "coverageType",
+            "conditions": [
+              {
+                "value": "Deluxe",
+                "actions": [
+                  { "action": "show", "fields": ["deductibles"] },
+                  { "action": "require", "fields": ["liability", "collision", "comprehensive"] },
+                  { "action": "enable", "fields": ["coverageLimits"] }
+                ]
+              },
+              {
+                "value": "Standard",
+                "actions": [
+                  { "action": "hide", "fields": ["deductibles"] }
+                ]
+              }
+            ]
+          },
+          {
+            "trigger": "creditScore",
+            "conditions": [
+              {
+                "value": "below600",
+                "actions": [
+                  { "action": "setValue", "fields": [ { "field": "premium", "value": 2000 } ] },
+                  { "action": "warn", "message": "Low credit score may affect premium." }
+                ]
+              },
+              {
+                "value": "600to750",
+                "actions": [
+                  { "action": "setValue", "fields": [ { "field": "premium", "value": 1500 } ] }
+                ]
+              },
+              {
+                "value": "above750",
+                "actions": [
+                  { "action": "setValue", "fields": [ { "field": "premium", "value": 1000 } ] }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "calculations": {
+        "calculatePremium": "function calculatePremium(data) { /* Example logic */ return 1000 + (data.riskScore || 0); }",
+        "calculateRiskScore": "function calculateRiskScore(data) { /* Example risk scoring */ return 50; }",
+        "calculateSafetyDiscount": "function calculateSafetyDiscount(data) { return data.accidentHistory === 'None' ? 10 : data.accidentHistory === 'Minor' ? 5 : 0; }",
+        "generateSummary": "function generateSummary(data) { return 'This is a summary of the submission.'; }"
+      }
+    }
+  }
+  
