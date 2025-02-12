@@ -70,9 +70,7 @@
         }
 
         .forms-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 1rem;
+            display: block;
             padding: 1rem;
         }
 
@@ -252,19 +250,19 @@
             <div class="filters" style="margin-bottom: 20px;">
                 <div class="filter-group">
                     <label for="companySelect">Company:</label>
-                    <select id="companySelect" onchange="handleCompanyChange()">
+                    <select id="companySelect">
                         <option value="">Select Company</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="lineSelect">Line:</label>
-                    <select id="lineSelect" onchange="handleLineChange()" disabled>
+                    <select id="lineSelect">
                         <option value="">Select Line</option>
                     </select>
                 </div>
                 <div class="filter-group">
                     <label for="stateSelect">State:</label>
-                    <select id="stateSelect" onchange="handleStateChange()" disabled>
+                    <select id="stateSelect">
                         <option value="">Select State</option>
                     </select>
                 </div>
@@ -275,19 +273,14 @@
                 <div class="loading"></div>
             </div>
         </div>
-
-        <div class="section">
-            <h2>Available Lines</h2>
-            <div id="linesContainer" class="lines-grid">
-                <!-- Lines will be loaded here -->
-                <div class="loading"></div>
-            </div>
-        </div>
     </div>
 
     <script>
         let currentInstance = null;
         let currentPath = [];
+        let companiesLoaded = false;
+        let linesLoaded = false;
+        let statesLoaded = false;
 
         async function loadInstanceDetails() {
             const instanceId = window.location.pathname.split('/')[2]; // Get ID from URL
@@ -461,11 +454,201 @@
             }
         }
 
+        // Add these functions to your existing JavaScript
+        document.getElementById('companySelect').addEventListener('click', async function() {
+            if (!companiesLoaded) {
+                try {
+                    const response = await fetch(`/api/webui/forms/companies?instanceId=${currentInstance.instance_id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to load companies');
+                    }
+
+                    const companies = await response.json();
+                    this.innerHTML = '<option value="">Select Company</option>';
+                    
+                    companies.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.CompanyLocationGUID;
+                        option.textContent = company.LocationName;
+                        this.appendChild(option);
+                    });
+
+                    companiesLoaded = true;
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to load companies');
+                }
+            }
+        });
+
+        document.getElementById('lineSelect').addEventListener('click', async function() {
+            if (!linesLoaded) {
+                try {
+                    const response = await fetch(`/api/webui/forms/lines?instanceId=${currentInstance.instance_id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to load lines');
+                    }
+
+                    const lines = await response.json();
+                    this.innerHTML = '<option value="">Select Line</option>';
+                    
+                    lines.forEach(line => {
+                        const option = document.createElement('option');
+                        option.value = line.LineGUID;
+                        option.textContent = line.LineName;
+                        this.appendChild(option);
+                    });
+
+                    linesLoaded = true;
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to load lines');
+                }
+            }
+        });
+
+        document.getElementById('stateSelect').addEventListener('click', async function() {
+            if (!statesLoaded) {
+                try {
+                    const response = await fetch(`/api/webui/forms/states?instanceId=${currentInstance.instance_id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to load states');
+                    }
+
+                    const states = await response.json();
+                    this.innerHTML = '<option value="">Select State</option>';
+                    
+                    states.forEach(state => {
+                        const option = document.createElement('option');
+                        option.value = state.StateID.toString();
+                        option.textContent = state.State;
+                        this.appendChild(option);
+                    });
+
+                    statesLoaded = true;
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to load states');
+                }
+            }
+        });
+
+        // Reset flags when selections change
+        document.getElementById('companySelect').addEventListener('change', function() {
+            // Removed the reset of lines and states
+        });
+
+        document.getElementById('lineSelect').addEventListener('change', function() {
+            // Removed the reset of states
+        });
+
         // Initialize the page
         document.addEventListener('DOMContentLoaded', async () => {
             await loadInstanceDetails();
             await loadLines();
         });
+
+        async function loadFilteredResults() {
+            try {
+                // Get current values from dropdowns
+                const companyLocationGuid = document.getElementById('companySelect').value;
+                const lineGuid = document.getElementById('lineSelect').value;
+                const stateId = document.getElementById('stateSelect').value;
+
+                console.log('Selected values:', {
+                    companyLocationGuid,
+                    lineGuid,
+                    stateId
+                });
+
+                const response = await fetch(`/api/webui/forms/filtered?instanceId=${currentInstance.instance_id}&companyLocationGuid=${companyLocationGuid}&lineGuid=${lineGuid}&stateId=${stateId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load filtered results');
+                }
+
+                const results = await response.json();
+                displayResults(results);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load filtered results');
+            }
+        }
+
+        function displayResults(results) {
+            const container = document.getElementById('formsContainer');
+            
+            if (!results.Table || results.Table.length === 0) {
+                container.innerHTML = '<div class="no-forms">No results found</div>';
+                return;
+            }
+
+            let html = `
+                <table class="lines-table">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Line</th>
+                            <th>State</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            results.Table.forEach(result => {
+                html += `
+                    <tr>
+                        <td>${result.LocationName || 'N/A'}</td>
+                        <td>${result.LineName || 'N/A'}</td>
+                        <td>${result.State || 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-primary" onclick="viewForms('${result.CompanyLineID}')">
+                                View Forms
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Add the viewForms function
+        async function viewForms(companyLineId) {
+            try {
+                const instanceId = currentInstance.instance_id;
+                window.location.href = `/instance/${instanceId}/forms/all?companyLineId=${companyLineId}`;
+            } catch (error) {
+                console.error('Error viewing forms:', error);
+                alert('Failed to load forms');
+            }
+        }
+
+        // Update the change handlers for all dropdowns
+        document.getElementById('companySelect').addEventListener('change', loadFilteredResults);
+        document.getElementById('lineSelect').addEventListener('change', loadFilteredResults);
+        document.getElementById('stateSelect').addEventListener('change', loadFilteredResults);
     </script>
 </body>
 </html> 

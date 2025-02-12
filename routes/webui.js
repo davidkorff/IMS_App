@@ -671,7 +671,7 @@ router.post('/forms/all', auth, async (req, res) => {
 
 router.get('/forms/companies', auth, async (req, res) => {
     try {
-        const { instanceId, lineGuid } = req.query;
+        const { instanceId } = req.query;
         
         const instance = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
@@ -682,15 +682,13 @@ router.get('/forms/companies', auth, async (req, res) => {
             return res.status(404).json({ message: 'Instance not found' });
         }
 
-        // Call DataAccess service to get companies
+        // Call DataAccess service to get companies - no parameters needed
         const result = await dataAccess.executeProc({
             url: instance.rows[0].url,
             username: instance.rows[0].username,
             password: instance.rows[0].password,
             procedure: 'DK_GetCompanies_WS',
-            parameters: {
-                LineGUID: lineGuid
-            }
+            parameters: {}  // Empty parameters object
         });
 
         res.json(result.Table || []);
@@ -702,7 +700,7 @@ router.get('/forms/companies', auth, async (req, res) => {
 
 router.get('/forms/lines', auth, async (req, res) => {
     try {
-        const { instanceId, companyId } = req.query;
+        const { instanceId } = req.query;
         
         const instance = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
@@ -718,9 +716,7 @@ router.get('/forms/lines', auth, async (req, res) => {
             username: instance.rows[0].username,
             password: instance.rows[0].password,
             procedure: 'DK_GetLines_WS',
-            parameters: {
-                CompanyID: companyId
-            }
+            parameters: {}  // No parameters needed
         });
 
         res.json(result.Table || []);
@@ -732,7 +728,7 @@ router.get('/forms/lines', auth, async (req, res) => {
 
 router.get('/forms/states', auth, async (req, res) => {
     try {
-        const { instanceId, lineId } = req.query;
+        const { instanceId } = req.query;
         
         const instance = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
@@ -748,9 +744,7 @@ router.get('/forms/states', auth, async (req, res) => {
             username: instance.rows[0].username,
             password: instance.rows[0].password,
             procedure: 'DK_GetStates_WS',
-            parameters: {
-                LineID: lineId
-            }
+            parameters: {}  // No parameters needed
         });
 
         res.json(result.Table || []);
@@ -762,7 +756,7 @@ router.get('/forms/states', auth, async (req, res) => {
 
 router.get('/forms/filtered', auth, async (req, res) => {
     try {
-        const { instanceId, companyId, lineId, stateId } = req.query;
+        const { instanceId, companyLocationGuid, lineGuid, stateId } = req.query;
         
         const instance = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
@@ -773,22 +767,35 @@ router.get('/forms/filtered', auth, async (req, res) => {
             return res.status(404).json({ message: 'Instance not found' });
         }
 
+        // Build parameters object - only include parameters that have actual values
+        const parameters = {};
+        
+        if (lineGuid && lineGuid !== 'undefined' && lineGuid !== '') {
+            parameters.LineGUID = lineGuid;
+        }
+        
+        if (companyLocationGuid && companyLocationGuid !== 'undefined' && companyLocationGuid !== '') {
+            parameters.CompanyLocationGUID = companyLocationGuid;
+        }
+        
+        if (stateId && stateId !== 'undefined' && stateId !== '') {
+            parameters.StateID = stateId;  // Keep as string, don't convert to number
+        }
+
+        console.log('Final parameters for stored procedure:', parameters);
+
         const result = await dataAccess.executeProc({
             url: instance.rows[0].url,
             username: instance.rows[0].username,
             password: instance.rows[0].password,
-            procedure: 'DK_GetFilteredForms_WS',
-            parameters: {
-                CompanyID: companyId,
-                LineID: lineId,
-                StateID: stateId
-            }
+            procedure: 'DK_GetCompanyStateLines_WS',
+            parameters: parameters
         });
 
-        res.json(result.Table || []);
+        res.json(result);
     } catch (error) {
-        console.error('Error getting filtered forms:', error);
-        res.status(500).json({ message: 'Failed to get filtered forms' });
+        console.error('Error getting filtered results:', error);
+        res.status(500).json({ message: 'Failed to get filtered results', error: error.message });
     }
 });
 
