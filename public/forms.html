@@ -191,6 +191,35 @@
         .lines-table td:last-child {
             white-space: nowrap;
         }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        .filter-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
     </style>
 
     <!-- jQuery -->
@@ -218,6 +247,27 @@
         <div class="section">
             <div class="breadcrumb">
                 <span class="breadcrumb-item" onclick="loadFolders(0)">Root</span>
+            </div>
+
+            <div class="filters" style="margin-bottom: 20px;">
+                <div class="filter-group">
+                    <label for="companySelect">Company:</label>
+                    <select id="companySelect" onchange="handleCompanyChange()">
+                        <option value="">Select Company</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="lineSelect">Line:</label>
+                    <select id="lineSelect" onchange="handleLineChange()" disabled>
+                        <option value="">Select Line</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="stateSelect">State:</label>
+                    <select id="stateSelect" onchange="handleStateChange()" disabled>
+                        <option value="">Select State</option>
+                    </select>
+                </div>
             </div>
 
             <div id="formsContainer" class="forms-grid">
@@ -373,12 +423,12 @@
                     <tr>
                         <td>${line.LineName || 'N/A'}</td>
                         <td>${line.LineID || 'N/A'}</td>
-                        <td>${line.GUID || 'N/A'}</td>
+                        <td>${line.LineGUID || 'N/A'}</td>
                         <td>
-                            <button class="btn btn-primary" onclick="viewAllForms('${line.LineID}')">
+                            <button class="btn btn-primary" onclick="viewAllForms('${line.LineGUID}')">
                                 View All
                             </button>
-                            <button class="btn btn-secondary" onclick="viewIndividualForms('${line.LineID}')">
+                            <button class="btn btn-secondary" onclick="viewIndividualForms('${line.LineGUID}')">
                                 View Individual
                             </button>
                         </td>
@@ -393,8 +443,8 @@
         // Add these functions to handle the button clicks
         async function viewAllForms(lineId) {
             try {
-                console.log('Viewing all forms for line:', lineId);
-                // Add your logic here for viewing all forms
+                const instanceId = currentInstance.instance_id;
+                window.location.href = `/instance/${instanceId}/forms/all?lineId=${lineId}`;
             } catch (error) {
                 console.error('Error viewing all forms:', error);
                 alert('Failed to load forms');
@@ -403,8 +453,8 @@
 
         async function viewIndividualForms(lineId) {
             try {
-                console.log('Viewing individual forms for line:', lineId);
-                // Add your logic here for viewing individual forms
+                const instanceId = currentInstance.instance_id;
+                window.location.href = `/instance/${instanceId}/forms/companylinestate?lineId=${lineId}`;
             } catch (error) {
                 console.error('Error viewing individual forms:', error);
                 alert('Failed to load forms');

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Forms</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+            --warning-color: #f1c40f;
+            --danger-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f6fa;
+        }
+
+        .header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .nav-links {
+            margin-bottom: 20px;
+        }
+
+        .nav-links a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        .forms-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .forms-table th,
+        .forms-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .forms-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .forms-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .no-forms {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .forms-table td:last-child {
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>All Forms</h1>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="container">
+        <div class="nav-links">
+            <a href="javascript:history.back()">← Back to Lines</a>
+        </div>
+
+        <div id="formsContainer">
+            <!-- Forms will be loaded here -->
+            <div class="loading"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentInstance = null;
+
+        async function loadInstanceDetails() {
+            const instanceId = window.location.pathname.split('/')[2];
+            try {
+                const response = await fetch(`/api/instances/${instanceId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load instance details');
+                }
+
+                currentInstance = await response.json();
+                await loadForms();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load instance details');
+            }
+        }
+
+        async function loadForms() {
+            const container = document.getElementById('formsContainer');
+            const params = new URLSearchParams(window.location.search);
+            const lineId = params.get('lineId');
+
+            try {
+                const response = await fetch(`/api/webui/forms/all?instanceId=${currentInstance.instance_id}&lineId=${lineId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load forms');
+                }
+
+                const forms = await response.json();
+                displayForms(forms);
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = '<div class="no-forms">Failed to load forms</div>';
+            }
+        }
+
+        function displayForms(forms) {
+            const container = document.getElementById('formsContainer');
+            
+            if (!forms.Table || forms.Table.length === 0) {
+                container.innerHTML = '<div class="no-forms">No forms found</div>';
+                return;
+            }
+
+            let html = `
+                <div class="actions-bar" style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="downloadAllForms()">
+                        Download All Forms
+                    </button>
+                </div>
+                <table class="forms-table">
+                    <thead>
+                        <tr>
+                            <th>Line Name</th>
+                            <th>Form Name</th>
+                            <th>Form Number</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            forms.Table.forEach(form => {
+                html += `
+                    <tr>
+                        <td>${form.FormName || 'N/A'}</td>
+                        <td>${form.FormNumber || 'N/A'}</td>
+                        <td>${form.Description || 'N/A'}</td>
+                        <td>
+                            <button class="btn btn-primary" 
+                                    onclick="viewForm(${form.FormID})" 
+                                    ${!form.FormID ? 'disabled' : ''}>
+                                View
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        async function downloadAllForms() {
+            try {
+                const forms = document.querySelectorAll('.forms-table tbody tr');
+                console.log(`Starting download of ${forms.length} forms...`);
+
+                for (const form of forms) {
+                    const viewButton = form.querySelector('button');
+                    const formId = viewButton.getAttribute('onclick').match(/\d+/)[0];
+                    
+                    if (formId) {
+                        console.log(`Downloading form ID: ${formId}`);
+                        await viewForm(formId);
+                        // Add a small delay between downloads to prevent overwhelming the browser
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+
+                console.log('All forms downloaded successfully');
+            } catch (error) {
+                console.error('Error downloading all forms:', error);
+                alert('Failed to download all forms');
+            }
+        }
+
+        async function viewForm(formId) {
+            try {
+                // Format the SOAP envelope
+                const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Header>
+        <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+            <Token>[token will be added by backend]</Token>
+            <Context>ImsMonitoring</Context>
+        </TokenHeader>
+    </soap:Header>
+    <soap:Body>
+        <ExecuteDataSet xmlns="http://tempuri.org/IMSWebServices/DataAccess">
+            <procedureName>DK_GetFormContent</procedureName>
+            <parameters>
+                <string>@FormID</string>
+                <string>${formId}</string>
+            </parameters>
+        </ExecuteDataSet>
+    </soap:Body>
+</soap:Envelope>`;
+
+                console.log('SOAP Request:', soapEnvelope);
+
+                const response = await fetch(`/api/webui/forms/all`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ 
+                        instanceId: currentInstance.instance_id,
+                        formId 
+                    })
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries([...response.headers]));
+                
+                const responseText = await response.text();
+                console.log('Response body:', responseText);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch form content: ${response.status}`);
+                }
+
+                const data = JSON.parse(responseText);
+                console.log('Parsed response:', data);
+
+                // Get the first row from the Table array
+                const formData = data.Table[0];
+                if (!formData) {
+                    throw new Error('No form content received');
+                }
+
+                const { Type, FormContent, FormName } = formData;
+                console.log('Form Type:', Type);
+                console.log('Form Name:', FormName);
+
+                if (!FormContent) {
+                    throw new Error('No form content available');
+                }
+
+                // Convert base64 string to Blob and download
+                const base64Content = FormContent;
+                const byteCharacters = atob(base64Content);
+                const byteNumbers = new Array(byteCharacters.length);
+                
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                
+                const byteArray = new Uint8Array(byteNumbers);
+                let blob;
+                let extension;
+
+                const typeLC = Type?.toLowerCase();
+                switch (typeLC) {
+                    case 'word':
+                    case 'doc':
+                        blob = new Blob([byteArray], { type: 'application/msword' });
+                        extension = 'doc';
+                        break;
+                    case 'docx':
+                        blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                        extension = 'docx';
+                        break;
+                    case 'pdf':
+                        blob = new Blob([byteArray], { type: 'application/pdf' });
+                        extension = 'pdf';
+                        break;
+                    default:
+                        throw new Error(`Unsupported form type: ${Type}`);
+                }
+
+                // Create a safe filename from the FormName
+                const safeName = (FormName || `form_${formId}`)
+                    .replace(/[^a-z0-9]/gi, '_')  // Replace non-alphanumeric with underscore
+                    .replace(/_+/g, '_')          // Replace multiple underscores with single
+                    .toLowerCase();
+                
+                const fileName = `${safeName}.${extension}`;
+                console.log('Creating file:', fileName, 'with MIME type:', blob.type);
+
+                // Create download link and trigger download
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(blob);
+                downloadLink.download = fileName;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(downloadLink.href);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+
+        function handleSubmit(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            
+            // Log the raw form data
+            console.log('Raw form data:', formData);
+            
+            // Log each field value
+            for (let pair of formData.entries()) {
+                console.log(pair[0], pair[1]);
+            }
+            
+            // If you want to see the data as an object
+            const formDataObj = Object.fromEntries(formData);
+            console.log('Form data as object:', formDataObj);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+            } else {
+                loadInstanceDetails();
+            }
+        });
+    </script>
+</body>
+</html> 

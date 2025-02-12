@@ -578,4 +578,218 @@ router.get('/data/lines', auth, async (req, res) => {
     }
 });
 
+// Add this route to handle the forms data
+router.get('/forms/all', auth, async (req, res) => {
+    try {
+        const { instanceId, lineId } = req.query;
+        
+        // Get instance details
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+
+        // Call DataAccess service
+        const result = await dataAccess.executeProc({
+            url: instance.rows[0].url,
+            username: instance.rows[0].username,
+            password: instance.rows[0].password,
+            procedure: 'DK_LineForms',
+            parameters: {
+                LineGUID: lineId
+            }
+        });
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error getting forms:', error);
+        res.status(500).json({ message: 'Failed to get forms' });
+    }
+});
+
+// Add this route to handle the forms page
+router.get('/instance/:instanceId/forms/all', auth, async (req, res) => {
+    try {
+        const { instanceId } = req.params;
+        
+        // Verify instance access
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            return res.status(404).redirect('/dashboard');
+        }
+
+        // Send the forms-all.html page
+        res.sendFile(path.join(__dirname, '../public/forms-all.html'));
+    } catch (err) {
+        console.error('Error accessing forms page:', err);
+        res.status(500).redirect('/dashboard');
+    }
+});
+
+// Add this POST endpoint for form content
+router.post('/forms/all', auth, async (req, res) => {
+    try {
+        const { instanceId, formId } = req.body;
+        
+        // Get instance details
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+
+        // Call DataAccess service
+        const result = await dataAccess.executeProc({
+            url: instance.rows[0].url,
+            username: instance.rows[0].username,
+            password: instance.rows[0].password,
+            procedure: 'DK_GetFormContent',
+            parameters: {
+                FormID: formId
+            }
+        });
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error getting form content:', error);
+        res.status(500).json({ message: 'Failed to get form content' });
+    }
+});
+
+// Add these new routes for company/line/state form filtering
+
+router.get('/forms/companies', auth, async (req, res) => {
+    try {
+        const { instanceId, lineGuid } = req.query;
+        
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+
+        // Call DataAccess service to get companies
+        const result = await dataAccess.executeProc({
+            url: instance.rows[0].url,
+            username: instance.rows[0].username,
+            password: instance.rows[0].password,
+            procedure: 'DK_GetCompanies_WS',
+            parameters: {
+                LineGUID: lineGuid
+            }
+        });
+
+        res.json(result.Table || []);
+    } catch (error) {
+        console.error('Error getting companies:', error);
+        res.status(500).json({ message: 'Failed to get companies' });
+    }
+});
+
+router.get('/forms/lines', auth, async (req, res) => {
+    try {
+        const { instanceId, companyId } = req.query;
+        
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+
+        const result = await dataAccess.executeProc({
+            url: instance.rows[0].url,
+            username: instance.rows[0].username,
+            password: instance.rows[0].password,
+            procedure: 'DK_GetLines_WS',
+            parameters: {
+                CompanyID: companyId
+            }
+        });
+
+        res.json(result.Table || []);
+    } catch (error) {
+        console.error('Error getting lines:', error);
+        res.status(500).json({ message: 'Failed to get lines' });
+    }
+});
+
+router.get('/forms/states', auth, async (req, res) => {
+    try {
+        const { instanceId, lineId } = req.query;
+        
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+
+        const result = await dataAccess.executeProc({
+            url: instance.rows[0].url,
+            username: instance.rows[0].username,
+            password: instance.rows[0].password,
+            procedure: 'DK_GetStates_WS',
+            parameters: {
+                LineID: lineId
+            }
+        });
+
+        res.json(result.Table || []);
+    } catch (error) {
+        console.error('Error getting states:', error);
+        res.status(500).json({ message: 'Failed to get states' });
+    }
+});
+
+router.get('/forms/filtered', auth, async (req, res) => {
+    try {
+        const { instanceId, companyId, lineId, stateId } = req.query;
+        
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+
+        const result = await dataAccess.executeProc({
+            url: instance.rows[0].url,
+            username: instance.rows[0].username,
+            password: instance.rows[0].password,
+            procedure: 'DK_GetFilteredForms_WS',
+            parameters: {
+                CompanyID: companyId,
+                LineID: lineId,
+                StateID: stateId
+            }
+        });
+
+        res.json(result.Table || []);
+    } catch (error) {
+        console.error('Error getting filtered forms:', error);
+        res.status(500).json({ message: 'Failed to get filtered forms' });
+    }
+});
+
 module.exports = router; 
