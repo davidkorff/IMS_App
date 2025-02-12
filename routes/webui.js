@@ -578,12 +578,17 @@ router.get('/data/lines', auth, async (req, res) => {
     }
 });
 
-// Add this route to handle the forms data
+// Update this route to handle the forms data
 router.get('/forms/all', auth, async (req, res) => {
     try {
-        const { instanceId, lineId } = req.query;
+        const { instanceId, companyLineId } = req.query;
         
-        // Get instance details
+        console.log('API Request:', {
+            instanceId,
+            companyLineId,
+            headers: req.headers
+        });
+
         const instance = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
             [instanceId, req.user.user_id]
@@ -593,21 +598,32 @@ router.get('/forms/all', auth, async (req, res) => {
             return res.status(404).json({ message: 'Instance not found' });
         }
 
-        // Call DataAccess service
+        console.log('Instance found:', instance.rows[0]);
+
+        // Call DataAccess service with the new procedure
         const result = await dataAccess.executeProc({
             url: instance.rows[0].url,
             username: instance.rows[0].username,
             password: instance.rows[0].password,
-            procedure: 'DK_LineForms',
+            procedure: 'DK_GetCompanyLineForms_WS',
             parameters: {
-                LineGUID: lineId
+                LineID: parseInt(companyLineId)
             }
         });
 
+        console.log('DataAccess Result:', result);
         res.json(result);
     } catch (error) {
-        console.error('Error getting forms:', error);
-        res.status(500).json({ message: 'Failed to get forms' });
+        console.error('Detailed Error:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        res.status(500).json({ 
+            message: 'Failed to get forms',
+            error: error.message,
+            stack: error.stack
+        });
     }
 });
 

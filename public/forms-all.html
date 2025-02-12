@@ -382,14 +382,96 @@
             console.log('Form data as object:', formDataObj);
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = '/login';
-            } else {
-                loadInstanceDetails();
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const pathParts = window.location.pathname.split('/');
+                const instanceId = pathParts[2];
+                const urlParams = new URLSearchParams(window.location.search);
+                const companyLineId = urlParams.get('companyLineId');
+
+                console.log('Loading forms with:', { instanceId, companyLineId });
+
+                const response = await fetch(`/api/webui/forms/all?instanceId=${instanceId}&companyLineId=${companyLineId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                const results = await response.json();
+                // Store results globally for access by viewTemplate
+                window.formsResults = results;
+                console.log('Parsed Results:', results);
+                
+                displayResults(results);
+            } catch (error) {
+                console.error('Detailed Error:', {
+                    message: error.message,
+                    stack: error.stack
+                });
+                alert('Failed to load forms');
             }
         });
+
+        function displayResults(results) {
+            const container = document.getElementById('formsContainer');
+            
+            if (!results.Table || results.Table.length === 0) {
+                container.innerHTML = '<div class="no-forms">No results found</div>';
+                return;
+            }
+
+            let html = `
+                <table class="lines-table">
+                    <thead>
+                        <tr>
+                            <th>Form Name</th>
+                            <th>Form Number</th>
+                            <th>Document Order</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            results.Table.forEach(result => {
+                // Only display if we have a FormName
+                if (result.FormName) {
+                    html += `
+                        <tr>
+                            <td>${result.FormName || 'N/A'}</td>
+                            <td>${result.FormNumber || 'N/A'}</td>
+                            <td>${result.DocumentOrder || 'N/A'}</td>
+                            <td>
+                                <button class="btn btn-primary" onclick="viewTemplate('${result.TemplateID}')">
+                                    View Template
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // Add function to view template
+        async function viewTemplate(templateId) {
+            try {
+                // Find the template data from the results
+                const template = window.formsResults.Table.find(t => t.TemplateID === parseInt(templateId));
+                console.log('Template Data:', {
+                    templateId,
+                    template
+                });
+                
+                // For now, just show an alert that we found the template
+                alert(`Template ${templateId} selected`);
+            } catch (error) {
+                console.error('Error viewing template:', error);
+                alert('Failed to load template');
+            }
+        }
     </script>
 </body>
 </html> 

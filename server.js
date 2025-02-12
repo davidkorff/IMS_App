@@ -55,9 +55,17 @@ app.get('/instance/:id/webui/policy/:controlNo', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webui-policy.html'));
 });
 
-// Add this route for forms-all
+// Update the forms-all route to include query parameters
 app.get('/instance/:id/forms/all', (req, res) => {
+    // Pass along any query parameters that were included
+    const queryString = Object.keys(req.query).length ? 
+        '?' + new URLSearchParams(req.query).toString() : '';
     res.sendFile(path.join(__dirname, 'public', 'forms-all.html'));
+});
+
+// Add this route for new submission
+app.get('/instance/:id/newsubmission', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'newsubmission.html'));
 });
 
 const PORT = process.env.PORT || 5000;

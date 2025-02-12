@@ -197,11 +197,7 @@
 
         async function loadCompanies() {
             try {
-                // Get lineGuid from URL query parameter
-                const urlParams = new URLSearchParams(window.location.search);
-                const lineGuid = urlParams.get('lineId');  // Keep as 'lineId' in URL for consistency with existing links
-
-                const response = await fetch(`/api/webui/forms/companies?instanceId=${currentInstance.instance_id}&lineGuid=${lineGuid}`, {
+                const response = await fetch(`/api/webui/forms/companies?instanceId=${currentInstance.instance_id}`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -211,19 +207,19 @@
                     throw new Error('Failed to load companies');
                 }
 
-                const companies = await response.json();
+                const data = await response.json();
+                console.log('Companies data:', data);
+                
+                const companies = Array.isArray(data) ? data : (data.Table || []);
                 const select = document.getElementById('companySelect');
                 select.innerHTML = '<option value="">Select Company</option>';
                 
                 companies.forEach(company => {
                     const option = document.createElement('option');
-                    option.value = company.CompanyLineID;
+                    option.value = company.CompanyLocationGUID;
                     option.textContent = company.LocationName;
                     select.appendChild(option);
                 });
-
-                // Enable the company select if we have options
-                select.disabled = companies.length === 0;
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to load companies');
@@ -257,14 +253,17 @@
                     throw new Error('Failed to load lines');
                 }
 
-                const lines = await response.json();
+                const data = await response.json();
+                console.log('Lines data:', data); // Debug log
+                
+                const lines = Array.isArray(data) ? data : (data.Table || []);
                 const select = document.getElementById('lineSelect');
                 select.innerHTML = '<option value="">Select Line</option>';
                 
                 lines.forEach(line => {
                     const option = document.createElement('option');
-                    option.value = line.LineID;
-                    option.textContent = line.LineName;
+                    option.value = line.LineGUID || line.lineguid;
+                    option.textContent = line.LineName || line.linename || line.LineOfBusiness || line.lineofbusiness;
                     select.appendChild(option);
                 });
             } catch (error) {
@@ -281,13 +280,13 @@
             stateSelect.innerHTML = '<option value="">Select State</option>';
 
             if (lineId) {
-                await loadStates(lineId);
+                await loadStates();
             }
         }
 
-        async function loadStates(lineId) {
+        async function loadStates() {
             try {
-                const response = await fetch(`/api/webui/forms/states?instanceId=${currentInstance.instance_id}&lineId=${lineId}`, {
+                const response = await fetch(`/api/webui/forms/states?instanceId=${currentInstance.instance_id}`, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
@@ -297,14 +296,17 @@
                     throw new Error('Failed to load states');
                 }
 
-                const states = await response.json();
+                const data = await response.json();
+                console.log('States data:', data);
+                
+                const states = Array.isArray(data) ? data : (data.Table || []);
                 const select = document.getElementById('stateSelect');
                 select.innerHTML = '<option value="">Select State</option>';
                 
                 states.forEach(state => {
                     const option = document.createElement('option');
                     option.value = state.StateID;
-                    option.textContent = state.StateName;
+                    option.textContent = state.State;
                     select.appendChild(option);
                 });
             } catch (error) {
