@@ -1,0 +1,197 @@
+InsuredFunctions
+
+
+Click here for a complete list of operations.
+
+AddInsuredWithContact
+Sequentially adds an insured, insured location, and insured contact. Returns back the inserted InsuredGuid.
+
+Test
+The test form is only available for requests from the local machine.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/insuredfunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/InsuredFunctions/AddInsuredWithContact"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <AddInsuredWithContact xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <insured>
+        <BusinessTypeID>int</BusinessTypeID>
+        <Salutation>string</Salutation>
+        <FirstName>string</FirstName>
+        <MiddleName>string</MiddleName>
+        <LastName>string</LastName>
+        <CorporationName>string</CorporationName>
+        <NameOnPolicy>string</NameOnPolicy>
+        <DBA>string</DBA>
+        <FEIN>string</FEIN>
+        <SSN>string</SSN>
+        <DateOfBirth>dateTime</DateOfBirth>
+        <RiskId>string</RiskId>
+        <Office>guid</Office>
+      </insured>
+      <location>
+        <InsuredGuid>guid</InsuredGuid>
+        <InsuredLocationGuid>guid</InsuredLocationGuid>
+        <LocationName>string</LocationName>
+        <Address1>string</Address1>
+        <Address2>string</Address2>
+        <City>string</City>
+        <County>string</County>
+        <State>string</State>
+        <Zip>string</Zip>
+        <ZipPlus>string</ZipPlus>
+        <ISOCountryCode>string</ISOCountryCode>
+        <Region>string</Region>
+        <Phone>string</Phone>
+        <Fax>string</Fax>
+        <Email>string</Email>
+        <Website>string</Website>
+        <DeliveryMethodID>int</DeliveryMethodID>
+        <LocationTypeID>int</LocationTypeID>
+        <MobileNumber>string</MobileNumber>
+        <OptOut>boolean</OptOut>
+      </location>
+      <contact>
+        <DeliveryMethodID>int</DeliveryMethodID>
+        <Salutation>string</Salutation>
+        <FirstName>string</FirstName>
+        <LastName>string</LastName>
+        <Title>string</Title>
+        <Phone>string</Phone>
+        <Extension>string</Extension>
+        <Fax>string</Fax>
+        <MobileNumber>string</MobileNumber>
+        <Email>string</Email>
+        <Address1>string</Address1>
+        <Address2>string</Address2>
+        <City>string</City>
+        <County>string</County>
+        <State>string</State>
+        <Region>string</Region>
+        <ISOCountryCode>string</ISOCountryCode>
+        <Zip>string</Zip>
+        <ZipPlus>string</ZipPlus>
+        <RoomNumber>string</RoomNumber>
+        <OptOut>boolean</OptOut>
+      </contact>
+    </AddInsuredWithContact>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <AddInsuredWithContactResponse xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <AddInsuredWithContactResult>guid</AddInsuredWithContactResult>
+    </AddInsuredWithContactResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/insuredfunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <AddInsuredWithContact xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <insured>
+        <BusinessTypeID>int</BusinessTypeID>
+        <Salutation>string</Salutation>
+        <FirstName>string</FirstName>
+        <MiddleName>string</MiddleName>
+        <LastName>string</LastName>
+        <CorporationName>string</CorporationName>
+        <NameOnPolicy>string</NameOnPolicy>
+        <DBA>string</DBA>
+        <FEIN>string</FEIN>
+        <SSN>string</SSN>
+        <DateOfBirth>dateTime</DateOfBirth>
+        <RiskId>string</RiskId>
+        <Office>guid</Office>
+      </insured>
+      <location>
+        <InsuredGuid>guid</InsuredGuid>
+        <InsuredLocationGuid>guid</InsuredLocationGuid>
+        <LocationName>string</LocationName>
+        <Address1>string</Address1>
+        <Address2>string</Address2>
+        <City>string</City>
+        <County>string</County>
+        <State>string</State>
+        <Zip>string</Zip>
+        <ZipPlus>string</ZipPlus>
+        <ISOCountryCode>string</ISOCountryCode>
+        <Region>string</Region>
+        <Phone>string</Phone>
+        <Fax>string</Fax>
+        <Email>string</Email>
+        <Website>string</Website>
+        <DeliveryMethodID>int</DeliveryMethodID>
+        <LocationTypeID>int</LocationTypeID>
+        <MobileNumber>string</MobileNumber>
+        <OptOut>boolean</OptOut>
+      </location>
+      <contact>
+        <DeliveryMethodID>int</DeliveryMethodID>
+        <Salutation>string</Salutation>
+        <FirstName>string</FirstName>
+        <LastName>string</LastName>
+        <Title>string</Title>
+        <Phone>string</Phone>
+        <Extension>string</Extension>
+        <Fax>string</Fax>
+        <MobileNumber>string</MobileNumber>
+        <Email>string</Email>
+        <Address1>string</Address1>
+        <Address2>string</Address2>
+        <City>string</City>
+        <County>string</County>
+        <State>string</State>
+        <Region>string</Region>
+        <ISOCountryCode>string</ISOCountryCode>
+        <Zip>string</Zip>
+        <ZipPlus>string</ZipPlus>
+        <RoomNumber>string</RoomNumber>
+        <OptOut>boolean</OptOut>
+      </contact>
+    </AddInsuredWithContact>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <AddInsuredWithContactResponse xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <AddInsuredWithContactResult>guid</AddInsuredWithContactResult>
+    </AddInsuredWithContactResponse>
+  </soap12:Body>
+</soap12:Envelope>

@@ -8,6 +8,11 @@ const path = require('path');
 const axios = require('axios');
 const xml2js = require('xml2js');
 
+// Import submission router
+console.log('Loading submission router in webui.js');
+const submissionRouter = require('./webui/submission');
+router.use('/submission', submissionRouter);
+
 router.get('/:id/webui', auth, async (req, res) => {
     try {
         // Get instance details

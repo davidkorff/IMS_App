@@ -1,0 +1,77 @@
+InsuredFunctions
+
+
+Click here for a complete list of operations.
+
+GetInsuredGuidFromContactGuid
+Test
+The test form is only available for requests from the local machine.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/insuredfunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/InsuredFunctions/GetInsuredGuidFromContactGuid"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <GetInsuredGuidFromContactGuid xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <insuredContactGuid>guid</insuredContactGuid>
+    </GetInsuredGuidFromContactGuid>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetInsuredGuidFromContactGuidResponse xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <GetInsuredGuidFromContactGuidResult>guid</GetInsuredGuidFromContactGuidResult>
+    </GetInsuredGuidFromContactGuidResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/insuredfunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <GetInsuredGuidFromContactGuid xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <insuredContactGuid>guid</insuredContactGuid>
+    </GetInsuredGuidFromContactGuid>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <GetInsuredGuidFromContactGuidResponse xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <GetInsuredGuidFromContactGuidResult>guid</GetInsuredGuidFromContactGuidResult>
+    </GetInsuredGuidFromContactGuidResponse>
+  </soap12:Body>
+</soap12:Envelope>

@@ -10,11 +10,26 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
+console.log('Loading routes...');
+
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/instances', require('./routes/instances'));
 app.use('/api/reports', require('./routes/reports'));
-app.use('/api/webui', require('./routes/webui')); // Changed to /api/webui
+
+// Load webui routes with error handling
+console.log('Loading webui routes...');
+try {
+    const webuiRouter = require('./routes/webui');
+    if (!webuiRouter) {
+        console.error('webui router is undefined');
+    } else {
+        console.log('Webui router loaded successfully');
+        app.use('/api/webui', webuiRouter);
+    }
+} catch (error) {
+    console.error('Error loading webui router:', error);
+}
 
 // HTML Routes
 app.get('/', (req, res) => {

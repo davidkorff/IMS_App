@@ -1,0 +1,119 @@
+InsuredFunctions
+
+
+Click here for a complete list of operations.
+
+FindInsuredByName
+Returns the first Insured record matching the information provided. Uses the same process as Clearance.asmx, returning the InsuredGuid of the highest scoring match.
+
+Test
+To test the operation using the HTTP POST protocol, click the 'Invoke' button.
+Parameter	Value
+insuredName:	
+city:	
+state:	
+zip:	
+zipPlus:	
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/insuredfunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/InsuredFunctions/FindInsuredByName"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <FindInsuredByName xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <insuredName>string</insuredName>
+      <city>string</city>
+      <state>string</state>
+      <zip>string</zip>
+      <zipPlus>string</zipPlus>
+    </FindInsuredByName>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <FindInsuredByNameResponse xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <FindInsuredByNameResult>guid</FindInsuredByNameResult>
+    </FindInsuredByNameResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/insuredfunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <FindInsuredByName xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <insuredName>string</insuredName>
+      <city>string</city>
+      <state>string</state>
+      <zip>string</zip>
+      <zipPlus>string</zipPlus>
+    </FindInsuredByName>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <FindInsuredByNameResponse xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
+      <FindInsuredByNameResult>guid</FindInsuredByNameResult>
+    </FindInsuredByNameResponse>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP GET
+The following is a sample HTTP GET request and response. The placeholders shown need to be replaced with actual values.
+
+GET /ims_origintest/insuredfunctions.asmx/FindInsuredByName?insuredName=string&city=string&state=string&zip=string&zipPlus=string HTTP/1.1
+Host: ws2.mgasystems.com
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<guid xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">guid</guid>
+HTTP POST
+The following is a sample HTTP POST request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/insuredfunctions.asmx/FindInsuredByName HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: length
+
+insuredName=string&city=string&state=string&zip=string&zipPlus=string
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<guid xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">guid</guid>

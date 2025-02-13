@@ -140,6 +140,51 @@
                     <input type="date" id="effectiveDate" required>
                 </div>
 
+                <div class="form-group">
+                    <label for="businessType">Business Type</label>
+                    <select id="businessType" required>
+                        <option value="">Select Business Type</option>
+                        <option value="2">Partnership</option>
+                        <option value="3">Limited Partnership</option>
+                        <option value="4">Individual</option>
+                        <option value="5">Other</option>
+                        <option value="9">LLC/LLP</option>
+                        <option value="10">Joint Venture</option>
+                        <option value="11">Trust</option>
+                        <option value="13">Corporation</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="address1">Address</label>
+                    <input type="text" id="address1" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input type="text" id="city" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="zip">ZIP Code</label>
+                    <input type="text" id="zip" required pattern="\d{5}" title="Five digit ZIP code">
+                </div>
+
+                <div class="form-group">
+                    <label for="deliveryMethod">Delivery Method</label>
+                    <select id="deliveryMethod" required>
+                        <option value="">Select Delivery Method</option>
+                        <option value="1">Mail</option>
+                        <option value="2">Fax</option>
+                        <option value="3">Email</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="emailGroup" style="display: none;">
+                    <label for="email">Email</label>
+                    <input type="email" id="email">
+                </div>
+
                 <button type="submit" class="btn btn-primary">Create Submission</button>
             </form>
 
@@ -277,39 +322,108 @@
                 submitButton.disabled = true;
                 loading.style.display = 'block';
 
-                const instanceId = window.location.pathname.split('/')[2];
-                const formData = {
-                    instanceId,
-                    companyLocationGuid: form.company.value,
-                    lineGuid: form.line.value,
-                    stateId: form.state.value,
-                    insuredName: form.insuredName.value,
-                    effectiveDate: form.effectiveDate.value
-                };
+                // Step 1: Clearance Check
+                console.log('Making clearance request to:', '/api/webui/submission/clearance');
+                console.log('With data:', {
+                    instanceId: currentInstance.instance_id,
+                    insuredName: form.insuredName.value
+                });
 
-                const response = await fetch('/api/webui/submissions/create', {
+                const clearanceResponse = await fetch('/api/webui/submission/clearance', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        insuredName: form.insuredName.value
+                    })
                 });
 
-                if (!response.ok) {
-                    throw new Error('Failed to create submission');
+                // Add this to see the response
+                console.log('Clearance response:', clearanceResponse);
+                if (!clearanceResponse.ok) {
+                    const errorText = await clearanceResponse.text();
+                    console.error('Clearance error:', errorText);
+                    throw new Error(`Clearance check failed: ${errorText}`);
+                }
+                const clearanceResult = await clearanceResponse.json();
+
+                // If no match found, create new insured
+                let insuredGuid;
+                if (!clearanceResult.match) {
+                    // Add logging for insured creation
+                    console.log('Creating insured with data:', {
+                        instanceId: currentInstance.instance_id,
+                        insuredName: form.insuredName.value,
+                        // Add any other fields you're sending
+                    });
+
+                    const insuredResponse = await fetch('/api/webui/submission/insured', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({
+                            instanceId: currentInstance.instance_id,
+                            insuredName: form.insuredName.value,
+                            // Add other insured fields here
+                        })
+                    });
+
+                    // Add response logging
+                    console.log('Insured creation response:', insuredResponse);
+                    if (!insuredResponse.ok) {
+                        const errorText = await insuredResponse.text();
+                        console.error('Insured creation error:', errorText);
+                        throw new Error('Failed to create insured');
+                    }
+                    const insuredResult = await insuredResponse.json();
+                    insuredGuid = insuredResult.insuredGuid;
+                } else {
+                    insuredGuid = clearanceResult.insuredGuid;
                 }
 
-                const result = await response.json();
-                window.location.href = `/instance/${instanceId}/webui/policy/${result.controlNo}`;
+                // Create submission
+                const submissionResponse = await fetch(`/api/webui/submission/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        insuredGuid,
+                        companyLocationGuid: form.company.value,
+                        lineGuid: form.line.value,
+                        stateId: form.state.value,
+                        effectiveDate: form.effectiveDate.value
+                    })
+                });
+
+                if (!submissionResponse.ok) throw new Error('Failed to create submission');
+                const submissionResult = await submissionResponse.json();
+
+                // Redirect to the submission details page
+                window.location.href = `/submission/${submissionResult.submissionGuid}`;
+
             } catch (error) {
-                console.error('Error creating submission:', error);
-                alert('Failed to create submission');
+                console.error('Error:', error);
+                alert('Failed to create submission: ' + error.message);
             } finally {
                 submitButton.disabled = false;
                 loading.style.display = 'none';
             }
         }
+
+        // Add event listener for delivery method changes
+        document.getElementById('deliveryMethod').addEventListener('change', function() {
+            const emailGroup = document.getElementById('emailGroup');
+            emailGroup.style.display = this.value === '3' ? 'block' : 'none';
+            document.getElementById('email').required = this.value === '3';
+        });
     </script>
 </body>
 </html> 
