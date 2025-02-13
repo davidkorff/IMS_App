@@ -1,0 +1,93 @@
+QuoteFunctions
+
+
+Click here for a complete list of operations.
+
+AddSubmission
+Test
+The test form is only available for requests from the local machine.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/quotefunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/QuoteFunctions/AddSubmission"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <AddSubmission xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <submission>
+        <Insured>guid</Insured>
+        <ProducerContact>guid</ProducerContact>
+        <Underwriter>guid</Underwriter>
+        <SubmissionDate>date</SubmissionDate>
+        <ProducerLocation>guid</ProducerLocation>
+        <TACSR>guid</TACSR>
+        <InHouseProducer>guid</InHouseProducer>
+      </submission>
+    </AddSubmission>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <AddSubmissionResponse xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <AddSubmissionResult>guid</AddSubmissionResult>
+    </AddSubmissionResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/quotefunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <AddSubmission xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <submission>
+        <Insured>guid</Insured>
+        <ProducerContact>guid</ProducerContact>
+        <Underwriter>guid</Underwriter>
+        <SubmissionDate>date</SubmissionDate>
+        <ProducerLocation>guid</ProducerLocation>
+        <TACSR>guid</TACSR>
+        <InHouseProducer>guid</InHouseProducer>
+      </submission>
+    </AddSubmission>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <AddSubmissionResponse xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <AddSubmissionResult>guid</AddSubmissionResult>
+    </AddSubmissionResponse>
+  </soap12:Body>
+</soap12:Envelope>

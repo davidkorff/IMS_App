@@ -1,19 +1,17 @@
-console.log('Loading insured router - START');
-
 const express = require('express');
 const router = express.Router();
 const auth = require('../../../middleware/auth');
 const pool = require('../../../config/db');
 const authService = require('../../../services/authService');
-const insuredService = require('../../../services/insuredService');
+const submissionService = require('../../../services/submissionService');
 
 router.post('/', auth, async (req, res) => {
-    console.log('Insured creation request received:', req.body);
+    console.log('Submission creation request received:', req.body);
     try {
-        const { instanceId, insuredName } = req.body;
+        const { instanceId, insuredGuid } = req.body;
         
-        if (!instanceId || !insuredName) {
-            console.log('Missing required fields:', { instanceId, insuredName });
+        if (!instanceId || !insuredGuid) {
+            console.log('Missing required fields:', { instanceId, insuredGuid });
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
@@ -38,27 +36,33 @@ router.post('/', auth, async (req, res) => {
             instanceDetails.password
         );
 
-        // Create insured with location
-        const result = await insuredService.addInsuredWithLocation(
+        // TODO: Get producer and underwriter GUIDs from instance config or user input
+        const producerContactGuid = "00000000-0000-0000-0000-000000000000"; // Replace with actual GUID
+        const underwriterGuid = "00000000-0000-0000-0000-000000000000"; // Replace with actual GUID
+
+        // Create submission
+        const result = await submissionService.addSubmission(
             baseUrl,
             token,
-            { insuredName }
+            { 
+                insuredGuid,
+                producerContactGuid,
+                underwriterGuid
+            }
         );
 
         res.json({
-            insuredGuid: result.insuredGuid,
-            message: 'Insured created successfully'
+            submissionGuid: result.submissionGuid,
+            message: 'Submission created successfully'
         });
 
     } catch (err) {
-        console.error('Insured creation error:', err);
+        console.error('Submission creation error:', err);
         res.status(500).json({ 
-            message: 'Error creating insured',
+            message: 'Error creating submission',
             details: err.message 
         });
     }
 });
-
-console.log('Loading insured router - END');
 
 module.exports = router; 

@@ -1,0 +1,109 @@
+QuoteFunctions
+
+
+Click here for a complete list of operations.
+
+GetNameInformation
+Test
+To test the operation using the HTTP POST protocol, click the 'Invoke' button.
+Parameter	Value
+names:	
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/quotefunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/QuoteFunctions/GetNameInformation"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <GetNameInformation xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <names>string</names>
+    </GetNameInformation>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetNameInformationResponse xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <GetNameInformationResult>
+        <xsd:schema>schema</xsd:schema>xml</GetNameInformationResult>
+    </GetNameInformationResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/quotefunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <GetNameInformation xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <names>string</names>
+    </GetNameInformation>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <GetNameInformationResponse xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <GetNameInformationResult>
+        <xsd:schema>schema</xsd:schema>xml</GetNameInformationResult>
+    </GetNameInformationResponse>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP GET
+The following is a sample HTTP GET request and response. The placeholders shown need to be replaced with actual values.
+
+GET /ims_origintest/quotefunctions.asmx/GetNameInformation?names=string HTTP/1.1
+Host: ws2.mgasystems.com
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<DataSet xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+  <schema xmlns="http://www.w3.org/2001/XMLSchema">schema</schema>xml</DataSet>
+HTTP POST
+The following is a sample HTTP POST request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/quotefunctions.asmx/GetNameInformation HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: application/x-www-form-urlencoded
+Content-Length: length
+
+names=string
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<DataSet xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+  <schema xmlns="http://www.w3.org/2001/XMLSchema">schema</schema>xml</DataSet>

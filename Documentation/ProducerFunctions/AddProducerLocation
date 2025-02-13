@@ -1,0 +1,259 @@
+ProducerFunctions
+
+
+Click here for a complete list of operations.
+
+AddProducerLocation
+Test
+The test form is only available for requests from the local machine.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/producerfunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/ProducerFunctions/AddProducerLocation"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/ProducerFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <AddProducerLocation xmlns="http://tempuri.org/IMSWebServices/ProducerFunctions">
+      <producerGuid>guid</producerGuid>
+      <producerLocationRequiredInfo>
+        <LocationType>Unknown or Primary or Billing or MailingOffice or Underwriting or Claims</LocationType>
+        <Name>string</Name>
+        <Address1>string</Address1>
+        <City>string</City>
+        <State>string</State>
+        <ISOCountryCode>string</ISOCountryCode>
+        <ZipCode>string</ZipCode>
+        <DeliveryMethod>Unknown or Mail or Fax or Email</DeliveryMethod>
+        <Status>Unknown or Active or Inactive or Closed or Pending</Status>
+        <LocationTypeID>int</LocationTypeID>
+      </producerLocationRequiredInfo>
+      <producerLocationOptionalInfo>
+        <LocationCode>string</LocationCode>
+        <ProducerType>NoneSpecified or Retailer or Wholesaler or MGA</ProducerType>
+        <Address2>string</Address2>
+        <County>string</County>
+        <Region>string</Region>
+        <ZipPlus>string</ZipPlus>
+        <Phone>string</Phone>
+        <Fax>string</Fax>
+        <FEIN>string</FEIN>
+        <WebSite>string</WebSite>
+        <Email>string</Email>
+        <AllowAutomaticNOC>boolean</AllowAutomaticNOC>
+        <EmailReminders>boolean</EmailReminders>
+        <ProducerLocationRegion>None or Southeast or West or Northeast or Midwest</ProducerLocationRegion>
+        <StripFax>string</StripFax>
+        <OptOut>boolean</OptOut>
+        <ProducerPotential>string</ProducerPotential>
+        <WholesaleRelationships>string</WholesaleRelationships>
+        <Expertise>string</Expertise>
+        <SpecFocusDept>string</SpecFocusDept>
+        <NPN>string</NPN>
+        <BillToProducerLocationGuid>guid</BillToProducerLocationGuid>
+        <MailToProducerLocationGuid>guid</MailToProducerLocationGuid>
+        <NumEmployees>int</NumEmployees>
+        <GrossWrittenPremium>decimal</GrossWrittenPremium>
+        <LocationSourceId>int</LocationSourceId>
+        <Owner>guid</Owner>
+        <NumWholesaleRelationship>int</NumWholesaleRelationship>
+        <SetProcedureToEnage>boolean</SetProcedureToEnage>
+        <ApproveWholesalersList>boolean</ApproveWholesalersList>
+        <PaymentMethodID>int</PaymentMethodID>
+      </producerLocationOptionalInfo>
+    </AddProducerLocation>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <AddProducerLocationResponse xmlns="http://tempuri.org/IMSWebServices/ProducerFunctions">
+      <AddProducerLocationResult>
+        <ProducerLocationID>int</ProducerLocationID>
+        <ProducerLocationGUID>guid</ProducerLocationGUID>
+        <LocationCode>string</LocationCode>
+        <ProducerGUID>guid</ProducerGUID>
+        <ProducerType>NoneSpecified or Retailer or Wholesaler or MGA</ProducerType>
+        <LocationType>string</LocationType>
+        <Name>string</Name>
+        <Address1>string</Address1>
+        <Address2>string</Address2>
+        <City>string</City>
+        <County>string</County>
+        <State>string</State>
+        <Region>string</Region>
+        <ISOCountryCode>string</ISOCountryCode>
+        <ZipCode>string</ZipCode>
+        <ZipPlus>string</ZipPlus>
+        <Phone>string</Phone>
+        <Fax>string</Fax>
+        <FEIN>string</FEIN>
+        <WebSite>string</WebSite>
+        <Email>string</Email>
+        <DeliveryMethod>Unknown or Mail or Fax or Email</DeliveryMethod>
+        <Status>Unknown or Active or Inactive or Closed or Pending</Status>
+        <AllowAutomaticNOC>boolean</AllowAutomaticNOC>
+        <EmailReminders>boolean</EmailReminders>
+        <BillToProducerLocationGuid>guid</BillToProducerLocationGuid>
+        <MailToProducerLocationGuid>guid</MailToProducerLocationGuid>
+        <ProducerLocationRegion>None or Southeast or West or Northeast or Midwest</ProducerLocationRegion>
+        <StripFax>string</StripFax>
+        <StripPhone>string</StripPhone>
+        <NumEmployees>int</NumEmployees>
+        <GrossWrittenPremium>decimal</GrossWrittenPremium>
+        <OptOut>boolean</OptOut>
+        <ProducerPotential>string</ProducerPotential>
+        <LocationSourceId>int</LocationSourceId>
+        <Owner>guid</Owner>
+        <NumWholesaleRelationship>int</NumWholesaleRelationship>
+        <WholesaleRelationships>string</WholesaleRelationships>
+        <Expertise>string</Expertise>
+        <SetProcedureToEnage>boolean</SetProcedureToEnage>
+        <ApproveWholesalersList>boolean</ApproveWholesalersList>
+        <SpecFocusDept>string</SpecFocusDept>
+        <DateAdded>dateTime</DateAdded>
+        <NPN>string</NPN>
+        <PaymentMethodID>int</PaymentMethodID>
+      </AddProducerLocationResult>
+    </AddProducerLocationResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/producerfunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/ProducerFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <AddProducerLocation xmlns="http://tempuri.org/IMSWebServices/ProducerFunctions">
+      <producerGuid>guid</producerGuid>
+      <producerLocationRequiredInfo>
+        <LocationType>Unknown or Primary or Billing or MailingOffice or Underwriting or Claims</LocationType>
+        <Name>string</Name>
+        <Address1>string</Address1>
+        <City>string</City>
+        <State>string</State>
+        <ISOCountryCode>string</ISOCountryCode>
+        <ZipCode>string</ZipCode>
+        <DeliveryMethod>Unknown or Mail or Fax or Email</DeliveryMethod>
+        <Status>Unknown or Active or Inactive or Closed or Pending</Status>
+        <LocationTypeID>int</LocationTypeID>
+      </producerLocationRequiredInfo>
+      <producerLocationOptionalInfo>
+        <LocationCode>string</LocationCode>
+        <ProducerType>NoneSpecified or Retailer or Wholesaler or MGA</ProducerType>
+        <Address2>string</Address2>
+        <County>string</County>
+        <Region>string</Region>
+        <ZipPlus>string</ZipPlus>
+        <Phone>string</Phone>
+        <Fax>string</Fax>
+        <FEIN>string</FEIN>
+        <WebSite>string</WebSite>
+        <Email>string</Email>
+        <AllowAutomaticNOC>boolean</AllowAutomaticNOC>
+        <EmailReminders>boolean</EmailReminders>
+        <ProducerLocationRegion>None or Southeast or West or Northeast or Midwest</ProducerLocationRegion>
+        <StripFax>string</StripFax>
+        <OptOut>boolean</OptOut>
+        <ProducerPotential>string</ProducerPotential>
+        <WholesaleRelationships>string</WholesaleRelationships>
+        <Expertise>string</Expertise>
+        <SpecFocusDept>string</SpecFocusDept>
+        <NPN>string</NPN>
+        <BillToProducerLocationGuid>guid</BillToProducerLocationGuid>
+        <MailToProducerLocationGuid>guid</MailToProducerLocationGuid>
+        <NumEmployees>int</NumEmployees>
+        <GrossWrittenPremium>decimal</GrossWrittenPremium>
+        <LocationSourceId>int</LocationSourceId>
+        <Owner>guid</Owner>
+        <NumWholesaleRelationship>int</NumWholesaleRelationship>
+        <SetProcedureToEnage>boolean</SetProcedureToEnage>
+        <ApproveWholesalersList>boolean</ApproveWholesalersList>
+        <PaymentMethodID>int</PaymentMethodID>
+      </producerLocationOptionalInfo>
+    </AddProducerLocation>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <AddProducerLocationResponse xmlns="http://tempuri.org/IMSWebServices/ProducerFunctions">
+      <AddProducerLocationResult>
+        <ProducerLocationID>int</ProducerLocationID>
+        <ProducerLocationGUID>guid</ProducerLocationGUID>
+        <LocationCode>string</LocationCode>
+        <ProducerGUID>guid</ProducerGUID>
+        <ProducerType>NoneSpecified or Retailer or Wholesaler or MGA</ProducerType>
+        <LocationType>string</LocationType>
+        <Name>string</Name>
+        <Address1>string</Address1>
+        <Address2>string</Address2>
+        <City>string</City>
+        <County>string</County>
+        <State>string</State>
+        <Region>string</Region>
+        <ISOCountryCode>string</ISOCountryCode>
+        <ZipCode>string</ZipCode>
+        <ZipPlus>string</ZipPlus>
+        <Phone>string</Phone>
+        <Fax>string</Fax>
+        <FEIN>string</FEIN>
+        <WebSite>string</WebSite>
+        <Email>string</Email>
+        <DeliveryMethod>Unknown or Mail or Fax or Email</DeliveryMethod>
+        <Status>Unknown or Active or Inactive or Closed or Pending</Status>
+        <AllowAutomaticNOC>boolean</AllowAutomaticNOC>
+        <EmailReminders>boolean</EmailReminders>
+        <BillToProducerLocationGuid>guid</BillToProducerLocationGuid>
+        <MailToProducerLocationGuid>guid</MailToProducerLocationGuid>
+        <ProducerLocationRegion>None or Southeast or West or Northeast or Midwest</ProducerLocationRegion>
+        <StripFax>string</StripFax>
+        <StripPhone>string</StripPhone>
+        <NumEmployees>int</NumEmployees>
+        <GrossWrittenPremium>decimal</GrossWrittenPremium>
+        <OptOut>boolean</OptOut>
+        <ProducerPotential>string</ProducerPotential>
+        <LocationSourceId>int</LocationSourceId>
+        <Owner>guid</Owner>
+        <NumWholesaleRelationship>int</NumWholesaleRelationship>
+        <WholesaleRelationships>string</WholesaleRelationships>
+        <Expertise>string</Expertise>
+        <SetProcedureToEnage>boolean</SetProcedureToEnage>
+        <ApproveWholesalersList>boolean</ApproveWholesalersList>
+        <SpecFocusDept>string</SpecFocusDept>
+        <DateAdded>dateTime</DateAdded>
+        <NPN>string</NPN>
+        <PaymentMethodID>int</PaymentMethodID>
+      </AddProducerLocationResult>
+    </AddProducerLocationResponse>
+  </soap12:Body>
+</soap12:Envelope>

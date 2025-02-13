@@ -1,0 +1,106 @@
+QuoteFunctions
+
+
+Click here for a complete list of operations.
+
+UpdateUnderwritingLocation
+Updates the specified Underwriting Location belonging to the given Quote. Null properties indicate no change, and 0 for LocationNumber will leave the value unchanged. Passing an empty string in optional fields will null out the respective columns.
+Returns false if specified Underwriting Location does not belong to the given Quote.
+
+Test
+The test form is only available for requests from the local machine.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/quotefunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/QuoteFunctions/UpdateUnderwritingLocation"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <UpdateUnderwritingLocation xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <QuoteGuid>guid</QuoteGuid>
+      <LocationGuid>guid</LocationGuid>
+      <Location>
+        <LocationNumber xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">int</LocationNumber>
+        <BuildingNumber xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</BuildingNumber>
+        <PhysicalBuildingNumber xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</PhysicalBuildingNumber>
+        <Address1 xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</Address1>
+        <Address2 xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</Address2>
+        <City xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</City>
+        <State xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</State>
+        <County xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</County>
+        <Zip xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</Zip>
+        <ZipPlus xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</ZipPlus>
+      </Location>
+    </UpdateUnderwritingLocation>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <UpdateUnderwritingLocationResponse xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <UpdateUnderwritingLocationResult>boolean</UpdateUnderwritingLocationResult>
+    </UpdateUnderwritingLocationResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/quotefunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <UpdateUnderwritingLocation xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <QuoteGuid>guid</QuoteGuid>
+      <LocationGuid>guid</LocationGuid>
+      <Location>
+        <LocationNumber xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">int</LocationNumber>
+        <BuildingNumber xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</BuildingNumber>
+        <PhysicalBuildingNumber xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</PhysicalBuildingNumber>
+        <Address1 xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</Address1>
+        <Address2 xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</Address2>
+        <City xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</City>
+        <State xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</State>
+        <County xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</County>
+        <Zip xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</Zip>
+        <ZipPlus xmlns="http://ws.mgasystems.com/Types/UnderwritingLocation">string</ZipPlus>
+      </Location>
+    </UpdateUnderwritingLocation>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <UpdateUnderwritingLocationResponse xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <UpdateUnderwritingLocationResult>boolean</UpdateUnderwritingLocationResult>
+    </UpdateUnderwritingLocationResponse>
+  </soap12:Body>
+</soap12:Envelope>

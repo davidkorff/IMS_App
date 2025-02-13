@@ -1,0 +1,311 @@
+QuoteFunctions
+
+
+Click here for a complete list of operations.
+
+AddQuoteWithAutocalculateDetails
+Creates a new Insured, InsuredLocation (using created InsuredGuid), Submission (using created InsuredGuid), and Quote (using created SubmissionGroupGuid). Ignores the QuoteDetail structure, using the CompanyLine configuration to create the detail records.
+
+Test
+The test form is only available for requests from the local machine.
+SOAP 1.1
+The following is a sample SOAP 1.1 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/quotefunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+SOAPAction: "http://tempuri.org/IMSWebServices/QuoteFunctions/AddQuoteWithAutocalculateDetails"
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap:Header>
+  <soap:Body>
+    <AddQuoteWithAutocalculateDetails xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <ins>
+        <BusinessTypeID>int</BusinessTypeID>
+        <Salutation>string</Salutation>
+        <FirstName>string</FirstName>
+        <MiddleName>string</MiddleName>
+        <LastName>string</LastName>
+        <CorporationName>string</CorporationName>
+        <NameOnPolicy>string</NameOnPolicy>
+        <DBA>string</DBA>
+        <FEIN>string</FEIN>
+        <SSN>string</SSN>
+        <DateOfBirth>dateTime</DateOfBirth>
+        <RiskId>string</RiskId>
+        <Office>guid</Office>
+      </ins>
+      <insLocation>
+        <InsuredGuid>guid</InsuredGuid>
+        <InsuredLocationGuid>guid</InsuredLocationGuid>
+        <LocationName>string</LocationName>
+        <Address1>string</Address1>
+        <Address2>string</Address2>
+        <City>string</City>
+        <County>string</County>
+        <State>string</State>
+        <Zip>string</Zip>
+        <ZipPlus>string</ZipPlus>
+        <ISOCountryCode>string</ISOCountryCode>
+        <Region>string</Region>
+        <Phone>string</Phone>
+        <Fax>string</Fax>
+        <Email>string</Email>
+        <Website>string</Website>
+        <DeliveryMethodID>int</DeliveryMethodID>
+        <LocationTypeID>int</LocationTypeID>
+        <MobileNumber>string</MobileNumber>
+        <OptOut>boolean</OptOut>
+      </insLocation>
+      <submission>
+        <Insured>guid</Insured>
+        <ProducerContact>guid</ProducerContact>
+        <Underwriter>guid</Underwriter>
+        <SubmissionDate>date</SubmissionDate>
+        <ProducerLocation>guid</ProducerLocation>
+        <TACSR>guid</TACSR>
+        <InHouseProducer>guid</InHouseProducer>
+      </submission>
+      <quote>
+        <Submission>guid</Submission>
+        <QuotingLocation>guid</QuotingLocation>
+        <IssuingLocation>guid</IssuingLocation>
+        <CompanyLocation>guid</CompanyLocation>
+        <Line>guid</Line>
+        <StateID>string</StateID>
+        <ProducerContact>guid</ProducerContact>
+        <QuoteStatusID>int</QuoteStatusID>
+        <Effective>date</Effective>
+        <Expiration>date</Expiration>
+        <BillingTypeID>int</BillingTypeID>
+        <FinanceCompany>guid</FinanceCompany>
+        <NetRateQuoteID>int</NetRateQuoteID>
+        <QuoteDetail>
+          <CompanyCommission>decimal</CompanyCommission>
+          <ProducerCommission>decimal</ProducerCommission>
+          <TermsOfPayment>int</TermsOfPayment>
+          <ProgramCode>string</ProgramCode>
+          <CompanyContactGuid>guid</CompanyContactGuid>
+          <RaterID>int</RaterID>
+          <FactorSetGuid>guid</FactorSetGuid>
+          <ProgramID>int</ProgramID>
+          <LineGUID>guid</LineGUID>
+          <CompanyLocationGUID>guid</CompanyLocationGUID>
+        </QuoteDetail>
+        <ExpiringQuoteGuid>guid</ExpiringQuoteGuid>
+        <Underwriter>guid</Underwriter>
+        <ExpiringPolicyNumber>string</ExpiringPolicyNumber>
+        <ExpiringCompanyLocationGuid>guid</ExpiringCompanyLocationGuid>
+        <PolicyTypeID>int</PolicyTypeID>
+        <RenewalOfQuoteGuid>guid</RenewalOfQuoteGuid>
+        <InsuredBusinessTypeID>int</InsuredBusinessTypeID>
+        <AccountNumber>string</AccountNumber>
+        <AdditionalInformation>
+          <string>string</string>
+          <string>string</string>
+        </AdditionalInformation>
+        <OnlineRaterID>int</OnlineRaterID>
+        <CostCenterID>int</CostCenterID>
+        <ProgramCode>string</ProgramCode>
+        <RiskInformation>
+          <PolicyName>string</PolicyName>
+          <CorporationName>string</CorporationName>
+          <DBA>string</DBA>
+          <Salutation>string</Salutation>
+          <FirstName>string</FirstName>
+          <MiddleName>string</MiddleName>
+          <LastName>string</LastName>
+          <SSN>string</SSN>
+          <FEIN>string</FEIN>
+          <Address1>string</Address1>
+          <Address2>string</Address2>
+          <City>string</City>
+          <State>string</State>
+          <ISOCountryCode>string</ISOCountryCode>
+          <Region>string</Region>
+          <ZipCode>string</ZipCode>
+          <ZipPlus>string</ZipPlus>
+          <Phone>string</Phone>
+          <Fax>string</Fax>
+          <Mobile>string</Mobile>
+          <BusinessType>int</BusinessType>
+        </RiskInformation>
+        <ProgramID>int</ProgramID>
+      </quote>
+    </AddQuoteWithAutocalculateDetails>
+  </soap:Body>
+</soap:Envelope>
+HTTP/1.1 200 OK
+Content-Type: text/xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <AddQuoteWithAutocalculateDetailsResponse xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <AddQuoteWithAutocalculateDetailsResult>
+        <InsuredGuid>guid</InsuredGuid>
+        <InsuredLocationGuid>guid</InsuredLocationGuid>
+        <SubmissionGroupGuid>guid</SubmissionGroupGuid>
+        <QuoteGuid>guid</QuoteGuid>
+      </AddQuoteWithAutocalculateDetailsResult>
+    </AddQuoteWithAutocalculateDetailsResponse>
+  </soap:Body>
+</soap:Envelope>
+SOAP 1.2
+The following is a sample SOAP 1.2 request and response. The placeholders shown need to be replaced with actual values.
+
+POST /ims_origintest/quotefunctions.asmx HTTP/1.1
+Host: ws2.mgasystems.com
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Header>
+    <TokenHeader xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <Token>guid</Token>
+      <Context>string</Context>
+    </TokenHeader>
+  </soap12:Header>
+  <soap12:Body>
+    <AddQuoteWithAutocalculateDetails xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <ins>
+        <BusinessTypeID>int</BusinessTypeID>
+        <Salutation>string</Salutation>
+        <FirstName>string</FirstName>
+        <MiddleName>string</MiddleName>
+        <LastName>string</LastName>
+        <CorporationName>string</CorporationName>
+        <NameOnPolicy>string</NameOnPolicy>
+        <DBA>string</DBA>
+        <FEIN>string</FEIN>
+        <SSN>string</SSN>
+        <DateOfBirth>dateTime</DateOfBirth>
+        <RiskId>string</RiskId>
+        <Office>guid</Office>
+      </ins>
+      <insLocation>
+        <InsuredGuid>guid</InsuredGuid>
+        <InsuredLocationGuid>guid</InsuredLocationGuid>
+        <LocationName>string</LocationName>
+        <Address1>string</Address1>
+        <Address2>string</Address2>
+        <City>string</City>
+        <County>string</County>
+        <State>string</State>
+        <Zip>string</Zip>
+        <ZipPlus>string</ZipPlus>
+        <ISOCountryCode>string</ISOCountryCode>
+        <Region>string</Region>
+        <Phone>string</Phone>
+        <Fax>string</Fax>
+        <Email>string</Email>
+        <Website>string</Website>
+        <DeliveryMethodID>int</DeliveryMethodID>
+        <LocationTypeID>int</LocationTypeID>
+        <MobileNumber>string</MobileNumber>
+        <OptOut>boolean</OptOut>
+      </insLocation>
+      <submission>
+        <Insured>guid</Insured>
+        <ProducerContact>guid</ProducerContact>
+        <Underwriter>guid</Underwriter>
+        <SubmissionDate>date</SubmissionDate>
+        <ProducerLocation>guid</ProducerLocation>
+        <TACSR>guid</TACSR>
+        <InHouseProducer>guid</InHouseProducer>
+      </submission>
+      <quote>
+        <Submission>guid</Submission>
+        <QuotingLocation>guid</QuotingLocation>
+        <IssuingLocation>guid</IssuingLocation>
+        <CompanyLocation>guid</CompanyLocation>
+        <Line>guid</Line>
+        <StateID>string</StateID>
+        <ProducerContact>guid</ProducerContact>
+        <QuoteStatusID>int</QuoteStatusID>
+        <Effective>date</Effective>
+        <Expiration>date</Expiration>
+        <BillingTypeID>int</BillingTypeID>
+        <FinanceCompany>guid</FinanceCompany>
+        <NetRateQuoteID>int</NetRateQuoteID>
+        <QuoteDetail>
+          <CompanyCommission>decimal</CompanyCommission>
+          <ProducerCommission>decimal</ProducerCommission>
+          <TermsOfPayment>int</TermsOfPayment>
+          <ProgramCode>string</ProgramCode>
+          <CompanyContactGuid>guid</CompanyContactGuid>
+          <RaterID>int</RaterID>
+          <FactorSetGuid>guid</FactorSetGuid>
+          <ProgramID>int</ProgramID>
+          <LineGUID>guid</LineGUID>
+          <CompanyLocationGUID>guid</CompanyLocationGUID>
+        </QuoteDetail>
+        <ExpiringQuoteGuid>guid</ExpiringQuoteGuid>
+        <Underwriter>guid</Underwriter>
+        <ExpiringPolicyNumber>string</ExpiringPolicyNumber>
+        <ExpiringCompanyLocationGuid>guid</ExpiringCompanyLocationGuid>
+        <PolicyTypeID>int</PolicyTypeID>
+        <RenewalOfQuoteGuid>guid</RenewalOfQuoteGuid>
+        <InsuredBusinessTypeID>int</InsuredBusinessTypeID>
+        <AccountNumber>string</AccountNumber>
+        <AdditionalInformation>
+          <string>string</string>
+          <string>string</string>
+        </AdditionalInformation>
+        <OnlineRaterID>int</OnlineRaterID>
+        <CostCenterID>int</CostCenterID>
+        <ProgramCode>string</ProgramCode>
+        <RiskInformation>
+          <PolicyName>string</PolicyName>
+          <CorporationName>string</CorporationName>
+          <DBA>string</DBA>
+          <Salutation>string</Salutation>
+          <FirstName>string</FirstName>
+          <MiddleName>string</MiddleName>
+          <LastName>string</LastName>
+          <SSN>string</SSN>
+          <FEIN>string</FEIN>
+          <Address1>string</Address1>
+          <Address2>string</Address2>
+          <City>string</City>
+          <State>string</State>
+          <ISOCountryCode>string</ISOCountryCode>
+          <Region>string</Region>
+          <ZipCode>string</ZipCode>
+          <ZipPlus>string</ZipPlus>
+          <Phone>string</Phone>
+          <Fax>string</Fax>
+          <Mobile>string</Mobile>
+          <BusinessType>int</BusinessType>
+        </RiskInformation>
+        <ProgramID>int</ProgramID>
+      </quote>
+    </AddQuoteWithAutocalculateDetails>
+  </soap12:Body>
+</soap12:Envelope>
+HTTP/1.1 200 OK
+Content-Type: application/soap+xml; charset=utf-8
+Content-Length: length
+
+<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <AddQuoteWithAutocalculateDetailsResponse xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+      <AddQuoteWithAutocalculateDetailsResult>
+        <InsuredGuid>guid</InsuredGuid>
+        <InsuredLocationGuid>guid</InsuredLocationGuid>
+        <SubmissionGroupGuid>guid</SubmissionGroupGuid>
+        <QuoteGuid>guid</QuoteGuid>
+      </AddQuoteWithAutocalculateDetailsResult>
+    </AddQuoteWithAutocalculateDetailsResponse>
+  </soap12:Body>
+</soap12:Envelope>

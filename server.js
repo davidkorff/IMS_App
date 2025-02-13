@@ -26,6 +26,9 @@ try {
     } else {
         console.log('Webui router loaded successfully');
         app.use('/api/webui', webuiRouter);
+        
+        // Add submission routes
+        app.use('/api/webui/submission/submission', require('./routes/webui/submission/submission'));
     }
 } catch (error) {
     console.error('Error loading webui router:', error);

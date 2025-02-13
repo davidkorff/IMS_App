@@ -314,22 +314,10 @@
 
         async function handleSubmit(event) {
             event.preventDefault();
-            const form = event.target;
-            const submitButton = form.querySelector('button[type="submit"]');
-            const loading = document.getElementById('loading');
-
+            
             try {
-                submitButton.disabled = true;
-                loading.style.display = 'block';
-
-                // Step 1: Clearance Check
-                console.log('Making clearance request to:', '/api/webui/submission/clearance');
-                console.log('With data:', {
-                    instanceId: currentInstance.instance_id,
-                    insuredName: form.insuredName.value
-                });
-
-                const clearanceResponse = await fetch('/api/webui/submission/clearance', {
+                // 1. Clearance check
+                const clearanceRes = await fetch('/api/webui/submission/clearance', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -337,57 +325,14 @@
                     },
                     body: JSON.stringify({
                         instanceId: currentInstance.instance_id,
-                        insuredName: form.insuredName.value
+                        insuredName: document.getElementById('insuredName').value
                     })
                 });
-
-                // Add this to see the response
-                console.log('Clearance response:', clearanceResponse);
-                if (!clearanceResponse.ok) {
-                    const errorText = await clearanceResponse.text();
-                    console.error('Clearance error:', errorText);
-                    throw new Error(`Clearance check failed: ${errorText}`);
-                }
-                const clearanceResult = await clearanceResponse.json();
-
-                // If no match found, create new insured
-                let insuredGuid;
-                if (!clearanceResult.match) {
-                    // Add logging for insured creation
-                    console.log('Creating insured with data:', {
-                        instanceId: currentInstance.instance_id,
-                        insuredName: form.insuredName.value,
-                        // Add any other fields you're sending
-                    });
-
-                    const insuredResponse = await fetch('/api/webui/submission/insured', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        },
-                        body: JSON.stringify({
-                            instanceId: currentInstance.instance_id,
-                            insuredName: form.insuredName.value,
-                            // Add other insured fields here
-                        })
-                    });
-
-                    // Add response logging
-                    console.log('Insured creation response:', insuredResponse);
-                    if (!insuredResponse.ok) {
-                        const errorText = await insuredResponse.text();
-                        console.error('Insured creation error:', errorText);
-                        throw new Error('Failed to create insured');
-                    }
-                    const insuredResult = await insuredResponse.json();
-                    insuredGuid = insuredResult.insuredGuid;
-                } else {
-                    insuredGuid = clearanceResult.insuredGuid;
-                }
-
-                // Create submission
-                const submissionResponse = await fetch(`/api/webui/submission/create`, {
+                
+                if (!clearanceRes.ok) throw new Error('Clearance check failed');
+                
+                // 2. Create insured
+                const insuredRes = await fetch('/api/webui/submission/insured', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -395,26 +340,37 @@
                     },
                     body: JSON.stringify({
                         instanceId: currentInstance.instance_id,
-                        insuredGuid,
-                        companyLocationGuid: form.company.value,
-                        lineGuid: form.line.value,
-                        stateId: form.state.value,
-                        effectiveDate: form.effectiveDate.value
+                        insuredName: document.getElementById('insuredName').value
                     })
                 });
-
-                if (!submissionResponse.ok) throw new Error('Failed to create submission');
-                const submissionResult = await submissionResponse.json();
-
-                // Redirect to the submission details page
-                window.location.href = `/submission/${submissionResult.submissionGuid}`;
-
+                
+                if (!insuredRes.ok) throw new Error('Failed to create insured');
+                const { insuredGuid } = await insuredRes.json();
+                
+                // 3. Create submission
+                const submissionRes = await fetch('/api/webui/submission/submission', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: currentInstance.instance_id,
+                        insuredGuid: insuredGuid
+                    })
+                });
+                
+                if (!submissionRes.ok) throw new Error('Failed to create submission');
+                const { submissionGuid } = await submissionRes.json();
+                
+                // Handle success
+                console.log('Created submission:', submissionGuid);
+                // Maybe redirect to the submission page or show success message
+                
             } catch (error) {
                 console.error('Error:', error);
-                alert('Failed to create submission: ' + error.message);
-            } finally {
-                submitButton.disabled = false;
-                loading.style.display = 'none';
+                // Show error message to user
+                alert('Error: ' + error.message);
             }
         }
 
