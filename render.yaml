@@ -18,6 +18,6 @@ services:
 
 databases:
   - name: ims_db
-    databaseName: IMS_Application
-    user: postgres
+    databaseName: ims_application
+    user: ims_user
     plan: free 
