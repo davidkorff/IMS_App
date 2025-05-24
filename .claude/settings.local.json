@@ -5,7 +5,11 @@
       "Bash(grep:*)",
       "Bash(git commit:*)",
       "Bash(rm:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npm start)",
+      "Bash(ls:*)",
+      "Bash(node test-auth.js)",
+      "Bash(node test-filing.js)"
     ],
     "deny": []
   }

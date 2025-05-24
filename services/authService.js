@@ -44,11 +44,19 @@ class AuthService {
             }
 
             const responseText = await response.text();
+            console.log('Authentication response:', responseText);
             
-            // Extract token from SOAP response
-            const tokenMatch = responseText.match(/<Token>(.*?)<\/Token>/);
+            // Extract token from nested XML structure
+            // Look for LoginIMSUserResult first, then extract Token
+            const resultMatch = responseText.match(/<LoginIMSUserResult[^>]*>(.*?)<\/LoginIMSUserResult>/s);
+            if (!resultMatch) {
+                throw new Error('Could not find LoginIMSUserResult in authentication response');
+            }
+            
+            const resultContent = resultMatch[1];
+            const tokenMatch = resultContent.match(/<Token>(.*?)<\/Token>/);
             if (!tokenMatch) {
-                throw new Error('Could not extract token from authentication response');
+                throw new Error('Could not extract token from LoginIMSUserResult');
             }
 
             const token = tokenMatch[1];

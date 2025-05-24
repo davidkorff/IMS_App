@@ -1,0 +1,78 @@
+Loading routes...
+Loading webui routes...
+Loading submission router in webui.js
+Loading submission router - START
+Loading clearance router...
+Loading clearance router - START
+Loading clearance router - END
+Clearance router loaded successfully
+Loading insured router...
+Loading insured router - START
+Loading insured router - END
+Insured router loaded successfully
+Loading submission router - END
+Webui router loaded successfully
+Server running on port 5000
+Auth middleware - checking token
+No token provided
+[o9jvf] Manual email processing request
+Error getting config by ID: Error: connect ECONNREFUSED 127.0.0.1:5432
+    at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async EmailFilingService.getConfigById (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:621:28)
+    at async EmailFilingService.processIncomingEmail (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:77:28)
+    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/webhooks.js:189:24 {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 5432
+}
+Error processing incoming email: Error: connect ECONNREFUSED 127.0.0.1:5432
+    at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async EmailFilingService.getConfigById (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:621:28)
+    at async EmailFilingService.processIncomingEmail (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:77:28)
+    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/webhooks.js:189:24 {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 5432
+}
+Error getting config by ID: Error: connect ECONNREFUSED 127.0.0.1:5432
+    at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async EmailFilingService.getConfigById (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:621:28)
+    at async EmailFilingService.processIncomingEmail (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:210:36)
+    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/webhooks.js:189:24 {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 5432
+}
+Error tracking failed webhook: Error: connect ECONNREFUSED 127.0.0.1:5432
+    at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async EmailFilingService.getConfigById (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:621:28)
+    at async EmailFilingService.processIncomingEmail (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:210:36)
+    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/webhooks.js:189:24 {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 5432
+}
+[o9jvf] Manual processing error: Error: connect ECONNREFUSED 127.0.0.1:5432
+    at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async EmailFilingService.getConfigById (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:621:28)
+    at async EmailFilingService.processIncomingEmail (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:77:28)
+    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/webhooks.js:189:24 {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 5432
+}
