@@ -18,6 +18,7 @@ app.use('/api/instances', require('./routes/instances'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/email-filing', require('./routes/emailFiling'));
+app.use('/api/migration', require('./routes/migration'));
 
 // Load webui routes with error handling
 console.log('Loading webui routes...');
