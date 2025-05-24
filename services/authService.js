@@ -18,6 +18,7 @@ class AuthService {
         console.log('IMS URL:', url);
         console.log('Username:', username);
         console.log('Password length:', password ? password.length : 'undefined');
+        console.log('Raw password value:', JSON.stringify(password));
         console.log('Full request URL:', `${url}/logon.asmx`);
         
         try {
@@ -43,11 +44,22 @@ class AuthService {
             };
             console.log('Request headers:', requestHeaders);
 
-            const response = await fetch(`${url}/logon.asmx`, {
+            const requestOptions = {
                 method: 'POST',
                 headers: requestHeaders,
                 body: soapEnvelope
-            });
+            };
+
+            console.log('=== FULL HTTP REQUEST ===');
+            console.log('Method:', requestOptions.method);
+            console.log('URL:', `${url}/logon.asmx`);
+            console.log('Headers:', JSON.stringify(requestOptions.headers, null, 2));
+            console.log('Body length:', requestOptions.body.length);
+            console.log('Full request body:');
+            console.log(requestOptions.body);
+            console.log('=== END FULL HTTP REQUEST ===');
+
+            const response = await fetch(`${url}/logon.asmx`, requestOptions);
 
             console.log('Response status:', response.status);
             console.log('Response headers:', Object.fromEntries(response.headers.entries()));
