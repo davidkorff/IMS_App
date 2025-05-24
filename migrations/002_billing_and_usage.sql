@@ -41,12 +41,7 @@ CREATE TABLE IF NOT EXISTS usage_events (
     billable BOOLEAN DEFAULT true,
     billing_period_start DATE NOT NULL,
     billing_period_end DATE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Indexes for billing queries
-    INDEX idx_usage_events_user_period (user_id, billing_period_start, billing_period_end),
-    INDEX idx_usage_events_type (event_type, billable),
-    INDEX idx_usage_events_created (created_at)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Monthly usage summaries for billing
@@ -97,11 +92,7 @@ CREATE TABLE IF NOT EXISTS billing_invoices (
     
     -- Metadata
     invoice_data JSONB DEFAULT '{}',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    INDEX idx_invoices_user (user_id),
-    INDEX idx_invoices_status (status),
-    INDEX idx_invoices_due_date (due_date)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Usage quota tracking (for real-time limit enforcement)
@@ -117,8 +108,7 @@ CREATE TABLE IF NOT EXISTS user_quotas (
     current_usage INTEGER DEFAULT 0,
     last_reset_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     
-    UNIQUE(user_id, quota_type, current_period_start),
-    INDEX idx_quotas_user_type (user_id, quota_type)
+    UNIQUE(user_id, quota_type, current_period_start)
 );
 
 -- Insert default subscription plans
@@ -190,6 +180,19 @@ $$ LANGUAGE plpgsql;
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_status ON user_subscriptions (user_id, status);
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_period ON user_subscriptions (current_period_start, current_period_end);
+
+-- Usage events indexes
+CREATE INDEX IF NOT EXISTS idx_usage_events_user_period ON usage_events (user_id, billing_period_start, billing_period_end);
+CREATE INDEX IF NOT EXISTS idx_usage_events_type ON usage_events (event_type, billable);
+CREATE INDEX IF NOT EXISTS idx_usage_events_created ON usage_events (created_at);
+
+-- Invoice indexes
+CREATE INDEX IF NOT EXISTS idx_invoices_user ON billing_invoices (user_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON billing_invoices (status);
+CREATE INDEX IF NOT EXISTS idx_invoices_due_date ON billing_invoices (due_date);
+
+-- Quota indexes
+CREATE INDEX IF NOT EXISTS idx_quotas_user_type ON user_quotas (user_id, quota_type);
 
 -- Update trigger for user_subscriptions
 CREATE OR REPLACE FUNCTION update_user_subscriptions_updated_at()
