@@ -298,21 +298,15 @@ class EmailFilingService {
                 instance.password
             );
 
-            // Validate control number and get policy info
-            const policyInfo = await this.validateControlNumber(instance, token, controlNumber);
-            if (!policyInfo) {
-                throw new Error(`Invalid control number: ${controlNumber}`);
-            }
-
             // Convert email to document format
             const documentData = await this.createDocumentFromEmail(emailData, controlNumber);
 
-            // File document to IMS
-            const documentGuid = await this.uploadDocumentToIMS(
+            // File document directly to IMS using policy number (control number)
+            const documentGuid = await this.uploadDocumentToIMSByPolicy(
                 instance,
                 token,
                 documentData,
-                policyInfo,
+                controlNumber,
                 config
             );
 
@@ -322,7 +316,7 @@ class EmailFilingService {
                     instance,
                     token,
                     emailData.attachments,
-                    policyInfo,
+                    controlNumber,
                     logId
                 );
             }
@@ -330,8 +324,6 @@ class EmailFilingService {
             return {
                 success: true,
                 controlNumber: controlNumber,
-                policyGuid: policyInfo.PolicyGuid,
-                quoteGuid: policyInfo.QuoteGuid,
                 documentGuid: documentGuid,
                 folderId: config.default_folder_id
             };
@@ -492,6 +484,65 @@ class EmailFilingService {
             return guidMatch[1]; // Return document GUID
         } catch (error) {
             console.error('Error uploading document to IMS:', error);
+            throw error;
+        }
+    }
+
+    async uploadDocumentToIMSByPolicy(instance, token, documentData, controlNumber, config) {
+        try {
+            // Use IMS InsertTypedDocumentAssociatedToPolicy webservice directly with control number
+            const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Header>
+        <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+            <Token>${token}</Token>
+        </TokenHeader>
+    </soap:Header>
+    <soap:Body>
+        <InsertTypedDocumentAssociatedToPolicy xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+            <userGuid>00000000-0000-0000-0000-000000000000</userGuid>
+            <fileName>${documentData.name}</fileName>
+            <fileData>${documentData.data}</fileData>
+            <typeGuid>00000000-0000-0000-0000-000000000000</typeGuid>
+            <description>${documentData.description}</description>
+            <policyNumber>${controlNumber}</policyNumber>
+            <entityName>Email Communication</entityName>
+        </InsertTypedDocumentAssociatedToPolicy>
+    </soap:Body>
+</soap:Envelope>`;
+
+            console.log(`Filing document to policy ${controlNumber} at ${instance.url}/DocumentFunctions.asmx`);
+            
+            const response = await fetch(`${instance.url}/DocumentFunctions.asmx`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/xml; charset=utf-8',
+                    'SOAPAction': 'http://tempuri.org/IMSWebServices/DocumentFunctions/InsertTypedDocumentAssociatedToPolicy'
+                },
+                body: soapEnvelope
+            });
+
+            if (!response.ok) {
+                const responseText = await response.text();
+                console.error(`Document upload failed: ${response.status} ${response.statusText}`, responseText);
+                throw new Error(`Document upload failed: ${response.status} ${response.statusText}`);
+            }
+
+            const responseText = await response.text();
+            console.log('IMS Document upload response:', responseText);
+            
+            // Extract document GUID from SOAP response
+            const guidMatch = responseText.match(/<InsertTypedDocumentAssociatedToPolicyResult>(.*?)<\/InsertTypedDocumentAssociatedToPolicyResult>/);
+            if (!guidMatch) {
+                throw new Error('Could not extract document GUID from response: ' + responseText);
+            }
+
+            console.log(`Successfully filed document with GUID: ${guidMatch[1]}`);
+            return guidMatch[1]; // Return document GUID
+        } catch (error) {
+            console.error('Error uploading document to IMS by policy:', error);
             throw error;
         }
     }
