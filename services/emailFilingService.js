@@ -1,13 +1,14 @@
 const pool = require('../config/db');
 const authService = require('./authService');
 const documentService = require('./documentService');
+const usageTrackingService = require('./usageTrackingService');
 const crypto = require('crypto');
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 class EmailFilingService {
     constructor() {
         this.defaultControlNumberPatterns = [
-            /(?:RE:\s*)?(\d{1,9})\b/gi,     // Control number at start of subject (1-9 digits), optionally preceded by "RE:"
+            /^(?:RE:\s*)?(\d{1,9})\b/i,     // Control number at start of subject (1-9 digits), optionally preceded by "RE:"
             /\b(\d{1,9})\b/g               // Fallback: any 1-9 digit number in email content
         ];
     }
@@ -78,8 +79,40 @@ class EmailFilingService {
                 throw new Error(`Invalid or inactive config: ${configId}`);
             }
 
+            // Track webhook call
+            await usageTrackingService.trackWebhookCall(
+                config.user_id, 
+                configId, 
+                true, 
+                { subject: emailData.subject }
+            );
+
+            // Check usage limits for email processing
+            const quotaCheck = await usageTrackingService.checkQuotaLimit(
+                config.user_id, 
+                usageTrackingService.eventTypes.EMAIL_FILED
+            );
+            
+            if (!quotaCheck.allowed) {
+                await usageTrackingService.trackEmailProcessed(
+                    config.user_id, 
+                    config.instance_id, 
+                    false, 
+                    { reason: 'quota_exceeded', quota: quotaCheck }
+                );
+                throw new Error(`Usage quota exceeded: ${quotaCheck.reason}`);
+            }
+
             // Create initial log entry
             logId = await this.createEmailLog(config, emailData);
+
+            // Track email processing start
+            await usageTrackingService.trackEmailProcessed(
+                config.user_id, 
+                config.instance_id, 
+                true, 
+                { subject: emailData.subject, log_id: logId }
+            );
 
             // Extract control numbers from email
             const controlNumbers = await this.extractControlNumbers(emailData, config);
@@ -89,6 +122,14 @@ class EmailFilingService {
                     status: 'skipped',
                     error_message: 'No control numbers found in email'
                 });
+                
+                await usageTrackingService.trackEmailProcessed(
+                    config.user_id, 
+                    config.instance_id, 
+                    false, 
+                    { reason: 'no_control_numbers', subject: emailData.subject }
+                );
+                
                 return { success: false, message: 'No control numbers found' };
             }
 
@@ -119,6 +160,14 @@ class EmailFilingService {
                     status: 'error',
                     error_message: 'Failed to file email to any valid policy'
                 });
+                
+                await usageTrackingService.trackEmailProcessed(
+                    config.user_id, 
+                    config.instance_id, 
+                    false, 
+                    { reason: 'filing_failed', control_numbers: controlNumbers }
+                );
+                
                 return { success: false, message: 'Failed to file email' };
             }
 
@@ -132,6 +181,19 @@ class EmailFilingService {
                 folder_id: fileResult.folderId
             });
 
+            // Track successful email filing (billable event)
+            await usageTrackingService.trackEmailFiled(
+                config.user_id,
+                config.instance_id,
+                fileResult.controlNumber,
+                fileResult.documentGuid,
+                { 
+                    subject: emailData.subject,
+                    log_id: logId,
+                    automated: true
+                }
+            );
+
             return {
                 success: true,
                 message: 'Email filed successfully',
@@ -141,6 +203,23 @@ class EmailFilingService {
 
         } catch (error) {
             console.error('Error processing incoming email:', error);
+            
+            // Track failed webhook call
+            if (configId) {
+                try {
+                    const config = await this.getConfigById(configId);
+                    if (config) {
+                        await usageTrackingService.trackWebhookCall(
+                            config.user_id, 
+                            configId, 
+                            false, 
+                            { error: error.message }
+                        );
+                    }
+                } catch (trackingError) {
+                    console.error('Error tracking failed webhook:', trackingError);
+                }
+            }
             
             if (logId) {
                 await this.updateEmailLog(logId, {
@@ -167,7 +246,16 @@ class EmailFilingService {
             
             const foundNumbers = new Set();
 
-            // First check subject line with priority patterns
+            // First check subject line with the first pattern (start of subject only)
+            const subjectStartPattern = /^(?:RE:\s*)?(\d{1,9})\b/i;
+            const subjectMatch = subjectText.match(subjectStartPattern);
+            if (subjectMatch) {
+                foundNumbers.add(subjectMatch[1].trim());
+                console.log(`Found control number in subject: ${subjectMatch[1]}`);
+                return Array.from(foundNumbers); // Return immediately if found in subject
+            }
+
+            // If no match at start of subject, try other patterns on subject
             for (const pattern of patterns) {
                 const matches = [...subjectText.matchAll(pattern)];
                 if (matches.length > 0) {
@@ -176,7 +264,7 @@ class EmailFilingService {
                         const controlNumber = match[1] || match[0];
                         foundNumbers.add(controlNumber.trim());
                     });
-                    break; // Stop after finding matches in subject line
+                    if (foundNumbers.size > 0) break; // Stop after finding matches in subject line
                 }
             }
 
@@ -193,6 +281,7 @@ class EmailFilingService {
                 }
             }
 
+            console.log(`Extracted control numbers: ${Array.from(foundNumbers)}`);
             return Array.from(foundNumbers);
         } catch (error) {
             console.error('Error extracting control numbers:', error);
