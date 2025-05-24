@@ -291,6 +291,21 @@ class EmailFilingService {
 
     async fileEmailToPolicy(instance, controlNumber, emailData, config, logId) {
         try {
+            // Log authentication configuration details
+            console.log('=== EMAIL FILING AUTHENTICATION ===');
+            console.log('Config ID:', config.config_id);
+            console.log('Instance ID:', config.instance_id);
+            console.log('User ID:', config.user_id);
+            console.log('Instance details from database:');
+            console.log('  - URL:', instance.url);
+            console.log('  - Username:', instance.username);
+            console.log('  - Password present:', !!instance.password);
+            console.log('  - Password length:', instance.password ? instance.password.length : 'N/A');
+            console.log('Authentication parameters being passed to authService:');
+            console.log('  - URL parameter:', instance.url);
+            console.log('  - Username parameter:', instance.username);
+            console.log('  - Password parameter present:', !!instance.password);
+            
             // Get IMS token
             const token = await authService.getToken(
                 instance.url,
@@ -618,6 +633,9 @@ class EmailFilingService {
 
     async getConfigById(configId) {
         try {
+            console.log('=== FETCHING EMAIL FILING CONFIG ===');
+            console.log('Config ID requested:', configId);
+            
             const result = await pool.query(`
                 SELECT efc.*, ii.url, ii.username, ii.password
                 FROM email_filing_configs efc
@@ -625,7 +643,22 @@ class EmailFilingService {
                 WHERE efc.config_id = $1
             `, [configId]);
 
-            return result.rows[0];
+            const config = result.rows[0];
+            if (config) {
+                console.log('Config found:');
+                console.log('  - Config ID:', config.config_id);
+                console.log('  - Instance ID:', config.instance_id);
+                console.log('  - User ID:', config.user_id);
+                console.log('  - Config Name:', config.name);
+                console.log('  - IMS URL from database:', config.url);
+                console.log('  - IMS Username from database:', config.username);
+                console.log('  - IMS Password present:', !!config.password);
+                console.log('  - IMS Password length:', config.password ? config.password.length : 'N/A');
+            } else {
+                console.log('ERROR: No config found for ID:', configId);
+            }
+
+            return config;
         } catch (error) {
             console.error('Error getting config by ID:', error);
             throw error;
