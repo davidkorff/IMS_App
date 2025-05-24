@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forms Library - IMS Integration</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/modern.css">
+</head>
+<body>
+    <div class="header">
+        <div class="d-flex align-items-center">
+            <h1>Forms Library</h1>
+            <div class="theme-switch-wrapper ms-3">
+                <label class="theme-switch" for="darkModeToggle">
+                    <input type="checkbox" id="darkModeToggle" />
+                    <span class="slider"></span>
+                </label>
+                <span class="ms-2 d-none d-sm-inline">Dark Mode</span>
+            </div>
+        </div>
+        <div>
+            <button class="btn btn-danger" onclick="logout()">
+                <i class="fas fa-sign-out-alt me-2"></i>Logout
+            </button>
+        </div>
+    </div>
+
+    <div class="container py-4">
+        <div class="nav-links mb-4">
+            <a href="javascript:history.back()" class="text-decoration-none">
+                <i class="fas fa-arrow-left me-2"></i>Back to Instance
+            </a>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-hover fade-in">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2 class="mb-0">Available Forms</h2>
+                            <button class="btn btn-primary" onclick="showImportFormModal()">
+                                <i class="fas fa-plus me-2"></i>Import Form
+                            </button>
+                        </div>
+                        <div id="formsContainer">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4" id="formsList">
+            <!-- Forms will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Import Form Modal -->
+    <div id="importFormModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModalAnimated('importFormModal')">&times;</span>
+            <h2 class="mb-4">Import Form</h2>
+            <form id="importFormForm" onsubmit="handleFormImport(event)">
+                <div class="form-group">
+                    <label for="formName">Form Name</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-file-alt"></i>
+                        </span>
+                        <input type="text" id="formName" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="formFile">Form File (JSON)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-upload"></i>
+                        </span>
+                        <input type="file" id="formFile" class="form-control" accept=".json" required>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeModalAnimated('importFormModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-file-import me-2"></i>Import Form
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="/js/ui-enhancements.js"></script>
+
+    <script>
+        let currentInstanceId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/index.html';
+                return;
+            }
+
+            setupDarkModeToggle();
+            
+            // Get instance ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentInstanceId = urlParams.get('instance_id');
+            
+            if (!currentInstanceId) {
+                alert('No instance ID provided');
+                window.location.href = '/dashboard.html';
+                return;
+            }
+
+            loadForms();
+        });
+
+        async function loadForms() {
+            try {
+                const response = await fetch(`/api/instances/${currentInstanceId}/forms`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load forms');
+                }
+
+                const forms = await response.json();
+                displayForms(forms);
+            } catch (err) {
+                console.error('Error loading forms:', err);
+                document.getElementById('formsContainer').innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3 text-danger"></i>
+                        <h3>Error Loading Forms</h3>
+                        <p class="text-muted">${err.message}</p>
+                        <button class="btn btn-primary mt-2" onclick="loadForms()">
+                            <i class="fas fa-sync-alt me-2"></i>Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function displayForms(forms) {
+            const container = document.getElementById('formsList');
+            
+            if (forms.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12">
+                        <div class="card shadow-hover fade-in">
+                            <div class="card-body text-center py-5">
+                                <i class="fas fa-file-alt fa-3x mb-3 text-secondary"></i>
+                                <h3>No Forms Available</h3>
+                                <p class="text-muted mb-4">Import a form to get started</p>
+                                <button class="btn btn-primary" onclick="showImportFormModal()">
+                                    <i class="fas fa-plus me-2"></i>Import Form
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = forms.map((form, index) => `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card form-card shadow-hover fade-in reveal" style="animation-delay: ${index * 0.1}s">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h4 class="card-title mb-0">${form.name}</h4>
+                                <span class="badge bg-primary">v${form.version || '1.0'}</span>
+                            </div>
+                            <p class="card-text text-muted mb-3">${form.description || 'No description available'}</p>
+                            <div class="form-meta mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Last Updated: ${new Date(form.updated_at).toLocaleDateString()}
+                                </small>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary" onclick="editForm('${form.id}')">
+                                    <i class="fas fa-edit me-2"></i>Edit
+                                </button>
+                                <button class="btn btn-danger" onclick="deleteForm('${form.id}')">
+                                    <i class="fas fa-trash-alt me-2"></i>Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showImportFormModal() {
+            openModalAnimated('importFormModal');
+        }
+
+        async function handleFormImport(event) {
+            event.preventDefault();
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            try {
+                const formFile = document.getElementById('formFile').files[0];
+                const formName = document.getElementById('formName').value;
+
+                const formData = new FormData();
+                formData.append('file', formFile);
+                formData.append('name', formName);
+                formData.append('instanceId', currentInstanceId);
+
+                const response = await fetch('/api/forms/import', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to import form');
+                }
+
+                closeModalAnimated('importFormModal');
+                document.getElementById('importFormForm').reset();
+                celebrateSuccess();
+                loadForms();
+            } catch (err) {
+                console.error('Error importing form:', err);
+                alert('Failed to import form: ' + err.message);
+            } finally {
+                submitButton.disabled = false;
+            }
+        }
+
+        async function deleteForm(formId) {
+            if (!confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/forms/${formId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete form');
+                }
+
+                loadForms();
+            } catch (err) {
+                console.error('Error deleting form:', err);
+                alert('Failed to delete form: ' + err.message);
+            }
+        }
+
+        function editForm(formId) {
+            window.location.href = `/form-editor.html?id=${formId}`;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/index.html';
+        }
+    </script>
+</body>
+</html> 

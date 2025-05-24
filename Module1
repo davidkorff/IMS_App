@@ -1,0 +1,243 @@
+Option Explicit
+
+Private Const WS_URL As String = "https://ws2.mgasystems.com/ims_origintest/DataAccess.asmx"  ' Updated URL
+Private Const IMS_LOGIN_URL As String = "https://ws2.mgasystems.com/ims_origintest/logon.asmx"
+Private Const IMS_USERNAME As String = "dkorff"
+Private Const IMS_PASSWORD As String = "kCeTLc2bxqOmG72ZBvMFkA=="
+
+Public Function GetIMSToken() As String
+    On Error GoTo ErrorHandler
+    
+    Dim xmlhttp As Object
+    Set xmlhttp = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    
+    ' Exactly match the working XML structure
+    Dim loginRequest As String
+    loginRequest = "<?xml version=""1.0"" encoding=""utf-8""?>" & _
+                  "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " & vbCrLf & _
+                  "               xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " & vbCrLf & _
+                  "               xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" & vbCrLf & _
+                  "    <soap:Body>" & vbCrLf & _
+                  "        <LoginIMSUser xmlns=""http://tempuri.org/IMSWebServices/Logon"">" & vbCrLf & _
+                  "            <userName>" & IMS_USERNAME & "</userName>" & vbCrLf & _
+                  "            <tripleDESEncryptedPassword>" & IMS_PASSWORD & "</tripleDESEncryptedPassword>" & vbCrLf & _
+                  "        </LoginIMSUser>" & vbCrLf & _
+                  "    </soap:Body>" & vbCrLf & _
+                  "</soap:Envelope>"
+
+    Debug.Print loginRequest  ' For debugging - check the exact XML structure
+    
+    With xmlhttp
+        .Open "POST", IMS_LOGIN_URL, False
+        .setRequestHeader "Content-Type", "text/xml; charset=utf-8"
+        .setRequestHeader "SOAPAction", "http://tempuri.org/IMSWebServices/Logon/LoginIMSUser"
+        .send loginRequest
+    End With
+    
+    If xmlhttp.Status <> 200 Then
+        Debug.Print "Response: " & xmlhttp.responseText  ' For debugging
+        Err.Raise vbObjectError + 1, "GetIMSToken", "Authentication failed: " & xmlhttp.statusText
+        Exit Function
+    End If
+    
+    Debug.Print "Response: " & xmlhttp.responseText  ' For debugging
+    GetIMSToken = ExtractTokenFromResponse(xmlhttp.responseText)
+    
+    Exit Function
+    
+ErrorHandler:
+    Debug.Print "Authentication error: " & Err.Description
+    MsgBox "Failed to get IMS token: " & Err.Description, vbCritical
+    GetIMSToken = ""
+End Function
+
+Public Sub LoadEmeraldBayRates()
+    On Error GoTo ErrorHandler
+    
+    Application.ScreenUpdating = False
+    
+    ' Get IMS token first
+    Dim token As String
+    token = GetIMSToken()
+    
+    If token = "" Then
+        MsgBox "Failed to authenticate with IMS", vbCritical
+        Exit Sub
+    End If
+    
+    Debug.Print "Token obtained successfully: " & token
+    
+    ' Create HTTP request for rate file
+    Dim xmlhttp As Object
+    Set xmlhttp = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+    
+    ' Updated to use ExecuteDataSet like in dataAccess.js
+    Dim soapRequest As String
+    soapRequest = "<?xml version=""1.0"" encoding=""utf-8""?>" & _
+                 "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " & _
+                 "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " & _
+                 "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" & _
+                 "<soap:Header>" & _
+                 "<TokenHeader xmlns=""http://tempuri.org/IMSWebServices/DataAccess"">" & _
+                 "<Token>" & token & "</Token>" & _
+                 "</TokenHeader>" & _
+                 "</soap:Header>" & _
+                 "<soap:Body>" & _
+                 "<ExecuteDataSet xmlns=""http://tempuri.org/IMSWebServices/DataAccess"">" & _
+                 "<procedureName>GetEmeraldBayRateFile</procedureName>" & _
+                 "<parameters></parameters>" & _
+                 "</ExecuteDataSet>" & _
+                 "</soap:Body>" & _
+                 "</soap:Envelope>"
+
+    Debug.Print "Sending request for rate file..."
+    Debug.Print soapRequest
+    
+    With xmlhttp
+        .Open "POST", WS_URL, False
+        .setRequestHeader "Content-Type", "text/xml; charset=utf-8"
+        .setRequestHeader "SOAPAction", "http://tempuri.org/IMSWebServices/DataAccess/ExecuteDataSet"
+        .send soapRequest
+    End With
+    
+    If xmlhttp.Status <> 200 Then
+        Debug.Print "Error response: " & xmlhttp.responseText
+        MsgBox "Failed to retrieve rate file. Status: " & xmlhttp.Status, vbCritical
+        Exit Sub
+    End If
+    
+    ' Extract the base64 encoded Excel file
+    Dim templateData As String
+    templateData = ExtractTemplateFromResponse(xmlhttp.responseText)
+    
+    If templateData = "" Then
+        MsgBox "No template data found in response", vbCritical
+        Exit Sub
+    End If
+    
+    ' Convert the base64 data to a temporary Excel file
+    Dim tempFile As String
+    tempFile = ConvertBase64ToFile(templateData)
+    
+    If tempFile = "" Then
+        MsgBox "Failed to create temporary file", vbCritical
+        Exit Sub
+    End If
+    
+    ' Open the temporary workbook and copy its data
+    Dim tempWorkbook As Workbook
+    
+    ' Add error handling for file opening
+    On Error Resume Next
+    Set tempWorkbook = Workbooks.Open(tempFile)
+    If Err.Number <> 0 Then
+        Debug.Print "Error opening workbook: " & Err.Description
+        MsgBox "Failed to open the temporary Excel file: " & Err.Description, vbCritical
+        Kill tempFile
+        Exit Sub
+    End If
+    On Error GoTo ErrorHandler
+    
+    ' Copy data from the temp workbook to RATE_DATA sheet
+    ThisWorkbook.Sheets("RATE_DATA").Cells.ClearContents
+    tempWorkbook.Sheets(1).UsedRange.Copy ThisWorkbook.Sheets("RATE_DATA").Range("A1")
+    
+    ' Clean up
+    tempWorkbook.Close SaveChanges:=False
+    Kill tempFile
+    
+    ' Comment out or remove this line to prevent the popup
+    ' MsgBox "Rate data updated successfully!", vbInformation
+    
+ExitSub:
+    Application.ScreenUpdating = True
+    Exit Sub
+    
+ErrorHandler:
+    Debug.Print "Error: " & Err.Description
+    MsgBox "An error occurred: " & Err.Description, vbCritical
+    Resume ExitSub
+End Sub
+
+Private Function ExtractTokenFromResponse(responseText As String) As String
+    ' Updated to match the documented response format
+    Dim startTag As String, endTag As String
+    startTag = "<Token>"
+    endTag = "</Token>"
+    
+    Dim startPos As Long, endPos As Long
+    startPos = InStr(1, responseText, startTag) + Len(startTag)
+    endPos = InStr(startPos, responseText, endTag) - 1
+    
+    If startPos > 0 And endPos > 0 Then
+        ExtractTokenFromResponse = Mid(responseText, startPos, endPos - startPos + 1)
+    End If
+End Function
+
+Private Function ExtractTemplateFromResponse(responseText As String) As String
+    Debug.Print "Raw response length: " & Len(responseText)  ' Debug print
+    
+    ' The XML contains HTML-encoded characters, so we need to look for &lt;Template&gt;
+    Dim startTag As String, endTag As String
+    startTag = "&lt;Template&gt;"
+    endTag = "&lt;/Template&gt;"
+    
+    Dim startPos As Long, endPos As Long
+    startPos = InStr(1, responseText, startTag)
+    
+    If startPos > 0 Then
+        startPos = startPos + Len(startTag)
+        endPos = InStr(startPos, responseText, endTag)
+        
+        If endPos > 0 Then
+            ExtractTemplateFromResponse = Mid(responseText, startPos, endPos - startPos)
+            Debug.Print "Template data extracted, length: " & Len(ExtractTemplateFromResponse)  ' Debug print
+        Else
+            Debug.Print "Failed to find end Template tag in response"  ' Debug print
+        End If
+    Else
+        Debug.Print "Failed to find start Template tag in response"  ' Debug print
+        Debug.Print "Response: " & Left(responseText, 1000)  ' Print first 1000 chars for debugging
+    End If
+End Function
+
+Private Function ConvertBase64ToFile(base64Data As String) As String
+    On Error GoTo ErrorHandler
+    
+    ' Convert base64 string to binary and save as temp file
+    Dim tempFile As String
+    tempFile = Environ$("TEMP") & "\TempRateFile_" & Format(Now, "yyyymmddhhnnss") & ".xlsx"
+    
+    ' Create binary data from base64 string using ADODB.Stream
+    Dim binStream As Object, b64Stream As Object
+    Set binStream = CreateObject("ADODB.Stream")
+    Set b64Stream = CreateObject("ADODB.Stream")
+    
+    ' Convert base64 to binary
+    Dim xmlObj As Object
+    Set xmlObj = CreateObject("MSXML2.DOMDocument")
+    Dim nodeObj As Object
+    Set nodeObj = xmlObj.createElement("b64")
+    nodeObj.DataType = "bin.base64"
+    nodeObj.Text = base64Data
+    
+    ' Write binary data to file
+    binStream.Type = 1 ' Binary
+    binStream.Open
+    binStream.Write nodeObj.nodeTypedValue
+    binStream.SaveToFile tempFile, 2 ' Overwrite
+    binStream.Close
+    
+    Debug.Print "Temporary file created at: " & tempFile
+    ConvertBase64ToFile = tempFile
+    Exit Function
+    
+ErrorHandler:
+    Debug.Print "Error in ConvertBase64ToFile: " & Err.Description
+    ConvertBase64ToFile = ""
+End Function
+
+Private Sub Workbook_Open()
+    ' Call the LoadEmeraldBayRates procedure when the workbook opens
+    LoadEmeraldBayRates
+End Sub 

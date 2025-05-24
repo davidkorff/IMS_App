@@ -16,6 +16,8 @@ console.log('Loading routes...');
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/instances', require('./routes/instances'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/webhooks', require('./routes/webhooks'));
+app.use('/api/email-filing', require('./routes/emailFiling'));
 
 // Load webui routes with error handling
 console.log('Loading webui routes...');
@@ -84,6 +86,11 @@ app.get('/instance/:id/forms/all', (req, res) => {
 // Add this route for new submission
 app.get('/instance/:id/newsubmission', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'newsubmission.html'));
+});
+
+// Add this route for email filing
+app.get('/instance/:id/email-filing', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'email-filing.html'));
 });
 
 const PORT = process.env.PORT || 5000;
