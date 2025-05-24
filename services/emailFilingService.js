@@ -409,6 +409,21 @@ class EmailFilingService {
 
     async createEmailLog(config, emailData) {
         try {
+            // Parse and validate date
+            let emailDate;
+            if (emailData.date && emailData.date !== 'Date' && emailData.date !== 'undefined') {
+                try {
+                    emailDate = new Date(emailData.date);
+                    if (isNaN(emailDate.getTime())) {
+                        emailDate = new Date(); // Use current date if invalid
+                    }
+                } catch {
+                    emailDate = new Date(); // Use current date if parsing fails
+                }
+            } else {
+                emailDate = new Date(); // Use current date if no date provided
+            }
+
             const result = await pool.query(`
                 INSERT INTO email_filing_logs 
                 (config_id, instance_id, user_id, email_subject, email_from, 
@@ -423,7 +438,7 @@ class EmailFilingService {
                 emailData.subject,
                 emailData.from,
                 emailData.to,
-                emailData.date,
+                emailDate.toISOString(),
                 emailData.message_id,
                 emailData.body_text,
                 emailData.body_html,

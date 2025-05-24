@@ -7,6 +7,8 @@ const crypto = require('crypto');
 router.post('/zapier/:configId/email', async (req, res) => {
     const requestId = Math.random().toString(36).substring(7);
     console.log(`[${requestId}] Zapier webhook received for config: ${req.params.configId}`);
+    console.log(`[${requestId}] Request body:`, JSON.stringify(req.body, null, 2));
+    console.log(`[${requestId}] Request headers:`, JSON.stringify(req.headers, null, 2));
     
     try {
         const { configId } = req.params;
@@ -39,11 +41,20 @@ router.post('/zapier/:configId/email', async (req, res) => {
         }
 
         // Validate required email data
-        if (!emailData.subject || !emailData.from) {
-            console.log(`[${requestId}] Missing required email data`);
+        if (!emailData || typeof emailData !== 'object') {
+            console.log(`[${requestId}] Invalid email data:`, emailData);
             return res.status(400).json({ 
                 success: false, 
-                message: 'Missing required email data (subject, from)' 
+                message: 'Invalid email data format' 
+            });
+        }
+
+        if (!emailData.subject && !emailData.from) {
+            console.log(`[${requestId}] Missing required email data - subject:`, emailData.subject, 'from:', emailData.from);
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Missing required email data (subject or from)', 
+                received_data: emailData
             });
         }
 
@@ -206,6 +217,21 @@ router.get('/health', (req, res) => {
         message: 'Webhook service is healthy',
         timestamp: new Date().toISOString(),
         service: 'email-filing-webhooks'
+    });
+});
+
+// Simple test webhook (accepts any data)
+router.post('/test', (req, res) => {
+    const requestId = Math.random().toString(36).substring(7);
+    console.log(`[${requestId}] Test webhook received`);
+    console.log(`[${requestId}] Body:`, req.body);
+    
+    res.json({
+        success: true,
+        message: 'Test webhook received successfully',
+        request_id: requestId,
+        received_data: req.body,
+        timestamp: new Date().toISOString()
     });
 });
 
