@@ -498,6 +498,7 @@ class EmailFilingService {
     <soap:Header>
         <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
             <Token>${token}</Token>
+            <Context>string</Context>
         </TokenHeader>
     </soap:Header>
     <soap:Body>
@@ -514,6 +515,8 @@ class EmailFilingService {
 </soap:Envelope>`;
 
             console.log(`Filing document to policy ${controlNumber} at ${instance.url}/DocumentFunctions.asmx`);
+            console.log(`Using authentication token: ${token}`);
+            console.log(`SOAP envelope:`, soapEnvelope);
             
             const response = await fetch(`${instance.url}/DocumentFunctions.asmx`, {
                 method: 'POST',
