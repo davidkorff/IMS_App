@@ -9,7 +9,8 @@
       "Bash(npm start)",
       "Bash(ls:*)",
       "Bash(node test-auth.js)",
-      "Bash(node test-filing.js)"
+      "Bash(node test-filing.js)",
+      "Bash(rg:*)"
     ],
     "deny": []
   }

@@ -291,6 +291,10 @@ class EmailFilingService {
 
     async fileEmailToPolicy(instance, controlNumber, emailData, config, logId) {
         try {
+            console.log('=== EMAIL FILING STARTING - USING CONTROL-BASED APPROACH ===');
+            console.log('Control number:', controlNumber);
+            console.log('Method: fileEmailToPolicy - will use control-based workflow');
+            
             // Log authentication configuration details
             console.log('=== EMAIL FILING AUTHENTICATION ===');
             console.log('Config ID:', config.config_id);
@@ -313,17 +317,24 @@ class EmailFilingService {
                 instance.password
             );
 
+            console.log('=== TOKEN RECEIVED - STARTING CONTROL-BASED WORKFLOW ===');
+            console.log('Token:', token);
+
             // Convert email to document format
             const documentData = await this.createDocumentFromEmail(emailData, controlNumber);
+            console.log('=== DOCUMENT DATA CREATED ===');
+            console.log('Document name:', documentData.name);
 
+            console.log('=== STEP 1: GETTING CONTROL INFORMATION ===');
             // First get the ControlGuid from the control number
             const controlInfo = await this.getControlInformation(instance, token, controlNumber);
             if (!controlInfo || !controlInfo.ControlGuid) {
                 throw new Error(`Invalid control number: ${controlNumber}. Control number not found in IMS.`);
             }
 
-            console.log(`Found control info for ${controlNumber}:`, controlInfo);
+            console.log(`=== STEP 1 COMPLETE: Found control info for ${controlNumber}:`, controlInfo);
 
+            console.log('=== STEP 2: FILING DOCUMENT WITH CONTROL GUID ===');
             // File document to IMS using the ControlGuid
             const documentGuid = await this.uploadDocumentToIMSByControl(
                 instance,
@@ -676,6 +687,11 @@ class EmailFilingService {
     }
 
     async uploadDocumentToIMSByPolicy(instance, token, documentData, controlNumber, config) {
+        console.error('=== ERROR: OLD POLICY-BASED METHOD CALLED ===');
+        console.error('This method should not be called anymore! We should be using uploadDocumentToIMSByControl');
+        console.error('This indicates the deployment is using old code or there is a bug in the workflow');
+        throw new Error('DEPRECATED: uploadDocumentToIMSByPolicy should not be called. Use control-based workflow instead.');
+        
         try {
             // Use IMS InsertTypedDocumentAssociatedToPolicy webservice directly with control number
             const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
