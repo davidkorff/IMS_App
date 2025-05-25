@@ -357,13 +357,8 @@ class EmailFilingService {
 
             // Process attachments if enabled
             if (config.include_attachments && emailData.attachments) {
-                await this.processEmailAttachments(
-                    instance,
-                    token,
-                    emailData.attachments,
-                    controlNumber,
-                    logId
-                );
+                console.log('Processing email attachments - feature not yet implemented');
+                // TODO: Implement attachment processing
             }
 
             return {
