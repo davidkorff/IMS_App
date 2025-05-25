@@ -325,22 +325,23 @@ class EmailFilingService {
             console.log('=== DOCUMENT DATA CREATED ===');
             console.log('Document name:', documentData.name);
 
-            console.log('=== STEP 1: GETTING CONTROL INFORMATION ===');
-            // First get the ControlGuid from the control number
-            const controlInfo = await this.getControlInformation(instance, token, controlNumber);
-            if (!controlInfo || !controlInfo.ControlGuid) {
+            console.log('=== STEP 1: VALIDATING CONTROL NUMBER ===');
+            // First validate the control number and get the QuoteGuid
+            const controlValidation = await this.validateControlNumber(instance, token, controlNumber);
+            if (!controlValidation || !controlValidation.QuoteGuid) {
                 throw new Error(`Invalid control number: ${controlNumber}. Control number not found in IMS.`);
             }
 
-            console.log(`=== STEP 1 COMPLETE: Found control info for ${controlNumber}:`, controlInfo);
+            console.log(`=== STEP 1 COMPLETE: Control validated for ${controlNumber}:`, controlValidation);
 
-            console.log('=== STEP 2: FILING DOCUMENT WITH CONTROL GUID ===');
-            // File document to IMS using the ControlGuid
+            console.log('=== STEP 2: FILING DOCUMENT WITH QUOTE GUID AS CONTROL GUID ===');
+            // File document to IMS using the QuoteGuid as ControlGuid
+            // Many IMS systems use QuoteGuid interchangeably with ControlGuid
             const documentGuid = await this.uploadDocumentToIMSByControl(
                 instance,
                 token,
                 documentData,
-                controlInfo.ControlGuid,
+                controlValidation.QuoteGuid,
                 config
             );
 
@@ -359,6 +360,7 @@ class EmailFilingService {
                 success: true,
                 controlNumber: controlNumber,
                 documentGuid: documentGuid,
+                quoteGuid: controlValidation.QuoteGuid,
                 folderId: config.default_folder_id
             };
 
@@ -374,7 +376,45 @@ class EmailFilingService {
             console.log(`Control number: ${controlNumber}`);
             console.log(`IMS URL: ${instance.url}`);
             
-            // Use IMS GetControlInformation webservice
+            // Try HTTP GET method first (simpler and less prone to XML parsing issues)
+            console.log('=== TRYING HTTP GET METHOD ===');
+            const getUrl = `${instance.url}/QuoteFunctions.asmx/GetControlInformation?controls=${encodeURIComponent(controlNumber)}`;
+            console.log('GET URL:', getUrl);
+            
+            try {
+                const getResponse = await fetch(getUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'text/xml'
+                    }
+                });
+
+                console.log(`GetControlInformation GET response status: ${getResponse.status}`);
+
+                if (getResponse.ok) {
+                    const responseText = await getResponse.text();
+                    console.log('GetControlInformation GET response:', responseText);
+                    
+                    // Look for GUID in the DataSet response
+                    const guidMatches = responseText.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi);
+                    
+                    if (guidMatches && guidMatches.length > 0) {
+                        const controlGuid = guidMatches[0];
+                        console.log(`Found ControlGuid via GET: ${controlGuid}`);
+                        return {
+                            ControlNumber: controlNumber,
+                            ControlGuid: controlGuid,
+                            RawResponse: responseText
+                        };
+                    }
+                }
+            } catch (getError) {
+                console.log('GET method failed, trying SOAP:', getError.message);
+            }
+
+            // Fall back to SOAP method
+            console.log('=== TRYING SOAP METHOD ===');
             const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
                xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
@@ -404,29 +444,43 @@ class EmailFilingService {
                 body: soapEnvelope
             });
 
-            console.log(`GetControlInformation response status: ${response.status}`);
+            console.log(`GetControlInformation SOAP response status: ${response.status}`);
 
             if (!response.ok) {
                 const responseText = await response.text();
-                console.error(`GetControlInformation failed: ${response.status} ${response.statusText}`, responseText);
+                console.error(`GetControlInformation SOAP failed: ${response.status} ${response.statusText}`, responseText);
+                
+                // If SOAP fails too, let's try ValidateControlNumber as alternative
+                console.log('=== TRYING ValidateControlNumber as fallback ===');
+                try {
+                    const validateResult = await this.validateControlNumber(instance, token, controlNumber);
+                    if (validateResult && validateResult.QuoteGuid) {
+                        console.log('Using QuoteGuid as ControlGuid from ValidateControlNumber');
+                        return {
+                            ControlNumber: controlNumber,
+                            ControlGuid: validateResult.QuoteGuid,
+                            RawResponse: 'From ValidateControlNumber'
+                        };
+                    }
+                } catch (validateError) {
+                    console.log('ValidateControlNumber also failed:', validateError.message);
+                }
+                
                 throw new Error(`GetControlInformation failed: ${response.status} ${response.statusText}`);
             }
 
             const responseText = await response.text();
-            console.log('GetControlInformation response:', responseText);
+            console.log('GetControlInformation SOAP response:', responseText);
             
             // Parse the DataSet XML to extract control information
-            // The response contains schema and data - we need to extract the actual control info
             const dataMatch = responseText.match(/<GetControlInformationResult[^>]*>(.*?)<\/GetControlInformationResult>/s);
             if (!dataMatch) {
                 throw new Error('Could not extract control information from response');
             }
 
-            // Look for control data in the response - this might contain ControlGuid
-            // The exact structure depends on IMS response format
             console.log('Extracted control data:', dataMatch[1]);
             
-            // For now, let's try to find any GUID in the response that could be our ControlGuid
+            // Look for GUID in the response
             const guidMatches = dataMatch[1].match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi);
             
             if (!guidMatches || guidMatches.length === 0) {
@@ -434,9 +488,8 @@ class EmailFilingService {
                 return null;
             }
 
-            // Return the first GUID found as the ControlGuid
             const controlGuid = guidMatches[0];
-            console.log(`Found ControlGuid: ${controlGuid}`);
+            console.log(`Found ControlGuid via SOAP: ${controlGuid}`);
 
             return {
                 ControlNumber: controlNumber,
