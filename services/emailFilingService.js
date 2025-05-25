@@ -316,12 +316,20 @@ class EmailFilingService {
             // Convert email to document format
             const documentData = await this.createDocumentFromEmail(emailData, controlNumber);
 
-            // File document directly to IMS using policy number (control number)
-            const documentGuid = await this.uploadDocumentToIMSByPolicy(
+            // First get the ControlGuid from the control number
+            const controlInfo = await this.getControlInformation(instance, token, controlNumber);
+            if (!controlInfo || !controlInfo.ControlGuid) {
+                throw new Error(`Invalid control number: ${controlNumber}. Control number not found in IMS.`);
+            }
+
+            console.log(`Found control info for ${controlNumber}:`, controlInfo);
+
+            // File document to IMS using the ControlGuid
+            const documentGuid = await this.uploadDocumentToIMSByControl(
                 instance,
                 token,
                 documentData,
-                controlNumber,
+                controlInfo.ControlGuid,
                 config
             );
 
@@ -345,6 +353,88 @@ class EmailFilingService {
 
         } catch (error) {
             console.error(`Error filing email to policy ${controlNumber}:`, error);
+            throw error;
+        }
+    }
+
+    async getControlInformation(instance, token, controlNumber) {
+        try {
+            console.log(`=== GETTING CONTROL INFORMATION ===`);
+            console.log(`Control number: ${controlNumber}`);
+            console.log(`IMS URL: ${instance.url}`);
+            
+            // Use IMS GetControlInformation webservice
+            const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Header>
+        <TokenHeader xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+            <Token>${token}</Token>
+            <Context>string</Context>
+        </TokenHeader>
+    </soap:Header>
+    <soap:Body>
+        <GetControlInformation xmlns="http://tempuri.org/IMSWebServices/QuoteFunctions">
+            <controls>${controlNumber}</controls>
+        </GetControlInformation>
+    </soap:Body>
+</soap:Envelope>`;
+
+            console.log('SOAP request for GetControlInformation:');
+            console.log(soapEnvelope);
+
+            const response = await fetch(`${instance.url}/QuoteFunctions.asmx`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/xml; charset=utf-8',
+                    'SOAPAction': 'http://tempuri.org/IMSWebServices/QuoteFunctions/GetControlInformation'
+                },
+                body: soapEnvelope
+            });
+
+            console.log(`GetControlInformation response status: ${response.status}`);
+
+            if (!response.ok) {
+                const responseText = await response.text();
+                console.error(`GetControlInformation failed: ${response.status} ${response.statusText}`, responseText);
+                throw new Error(`GetControlInformation failed: ${response.status} ${response.statusText}`);
+            }
+
+            const responseText = await response.text();
+            console.log('GetControlInformation response:', responseText);
+            
+            // Parse the DataSet XML to extract control information
+            // The response contains schema and data - we need to extract the actual control info
+            const dataMatch = responseText.match(/<GetControlInformationResult[^>]*>(.*?)<\/GetControlInformationResult>/s);
+            if (!dataMatch) {
+                throw new Error('Could not extract control information from response');
+            }
+
+            // Look for control data in the response - this might contain ControlGuid
+            // The exact structure depends on IMS response format
+            console.log('Extracted control data:', dataMatch[1]);
+            
+            // For now, let's try to find any GUID in the response that could be our ControlGuid
+            const guidMatches = dataMatch[1].match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi);
+            
+            if (!guidMatches || guidMatches.length === 0) {
+                console.log('No control GUID found in response - control number may not exist');
+                return null;
+            }
+
+            // Return the first GUID found as the ControlGuid
+            const controlGuid = guidMatches[0];
+            console.log(`Found ControlGuid: ${controlGuid}`);
+
+            return {
+                ControlNumber: controlNumber,
+                ControlGuid: controlGuid,
+                RawResponse: dataMatch[1]
+            };
+
+        } catch (error) {
+            console.error('Error getting control information:', error);
             throw error;
         }
     }
@@ -499,6 +589,88 @@ class EmailFilingService {
             return guidMatch[1]; // Return document GUID
         } catch (error) {
             console.error('Error uploading document to IMS:', error);
+            throw error;
+        }
+    }
+
+    async uploadDocumentToIMSByControl(instance, token, documentData, controlGuid, config) {
+        try {
+            console.log(`=== UPLOADING DOCUMENT TO IMS BY CONTROL ===`);
+            console.log(`Control GUID: ${controlGuid}`);
+            console.log(`Document name: ${documentData.name}`);
+            console.log(`Document description: ${documentData.description}`);
+            
+            // Use IMS InsertAssociatedDocument webservice with ControlGuid
+            const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
+               xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Header>
+        <TokenHeader xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+            <Token>${token}</Token>
+            <Context>string</Context>
+        </TokenHeader>
+    </soap:Header>
+    <soap:Body>
+        <InsertAssociatedDocument xmlns="http://tempuri.org/IMSWebServices/DocumentFunctions">
+            <file>
+                <Name>${documentData.name}</Name>
+                <Data>${documentData.data}</Data>
+                <Description>${documentData.description}</Description>
+                <MetaXml></MetaXml>
+                <CopyForwardOnRenewal>false</CopyForwardOnRenewal>
+            </file>
+            <doc>
+                <UserGuid>00000000-0000-0000-0000-000000000000</UserGuid>
+                <TypeGuid>00000000-0000-0000-0000-000000000000</TypeGuid>
+                <FolderID>${config.default_folder_id || 0}</FolderID>
+                <CopyForwardOnRenewal>false</CopyForwardOnRenewal>
+            </doc>
+            <entity>
+                <EntityGuid>00000000-0000-0000-0000-000000000000</EntityGuid>
+                <ControlGuid>${controlGuid}</ControlGuid>
+                <EntityName>Email Communication</EntityName>
+                <EntityType>Quote</EntityType>
+                <EntityAssociation>Quote</EntityAssociation>
+            </entity>
+        </InsertAssociatedDocument>
+    </soap:Body>
+</soap:Envelope>`;
+
+            console.log(`Filing document to control ${controlGuid} at ${instance.url}/DocumentFunctions.asmx`);
+            console.log(`Using authentication token: ${token}`);
+            console.log(`SOAP envelope:`, soapEnvelope);
+            
+            const response = await fetch(`${instance.url}/DocumentFunctions.asmx`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/xml; charset=utf-8',
+                    'SOAPAction': 'http://tempuri.org/IMSWebServices/DocumentFunctions/InsertAssociatedDocument'
+                },
+                body: soapEnvelope
+            });
+
+            console.log(`InsertAssociatedDocument response status: ${response.status}`);
+
+            if (!response.ok) {
+                const responseText = await response.text();
+                console.error(`Document upload failed: ${response.status} ${response.statusText}`, responseText);
+                throw new Error(`Document upload failed: ${response.status} ${response.statusText}`);
+            }
+
+            const responseText = await response.text();
+            console.log('IMS InsertAssociatedDocument response:', responseText);
+            
+            // Extract document GUID from SOAP response
+            const guidMatch = responseText.match(/<InsertAssociatedDocumentResult>(.*?)<\/InsertAssociatedDocumentResult>/);
+            if (!guidMatch) {
+                throw new Error('Could not extract document GUID from response: ' + responseText);
+            }
+
+            console.log(`Successfully filed document with GUID: ${guidMatch[1]}`);
+            return guidMatch[1]; // Return document GUID
+        } catch (error) {
+            console.error('Error uploading document to IMS by control:', error);
             throw error;
         }
     }

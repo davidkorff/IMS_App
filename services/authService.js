@@ -22,6 +22,10 @@ class AuthService {
         console.log('Full request URL:', `${url}/logon.asmx`);
         
         try {
+            // Clean the password - remove "e.g., " prefix if present
+            const cleanPassword = password ? password.replace(/^e\.g\.,\s*/, '').trim() : '';
+            console.log('Cleaned password:', JSON.stringify(cleanPassword));
+            
             // Using SOAP 1.1 as per documentation
             const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
@@ -30,7 +34,7 @@ class AuthService {
     <soap:Body>
         <LoginIMSUser xmlns="http://tempuri.org/IMSWebServices/Logon">
             <userName>${username}</userName>
-            <tripleDESEncryptedPassword>${password}</tripleDESEncryptedPassword>
+            <tripleDESEncryptedPassword>${cleanPassword}</tripleDESEncryptedPassword>
         </LoginIMSUser>
     </soap:Body>
 </soap:Envelope>`;
