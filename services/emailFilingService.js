@@ -334,7 +334,17 @@ class EmailFilingService {
 
             console.log(`=== STEP 1 COMPLETE: Control validated for ${controlNumber}:`, controlValidation);
 
-            console.log('=== STEP 2: FILING DOCUMENT WITH QUOTE GUID AS CONTROL GUID ===');
+            console.log('=== STEP 2: GETTING USER GUID FROM TOKEN ===');
+            // Get the UserGuid from the authentication service
+            const authService = require('./authService');
+            const userGuid = await authService.getUserGuid(
+                instance.url,
+                instance.username,
+                instance.password
+            );
+            console.log(`UserGuid from authentication: ${userGuid}`);
+
+            console.log('=== STEP 3: FILING DOCUMENT WITH QUOTE GUID AS CONTROL GUID ===');
             // File document to IMS using the QuoteGuid as ControlGuid
             // Many IMS systems use QuoteGuid interchangeably with ControlGuid
             const documentGuid = await this.uploadDocumentToIMSByControl(
@@ -342,6 +352,7 @@ class EmailFilingService {
                 token,
                 documentData,
                 controlValidation.QuoteGuid,
+                userGuid,
                 config
             );
 
@@ -657,10 +668,11 @@ class EmailFilingService {
         }
     }
 
-    async uploadDocumentToIMSByControl(instance, token, documentData, controlGuid, config) {
+    async uploadDocumentToIMSByControl(instance, token, documentData, controlGuid, userGuid, config) {
         try {
             console.log(`=== UPLOADING DOCUMENT TO IMS BY CONTROL ===`);
             console.log(`Control GUID: ${controlGuid}`);
+            console.log(`User GUID: ${userGuid}`);
             console.log(`Document name: ${documentData.name}`);
             console.log(`Document description: ${documentData.description}`);
             
@@ -685,7 +697,7 @@ class EmailFilingService {
                 <CopyForwardOnRenewal>false</CopyForwardOnRenewal>
             </file>
             <doc>
-                <UserGuid>00000000-0000-0000-0000-000000000000</UserGuid>
+                <UserGuid>${userGuid}</UserGuid>
                 <TypeGuid>00000000-0000-0000-0000-000000000000</TypeGuid>
                 <FolderID>${config.default_folder_id || 0}</FolderID>
                 <CopyForwardOnRenewal>false</CopyForwardOnRenewal>

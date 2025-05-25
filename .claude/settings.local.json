@@ -11,7 +11,8 @@
       "Bash(node test-auth.js)",
       "Bash(node test-filing.js)",
       "Bash(rg:*)",
-      "Bash(node test_webhook.js)"
+      "Bash(node test_webhook.js)",
+      "Bash(node:*)"
     ],
     "deny": []
   }

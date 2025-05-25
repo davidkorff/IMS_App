@@ -1,16 +1,28 @@
 class AuthService {
     constructor() {
-        this.tokens = new Map(); // Cache tokens by URL
+        this.authData = new Map(); // Cache auth data (token + userGuid) by URL
     }
 
     async getToken(url, username, password) {
         // Check cache first
-        const cachedToken = this.tokens.get(url);
-        if (cachedToken) {
-            return cachedToken;
+        const cachedAuthData = this.authData.get(url);
+        if (cachedAuthData) {
+            return cachedAuthData.token;
         }
 
-        return this.authenticate(url, username, password);
+        const authData = await this.authenticate(url, username, password);
+        return authData.token;
+    }
+
+    async getUserGuid(url, username, password) {
+        // Check cache first
+        const cachedAuthData = this.authData.get(url);
+        if (cachedAuthData) {
+            return cachedAuthData.userGuid;
+        }
+
+        const authData = await this.authenticate(url, username, password);
+        return authData.userGuid;
     }
 
     async authenticate(url, username, password) {
@@ -98,24 +110,43 @@ class AuthService {
             console.log('Extracted token:', token);
             console.log('Token validation - is null GUID?:', token === '00000000-0000-0000-0000-000000000000');
 
+            // Extract UserGuid from the same response
+            const userGuidMatch = resultContent.match(/<UserGuid>(.*?)<\/UserGuid>/);
+            console.log('UserGuid match:', userGuidMatch ? 'FOUND' : 'NOT FOUND');
+            if (!userGuidMatch) {
+                console.log('FAILED: Could not extract UserGuid from LoginIMSUserResult');
+                throw new Error('Could not extract UserGuid from LoginIMSUserResult');
+            }
+
+            const userGuid = userGuidMatch[1];
+            console.log('Extracted UserGuid:', userGuid);
+            console.log('UserGuid validation - is null GUID?:', userGuid === '00000000-0000-0000-0000-000000000000');
+
             // Check if token is valid (not null GUID)
             if (token === '00000000-0000-0000-0000-000000000000') {
                 console.log('ERROR: IMS returned null GUID token - authentication failed on IMS side');
                 throw new Error('IMS authentication failed: Invalid credentials or account issue');
             }
 
-            // Cache the token
-            this.tokens.set(url, token);
-            console.log('Token cached successfully');
+            // Check if UserGuid is valid (not null GUID)
+            if (userGuid === '00000000-0000-0000-0000-000000000000') {
+                console.log('ERROR: IMS returned null GUID for UserGuid - authentication failed on IMS side');
+                throw new Error('IMS authentication failed: Invalid credentials or account issue');
+            }
+
+            // Cache both token and userGuid
+            const authData = { token, userGuid };
+            this.authData.set(url, authData);
+            console.log('Auth data cached successfully');
             
-            // Set token expiry (55 minutes)
+            // Set auth data expiry (55 minutes)
             setTimeout(() => {
-                console.log('Token expired for URL:', url);
-                this.tokens.delete(url);
+                console.log('Auth data expired for URL:', url);
+                this.authData.delete(url);
             }, 55 * 60 * 1000);
 
             console.log('=== AUTHENTICATION SUCCESS ===');
-            return token;
+            return authData;
 
         } catch (error) {
             console.log('=== AUTHENTICATION FAILED ===');
@@ -127,8 +158,9 @@ class AuthService {
     }
 
     clearToken(url) {
-        this.tokens.delete(url);
+        this.authData.delete(url);
     }
+
 
     isTokenValid(token) {
         // Add any token validation logic here if needed
