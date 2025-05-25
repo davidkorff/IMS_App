@@ -336,7 +336,6 @@ class EmailFilingService {
 
             console.log('=== STEP 2: GETTING USER GUID FROM TOKEN ===');
             // Get the UserGuid from the authentication service
-            const authService = require('./authService');
             const userGuid = await authService.getUserGuid(
                 instance.url,
                 instance.username,
