@@ -22,6 +22,19 @@ router.post('/zapier/:configId/email', async (req, res) => {
             attachmentCount: emailData.attachments ? emailData.attachments.length : 0
         });
 
+        // Debug attachment data structure
+        if (emailData.attachments && emailData.attachments.length > 0) {
+            console.log(`[${requestId}] Attachment details:`, emailData.attachments.map(att => ({
+                name: att.name,
+                size: att.size || (att.data ? att.data.length : 'unknown'),
+                type: att.content_type || att.type || 'unknown',
+                hasData: !!att.data
+            })));
+        } else {
+            console.log(`[${requestId}] No attachments found in webhook payload`);
+            console.log(`[${requestId}] Available fields:`, Object.keys(emailData));
+        }
+
         // Validate webhook secret (optional security measure)
         const config = await emailFilingService.getConfigById(configId);
         if (!config) {

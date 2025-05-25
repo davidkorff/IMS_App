@@ -356,9 +356,18 @@ class EmailFilingService {
             );
 
             // Process attachments if enabled
-            if (config.include_attachments && emailData.attachments) {
-                console.log('Processing email attachments - feature not yet implemented');
-                // TODO: Implement attachment processing
+            if (config.include_attachments && emailData.attachments && emailData.attachments.length > 0) {
+                console.log(`=== PROCESSING ${emailData.attachments.length} EMAIL ATTACHMENTS ===`);
+                const attachmentResults = await this.processEmailAttachments(
+                    instance,
+                    token,
+                    userGuid,
+                    emailData.attachments,
+                    controlValidation.QuoteGuid,
+                    controlNumber,
+                    config
+                );
+                console.log(`Successfully processed ${attachmentResults.length} attachments`);
             }
 
             return {
@@ -595,6 +604,11 @@ class EmailFilingService {
 
             // Convert to base64 for IMS upload
             const documentData = Buffer.from(htmlContent, 'utf8').toString('base64');
+            
+            console.log('=== DOCUMENT SIZE DEBUG ===');
+            console.log('HTML content length:', htmlContent.length, 'characters');
+            console.log('Base64 data length:', documentData.length, 'characters');
+            console.log('Estimated file size:', Buffer.from(documentData, 'base64').length, 'bytes');
 
             return {
                 name: filename,
@@ -952,6 +966,67 @@ class EmailFilingService {
             return result.rows;
         } catch (error) {
             console.error('Error getting email filing logs:', error);
+            throw error;
+        }
+    }
+
+    async processEmailAttachments(instance, token, userGuid, attachments, controlGuid, controlNumber, config) {
+        const results = [];
+        
+        try {
+            console.log(`Processing ${attachments.length} attachments for control ${controlNumber}`);
+            
+            for (let i = 0; i < attachments.length; i++) {
+                const attachment = attachments[i];
+                console.log(`=== PROCESSING ATTACHMENT ${i + 1}/${attachments.length} ===`);
+                console.log(`Attachment name: ${attachment.name}`);
+                console.log(`Attachment size: ${attachment.data ? attachment.data.length : 'unknown'} bytes`);
+                console.log(`Attachment content type: ${attachment.content_type || 'unknown'}`);
+                
+                try {
+                    // Create document data for the attachment
+                    const attachmentDocumentData = {
+                        name: attachment.name || `Attachment_${i + 1}`,
+                        data: attachment.data, // Should already be base64 encoded from Zapier
+                        description: `Email Attachment: ${attachment.name || 'Unnamed'} (Control ${controlNumber})`,
+                        contentType: attachment.content_type || 'application/octet-stream'
+                    };
+                    
+                    // Upload attachment to IMS using the same control GUID
+                    const attachmentDocumentGuid = await this.uploadDocumentToIMSByControl(
+                        instance,
+                        token,
+                        attachmentDocumentData,
+                        controlGuid,
+                        userGuid,
+                        config
+                    );
+                    
+                    console.log(`Successfully filed attachment "${attachment.name}" with GUID: ${attachmentDocumentGuid}`);
+                    
+                    results.push({
+                        name: attachment.name,
+                        documentGuid: attachmentDocumentGuid,
+                        size: attachment.data ? attachment.data.length : 0,
+                        contentType: attachment.content_type
+                    });
+                    
+                } catch (attachmentError) {
+                    console.error(`Failed to process attachment "${attachment.name}":`, attachmentError);
+                    // Continue processing other attachments even if one fails
+                    results.push({
+                        name: attachment.name,
+                        error: attachmentError.message,
+                        failed: true
+                    });
+                }
+            }
+            
+            console.log(`Attachment processing complete. ${results.filter(r => !r.failed).length}/${results.length} successful`);
+            return results;
+            
+        } catch (error) {
+            console.error('Error processing email attachments:', error);
             throw error;
         }
     }
