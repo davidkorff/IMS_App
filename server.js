@@ -91,9 +91,17 @@ app.get('/instance/:id/newsubmission', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'newsubmission.html'));
 });
 
-// Add this route for email filing
+// Email filing routes
 app.get('/instance/:id/email-filing', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'email-filing-list.html'));
+});
+
+app.get('/instance/:id/email-filing/new', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'email-filing-new.html'));
+});
+
+app.get('/instance/:id/email-filing/:configId', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'email-filing-detail.html'));
 });
 
 // Add this route for billing

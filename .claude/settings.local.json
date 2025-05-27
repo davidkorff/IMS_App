@@ -17,7 +17,8 @@
       "Bash(psql:*)",
       "Bash(pkill:*)",
       "Bash(true)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

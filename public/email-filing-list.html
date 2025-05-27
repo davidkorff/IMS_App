@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Filing Configurations - IMS Integration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+            --warning-color: #f1c40f;
+            --danger-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f6fa;
+        }
+
+        .header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .nav-links {
+            margin-bottom: 1rem;
+        }
+
+        .nav-links a {
+            color: var(--accent-color);
+            text-decoration: none;
+            margin-right: 1rem;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .config-card {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .config-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .config-type-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .config-type-managed {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .config-type-client {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-active { background: var(--success-color); color: white; }
+        .status-error { background: var(--danger-color); color: white; }
+        .status-configuring { background: var(--warning-color); color: white; }
+
+        .add-config-card {
+            border: 2px dashed #dee2e6;
+            background: #f8f9fa;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .add-config-card:hover {
+            border-color: var(--accent-color);
+            background: white;
+        }
+
+        .add-config-card .card-body {
+            padding: 3rem;
+        }
+
+        .add-config-card i {
+            font-size: 3rem;
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            flex: 1;
+            text-align: center;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+
+        .config-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="nav-links">
+                <a href="/dashboard">← Back to Dashboard</a>
+                <span class="text-white mx-2">|</span>
+                <a href="/instance/1">Instance Home</a>
+            </div>
+            <h1><i class="fas fa-envelope"></i> Email Filing Configurations</h1>
+            <p class="mb-0">Manage your automatic email filing setups</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Summary Card -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-1">Email Filing Overview</h5>
+                        <p class="text-muted mb-0" id="instance-name">Loading...</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="showAddConfigModal()">
+                        <i class="fas fa-plus"></i> Add Email Configuration
+                    </button>
+                </div>
+                
+                <div class="stats-row" id="stats-row">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-configs">0</div>
+                        <div class="stat-label">Total Configurations</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="active-configs">0</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value text-success" id="emails-processed">0</div>
+                        <div class="stat-label">Emails Processed Today</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configurations List -->
+        <div id="configs-container">
+            <div class="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-muted">Loading email configurations...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Configuration Modal -->
+    <div class="modal fade" id="addConfigModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Choose Email Configuration Type</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card config-option" onclick="selectConfigType('managed')">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-cogs fa-3x text-primary mb-3"></i>
+                                    <h5>We Manage Everything</h5>
+                                    <p class="text-muted">Simple setup - we handle all the technical details</p>
+                                    <ul class="text-start mt-3">
+                                        <li>Dedicated email address created for you</li>
+                                        <li>Zero technical setup required</li>
+                                        <li>Ready in 30 seconds</li>
+                                    </ul>
+                                    <div class="mt-3">
+                                        <span class="badge bg-primary">$29/month</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card config-option" onclick="selectConfigType('client-hosted')">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-building fa-3x text-purple mb-3"></i>
+                                    <h5>Use Your Own Email</h5>
+                                    <p class="text-muted">Connect your existing Office 365 email system</p>
+                                    <ul class="text-start mt-3">
+                                        <li>Your data stays in your environment</li>
+                                        <li>Use any email address you own</li>
+                                        <li>Requires Office 365 admin access</li>
+                                    </ul>
+                                    <div class="mt-3">
+                                        <span class="badge bg-purple">$19/month</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let instanceId = null;
+        let addConfigModal = null;
+
+        // Get instance ID from URL
+        function getInstanceId() {
+            const path = window.location.pathname;
+            const match = path.match(/\/instance\/(\d+)/);
+            return match ? parseInt(match[1]) : null;
+        }
+
+        // Load page data
+        async function loadPageData() {
+            instanceId = getInstanceId();
+            if (!instanceId) {
+                alert('Invalid instance ID');
+                return;
+            }
+
+            try {
+                // Load instance details
+                const instanceResponse = await fetch(`/api/instances/${instanceId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (!instanceResponse.ok) {
+                    throw new Error('Failed to load instance');
+                }
+                
+                const instanceData = await instanceResponse.json();
+                
+                if (instanceData.success) {
+                    document.getElementById('instance-name').textContent = instanceData.instance.name;
+                }
+
+                // Load email configurations
+                await loadConfigurations();
+                
+            } catch (error) {
+                console.error('Error loading page data:', error);
+                document.getElementById('configs-container').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Error loading email configurations: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Load all email configurations
+        async function loadConfigurations() {
+            try {
+                const response = await fetch(`/api/email-filing/config/${instanceId}/all`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success && data.configs) {
+                    displayConfigurations(data.configs);
+                    updateStats(data.configs);
+                } else {
+                    displayEmptyState();
+                }
+            } catch (error) {
+                console.error('Error loading configurations:', error);
+                displayEmptyState();
+            }
+        }
+
+        // Display configurations
+        function displayConfigurations(configs) {
+            const container = document.getElementById('configs-container');
+            
+            if (configs.length === 0) {
+                displayEmptyState();
+                return;
+            }
+
+            const html = configs.map(config => {
+                const typeClass = config.config_type === 'managed' ? 'config-type-managed' : 'config-type-client';
+                const statusClass = config.test_status === 'success' ? 'status-active' : 'status-error';
+                const lastTested = config.last_tested_at ? new Date(config.last_tested_at).toLocaleDateString() : 'Never';
+                const createdDate = new Date(config.created_at).toLocaleDateString();
+                
+                return `
+                    <div class="card config-card" onclick="openConfiguration('${config.id}')">
+                        <span class="config-type-badge ${typeClass}">
+                            ${config.config_type === 'managed' ? 'Managed' : 'Client-Hosted'}
+                        </span>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="card-title mb-1">
+                                        <i class="fas fa-envelope"></i> ${config.email_address}
+                                    </h5>
+                                    <p class="text-muted mb-2">Created ${createdDate}</p>
+                                    
+                                    <div class="mb-2">
+                                        <span class="badge ${statusClass}">
+                                            ${config.test_status === 'success' ? 'Active' : 'Error'}
+                                        </span>
+                                        <small class="text-muted ms-2">Last tested: ${lastTested}</small>
+                                    </div>
+                                    
+                                    <div class="text-muted small">
+                                        <i class="fas fa-folder"></i> Folder ID: ${config.default_folder_id || '0'}
+                                        <span class="mx-2">|</span>
+                                        <i class="fas fa-paperclip"></i> Attachments: ${config.include_attachments ? 'Yes' : 'No'}
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <i class="fas fa-chevron-right fa-2x text-muted"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-12">
+                        <h4 class="mb-3">Your Email Configurations</h4>
+                    </div>
+                </div>
+                ${html}
+            `;
+        }
+
+        // Display empty state
+        function displayEmptyState() {
+            document.getElementById('configs-container').innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>No Email Configurations Yet</h3>
+                    <p class="text-muted">Create your first email filing configuration to start automatically filing emails to IMS.</p>
+                    <button class="btn btn-primary btn-lg" onclick="showAddConfigModal()">
+                        <i class="fas fa-plus"></i> Create Your First Configuration
+                    </button>
+                </div>
+            `;
+        }
+
+        // Update statistics
+        function updateStats(configs) {
+            document.getElementById('total-configs').textContent = configs.length;
+            document.getElementById('active-configs').textContent = 
+                configs.filter(c => c.test_status === 'success').length;
+            
+            // TODO: Get actual emails processed count from API
+            document.getElementById('emails-processed').textContent = '0';
+        }
+
+        // Open specific configuration
+        function openConfiguration(configId) {
+            window.location.href = `/instance/${instanceId}/email-filing/${configId}`;
+        }
+
+        // Show add configuration modal
+        function showAddConfigModal() {
+            addConfigModal = new bootstrap.Modal(document.getElementById('addConfigModal'));
+            addConfigModal.show();
+        }
+
+        // Select configuration type and redirect
+        function selectConfigType(type) {
+            // Redirect to the setup page with the type parameter
+            window.location.href = `/instance/${instanceId}/email-filing/new?type=${type}`;
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/index.html';
+                return;
+            }
+            
+            loadPageData();
+        });
+    </script>
+</body>
+</html>

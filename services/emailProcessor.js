@@ -105,6 +105,13 @@ class EmailProcessor {
             }
 
             for (const email of emails) {
+                // Check if email was already processed
+                const alreadyProcessed = await this.isEmailAlreadyProcessed(email.id);
+                if (alreadyProcessed) {
+                    console.log(`⏭️  Skipping already processed email: ${email.subject}`);
+                    continue;
+                }
+                
                 await this.processEmail(instanceConfig, fullConfig, email);
             }
         } catch (error) {
