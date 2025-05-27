@@ -177,6 +177,13 @@ class GraphService {
     // Get emails since a specific timestamp (for incremental processing)
     async getEmailsSinceTimestamp(sinceTimestamp) {
         try {
+            // Ensure timestamp is in ISO format for Graph API
+            if (sinceTimestamp instanceof Date) {
+                sinceTimestamp = sinceTimestamp.toISOString();
+            } else if (typeof sinceTimestamp === 'string' && !sinceTimestamp.includes('T')) {
+                sinceTimestamp = new Date(sinceTimestamp).toISOString();
+            }
+            
             console.log(`=== GETTING EMAILS SINCE ${sinceTimestamp} ===`);
             
             const client = await this.getGraphClient();

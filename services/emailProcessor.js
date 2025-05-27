@@ -117,8 +117,17 @@ class EmailProcessor {
         try {
             let emails = [];
             
-            // Get the last processed timestamp for this instance
-            const lastProcessed = config.last_processed_timestamp || '2024-01-01T00:00:00Z';
+            // Get the last processed timestamp for this instance  
+            let lastProcessed = config.last_processed_timestamp || '2024-01-01T00:00:00Z';
+            
+            // Ensure the timestamp is in ISO format for Graph API
+            if (lastProcessed instanceof Date) {
+                lastProcessed = lastProcessed.toISOString();
+            } else if (typeof lastProcessed === 'string' && !lastProcessed.includes('T')) {
+                // Convert database timestamp to ISO if needed
+                lastProcessed = new Date(lastProcessed).toISOString();
+            }
+            
             console.log(`Getting emails newer than: ${lastProcessed}`);
 
             if (config.config_type === 'managed') {
@@ -152,6 +161,13 @@ class EmailProcessor {
     // Get emails using client credentials since timestamp
     async getEmailsWithClientCredentialsSinceTimestamp(config, sinceTimestamp) {
         try {
+            // Ensure timestamp is in ISO format for Graph API
+            if (sinceTimestamp instanceof Date) {
+                sinceTimestamp = sinceTimestamp.toISOString();
+            } else if (typeof sinceTimestamp === 'string' && !sinceTimestamp.includes('T')) {
+                sinceTimestamp = new Date(sinceTimestamp).toISOString();
+            }
+            
             const { Client } = require('@microsoft/microsoft-graph-client');
             const axios = require('axios');
 
