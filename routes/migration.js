@@ -190,4 +190,34 @@ router.get('/setup-complete-database', async (req, res) => {
     }
 });
 
+// Run email configuration migration
+router.get('/run-email-config-migration', async (req, res) => {
+    try {
+        console.log('Running email configuration migration...');
+        
+        const migrationSQL = fs.readFileSync(
+            path.join(__dirname, '..', 'migrations', '003_email_configuration.sql'), 
+            'utf8'
+        );
+        
+        // Execute the migration
+        await pool.query(migrationSQL);
+        
+        console.log('Email configuration migration completed!');
+        
+        res.json({
+            success: true,
+            message: 'Email configuration migration completed',
+            migration: '003_email_configuration.sql'
+        });
+    } catch (error) {
+        console.error('Email configuration migration error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Email configuration migration failed',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

@@ -17,7 +17,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/instances', require('./routes/instances'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/webhooks', require('./routes/webhooks'));
-app.use('/api/email-filing', require('./routes/emailFiling'));
+app.use('/api/email-filing', require('./routes/emailConfig'));
 app.use('/api/billing', require('./routes/billing'));
 app.use('/api/migration', require('./routes/migration'));
 app.use('/auth/graph', require('./routes/graphAuth'));
@@ -93,7 +93,7 @@ app.get('/instance/:id/newsubmission', (req, res) => {
 
 // Add this route for email filing
 app.get('/instance/:id/email-filing', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'email-filing.html'));
+    res.sendFile(path.join(__dirname, 'public', 'email-filing-new.html'));
 });
 
 // Add this route for billing
