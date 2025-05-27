@@ -359,6 +359,13 @@
                                    placeholder="documents@yourcompany.com" required>
                         </div>
 
+                        <div class="mb-3">
+                            <label class="form-label">IMS Folder ID</label>
+                            <input type="number" class="form-control" id="folder-id" 
+                                   placeholder="0" value="0" min="0" max="999">
+                            <div class="form-text">Documents will be filed to this folder in IMS. Default is 0 (root folder).</div>
+                        </div>
+
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-plug"></i> Test Connection
                         </button>
@@ -875,7 +882,8 @@
                 client_id: document.getElementById('client-id').value,
                 tenant_id: document.getElementById('tenant-id').value,
                 client_secret: document.getElementById('client-secret').value,
-                email_address: document.getElementById('email-address').value
+                email_address: document.getElementById('email-address').value,
+                default_folder_id: parseInt(document.getElementById('folder-id').value) || 0
             };
             
             try {

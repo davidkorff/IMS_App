@@ -430,14 +430,14 @@ class EmailProcessor {
                 imsConfig.password
             );
 
-            // Upload document directly
+            // Upload document directly using configured folder ID
             const documentGuid = await emailFilingService.uploadDocumentToIMSByControl(
                 { url: imsConfig.url },
                 token,
                 documentData,
                 controlValidation.QuoteGuid,
                 userGuid,
-                { default_folder_id: 3 }
+                { default_folder_id: fullConfig.default_folder_id || 0 }
             );
             
             const result = {

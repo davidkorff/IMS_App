@@ -128,10 +128,10 @@ class EmailConfigService {
 
             const result = await pool.query(`
                 INSERT INTO email_configurations 
-                (instance_id, config_type, email_address, auto_extract_control_numbers, include_attachments, control_number_patterns)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                (instance_id, config_type, email_address, auto_extract_control_numbers, include_attachments, control_number_patterns, default_folder_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
-            `, [instanceId, 'managed', emailAddress, true, true, defaultPatterns]);
+            `, [instanceId, 'managed', emailAddress, true, true, defaultPatterns, 0]);
 
             // Update instance status
             await pool.query(`

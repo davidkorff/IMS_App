@@ -107,8 +107,16 @@ app.get('/graph-test', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
+    
+    // Initialize email configuration schema
+    try {
+        const emailConfigService = require('./services/emailConfigService');
+        await emailConfigService.initializeSchema();
+    } catch (error) {
+        console.error('❌ Failed to initialize email configuration schema:', error.message);
+    }
     
     // Start email processing automatically
     try {
