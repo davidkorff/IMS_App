@@ -9,7 +9,7 @@ class GraphService {
         this.tenantId = process.env.GRAPH_TENANT_ID;
         this.redirectUri = process.env.GRAPH_REDIRECT_URI || 'https://ims-application.onrender.com/auth/graph/callback';
         this.webhookUrl = process.env.GRAPH_WEBHOOK_URL || 'https://ims-application.onrender.com/webhooks/graph/email';
-        this.emailAddress = 'documents@42consultingllc.com';
+        this.emailAddress = 'david@42consultingllc.com';
         
         this.accessToken = null;
         this.tokenExpiry = null;
