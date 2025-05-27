@@ -408,7 +408,6 @@ router.post('/zapier/:configId/email', async (req, res) => {
         }
 
         // Parse attachments if they come in Microsoft Graph format
-        let processedAttachments = [];
         if (emailData.attachments) {
             if (typeof emailData.attachments === 'string') {
                 // Microsoft Graph format - try to parse
