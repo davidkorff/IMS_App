@@ -269,4 +269,4 @@ class PlusAddressEmailService {
     }
 }
 
-module.exports = new PlusAddressEmailService();
+module.exports = PlusAddressEmailService;
