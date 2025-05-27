@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const emailConfigService = require('../services/emailConfigService');
+const emailProcessor = require('../services/emailProcessor');
 const pool = require('../config/db');
 
 // Get email configuration for an instance
@@ -330,6 +331,71 @@ router.put('/config/:instanceId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to update email configuration',
+            error: error.message
+        });
+    }
+});
+
+// Manual email processing trigger (for testing)
+router.post('/process-emails/:instanceId', async (req, res) => {
+    try {
+        const { instanceId } = req.params;
+        
+        console.log(`Manual email processing triggered for instance ${instanceId}`);
+        
+        const result = await emailProcessor.processInstanceNow(instanceId);
+        
+        res.json({
+            success: result.success,
+            message: result.success ? 
+                'Email processing completed successfully' : 
+                'Email processing failed',
+            details: result.error || result.message
+        });
+    } catch (error) {
+        console.error('Error in manual email processing:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to process emails',
+            error: error.message
+        });
+    }
+});
+
+// Start/stop email processing service
+router.post('/start-processing', async (req, res) => {
+    try {
+        const { intervalMinutes = 5 } = req.body;
+        
+        await emailProcessor.startProcessing(intervalMinutes);
+        
+        res.json({
+            success: true,
+            message: `Email processing started (every ${intervalMinutes} minutes)`
+        });
+    } catch (error) {
+        console.error('Error starting email processing:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to start email processing',
+            error: error.message
+        });
+    }
+});
+
+router.post('/stop-processing', async (req, res) => {
+    try {
+        emailProcessor.stopProcessing();
+        
+        res.json({
+            success: true,
+            message: 'Email processing stopped'
+        });
+    } catch (error) {
+        console.error('Error stopping email processing:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to stop email processing',
             error: error.message
         });
     }

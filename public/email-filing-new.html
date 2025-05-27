@@ -377,6 +377,9 @@
                     </div>
 
                     <div class="mt-3">
+                        <button class="btn btn-primary me-2" id="process-emails">
+                            <i class="fas fa-envelope-open"></i> Process Emails Now
+                        </button>
                         <button class="btn btn-outline-primary me-2" id="test-config">
                             <i class="fas fa-vial"></i> Test Configuration
                         </button>
@@ -595,6 +598,31 @@
             } catch (error) {
                 alert('Error saving configuration: ' + error.message);
                 console.error('Client setup error:', error);
+            }
+        });
+
+        // Process emails now
+        document.getElementById('process-emails')?.addEventListener('click', async function() {
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            try {
+                const response = await fetch(`/api/email-filing/process-emails/${instanceId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Email processing completed successfully!');
+                } else {
+                    alert('Email processing failed: ' + data.details);
+                }
+            } catch (error) {
+                alert('Error processing emails: ' + error.message);
+            } finally {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-envelope-open"></i> Process Emails Now';
             }
         });
 
