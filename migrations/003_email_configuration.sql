@@ -65,11 +65,12 @@ CREATE TABLE IF NOT EXISTS email_configurations (
 CREATE INDEX IF NOT EXISTS idx_email_config_instance ON email_configurations(instance_id);
 CREATE INDEX IF NOT EXISTS idx_email_config_type ON email_configurations(config_type);
 
--- Insert default control number patterns
+-- Insert default control number patterns (ID: based)
 UPDATE email_configurations 
 SET control_number_patterns = ARRAY[
-    '^(?:RE:\s*)?(\d{1,9})\b',  -- Control number at start, optionally with RE:
-    '\b(\d{1,9})\b'             -- Any 1-9 digit number
+    'ID:\s*(\d{1,9})\b',           -- Primary: Look for "ID:" followed by control number
+    '^(?:RE:\s*)?ID:\s*(\d{1,9})\b', -- Secondary: "RE: ID:10000" at start of subject  
+    '\bID:\s*(\d{1,9})\b'          -- Fallback: "ID:" pattern anywhere in content
 ] 
 WHERE control_number_patterns IS NULL;
 

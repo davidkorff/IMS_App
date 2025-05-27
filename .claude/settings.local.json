@@ -16,7 +16,8 @@
       "Bash(npm install:*)",
       "Bash(psql:*)",
       "Bash(pkill:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

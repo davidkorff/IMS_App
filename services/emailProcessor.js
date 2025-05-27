@@ -8,8 +8,9 @@ class EmailProcessor {
         this.isProcessing = false;
         this.processingInterval = null;
         this.defaultControlNumberPatterns = [
-            /^(?:RE:\s*)?(\d{1,9})\b/i,     // Control number at start of subject (1-9 digits), optionally preceded by "RE:"
-            /\b(\d{1,9})\b/g               // Fallback: any 1-9 digit number in email content
+            /ID:\s*(\d{1,9})\b/i,           // Primary: Look for "ID:" followed by control number (e.g., "ID:10000")
+            /^(?:RE:\s*)?ID:\s*(\d{1,9})\b/i, // Secondary: "RE: ID:10000" at start of subject
+            /\bID:\s*(\d{1,9})\b/gi        // Fallback: "ID:" pattern anywhere in content
         ];
     }
 

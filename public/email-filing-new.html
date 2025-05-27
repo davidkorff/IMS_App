@@ -203,7 +203,7 @@
         <div id="not-configured-view">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title text-center mb-4">Choose Your Email Setup</h5>
+                    <h5 class="card-title text-center mb-4" id="setup-title">Choose Your Email Setup</h5>
                     
                     <div class="row">
                         <!-- Managed Email Option -->
@@ -370,22 +370,36 @@
         <div id="configured-view" class="hidden">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Email Filing Configuration</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">Email Filing Configuration</h5>
+                        <button class="btn btn-outline-primary" id="add-config" onclick="showAddConfigOptions()">
+                            <i class="fas fa-plus"></i> Add Another Configuration
+                        </button>
+                    </div>
                     
-                    <div id="config-details">
-                        <!-- Configuration details will be loaded here -->
+                    <div id="config-list">
+                        <!-- Configuration list will be loaded here -->
                     </div>
 
                     <div class="mt-3">
                         <button class="btn btn-primary me-2" id="process-emails">
                             <i class="fas fa-envelope-open"></i> Process Emails Now
                         </button>
-                        <button class="btn btn-outline-primary me-2" id="test-config">
-                            <i class="fas fa-vial"></i> Test Configuration
+                        <button class="btn btn-outline-success me-2" id="test-all-configs">
+                            <i class="fas fa-vial"></i> Test All Configurations
                         </button>
-                        <button class="btn btn-outline-danger" id="delete-config">
-                            <i class="fas fa-trash"></i> Delete Configuration
-                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Number Patterns Management -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Control Number Pattern Settings</h5>
+                    <p class="text-muted">Customize how control numbers are extracted from email subjects for each configuration.</p>
+                    
+                    <div id="pattern-configs">
+                        <!-- Pattern configurations will be loaded here -->
                     </div>
                 </div>
             </div>
@@ -397,6 +411,185 @@
                     <div id="email-stats">
                         <!-- Stats will be loaded here -->
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Number Patterns Modal -->
+    <div class="modal fade" id="patternsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Control Number Patterns</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> How Control Number Patterns Work</h6>
+                        <ul class="mb-0">
+                            <li>Patterns are tested in order from top to bottom</li>
+                            <li>The first pattern that matches will be used</li>
+                            <li>Use parentheses () to capture the control number</li>
+                            <li>Example: <code>ID:\\s*(\\d{1,9})\\b</code> matches "ID:12345"</li>
+                        </ul>
+                    </div>
+
+                    <form id="patterns-form">
+                        <input type="hidden" id="edit-config-id" value="">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Email Configuration</label>
+                            <input type="text" class="form-control" id="edit-config-display" readonly>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Control Number Patterns
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="showRegexHelp()" title="Learn about regex patterns">
+                                    <i class="fas fa-question-circle"></i> Regex Help
+                                </button>
+                            </label>
+                            <div id="pattern-list">
+                                <!-- Pattern inputs will be added here -->
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addPatternField()">
+                                <i class="fas fa-plus"></i> Add Pattern
+                            </button>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Test Your Patterns</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="test-subject" 
+                                       placeholder="Enter test email subject (e.g., 'FW: check quote ID:12345')">
+                                <button type="button" class="btn btn-outline-secondary" onclick="testPatterns()">
+                                    <i class="fas fa-flask"></i> Test
+                                </button>
+                            </div>
+                            <div id="test-result" class="mt-2"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-outline-info" onclick="loadDefaultPatterns()">
+                                <i class="fas fa-undo"></i> Reset to Default (ID: patterns)
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="savePatterns()">
+                        <i class="fas fa-save"></i> Save Patterns
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Regex Help Modal -->
+    <div class="modal fade" id="regexHelpModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-graduation-cap"></i> Regular Expression (Regex) Guide</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle text-primary"></i> What are Regular Expressions?</h6>
+                            <p>Regular expressions (regex) are patterns that help find specific text. For email filing, we use them to find control numbers in email subjects.</p>
+                            
+                            <h6 class="mt-4"><i class="fas fa-cogs text-success"></i> Basic Building Blocks</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr><th>Pattern</th><th>Meaning</th><th>Example</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td><code>\\d</code></td><td>Any digit (0-9)</td><td>Matches "5" in "ID:5"</td></tr>
+                                        <tr><td><code>\\d{3}</code></td><td>Exactly 3 digits</td><td>Matches "123" in "ID:123"</td></tr>
+                                        <tr><td><code>\\d{1,9}</code></td><td>1 to 9 digits</td><td>Matches "12345" in "ID:12345"</td></tr>
+                                        <tr><td><code>\\s</code></td><td>Any whitespace</td><td>Matches space in "ID: 123"</td></tr>
+                                        <tr><td><code>\\s*</code></td><td>Zero or more spaces</td><td>Matches "ID:123" and "ID: 123"</td></tr>
+                                        <tr><td><code>\\b</code></td><td>Word boundary</td><td>Prevents matching partial words</td></tr>
+                                        <tr><td><code>( )</code></td><td>Capture group</td><td>Captures the control number</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <h6 class="mt-4"><i class="fas fa-search text-warning"></i> Position Anchors</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr><th>Pattern</th><th>Meaning</th><th>Example</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td><code>^</code></td><td>Start of line</td><td><code>^ID:</code> only matches if "ID:" is at the beginning</td></tr>
+                                        <tr><td><code>$</code></td><td>End of line</td><td><code>123$</code> only matches if "123" is at the end</td></tr>
+                                        <tr><td><code>?:</code></td><td>Non-capturing group</td><td><code>(?:RE:\\s*)?</code> optionally matches "RE: "</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-lightbulb text-warning"></i> Common Control Number Patterns</h6>
+                            
+                            <div class="alert alert-success">
+                                <h6>📧 Default ID: Pattern</h6>
+                                <code>ID:\\s*(\\d{1,9})\\b</code>
+                                <p class="small mb-0 mt-1">Matches: "ID:12345", "ID: 67890", "Quote ID:999"</p>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h6>📝 Quote Pattern</h6>
+                                <code>Quote\\s*#?\\s*(\\d{1,9})\\b</code>
+                                <p class="small mb-0 mt-1">Matches: "Quote 12345", "Quote #67890", "Quote# 999"</p>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <h6>📋 Policy Pattern</h6>
+                                <code>Policy\\s*#\\s*(\\d{1,9})\\b</code>
+                                <p class="small mb-0 mt-1">Matches: "Policy # 12345", "Policy #67890"</p>
+                            </div>
+                            
+                            <div class="alert alert-secondary">
+                                <h6>🏷️ Reference Pattern</h6>
+                                <code>\\[([A-Z0-9]{5,10})\\]</code>
+                                <p class="small mb-0 mt-1">Matches: "[ABC123]", "[REF12345]"</p>
+                            </div>
+                            
+                            <h6 class="mt-4"><i class="fas fa-tools text-primary"></i> Pattern Building Tips</h6>
+                            <ul class="small">
+                                <li><strong>Start Simple:</strong> Begin with basic patterns like <code>ID:(\\d+)</code></li>
+                                <li><strong>Add Flexibility:</strong> Use <code>\\s*</code> to allow optional spaces</li>
+                                <li><strong>Use Boundaries:</strong> Add <code>\\b</code> to prevent partial matches</li>
+                                <li><strong>Test Often:</strong> Use the test feature to verify your patterns</li>
+                                <li><strong>Order Matters:</strong> Put most specific patterns first</li>
+                            </ul>
+                            
+                            <h6 class="mt-4"><i class="fas fa-exclamation-triangle text-danger"></i> Common Mistakes</h6>
+                            <ul class="small text-danger">
+                                <li>Forgetting parentheses <code>()</code> to capture the number</li>
+                                <li>Using <code>*</code> instead of <code>+</code> (matches zero vs one or more)</li>
+                                <li>Not escaping special characters like <code>.</code> or <code>$</code></li>
+                                <li>Making patterns too broad (matching unintended text)</li>
+                            </ul>
+                            
+                            <div class="alert alert-info mt-3">
+                                <h6><i class="fas fa-rocket"></i> Pro Tip</h6>
+                                <p class="small mb-0">Test your patterns at <a href="https://regex101.com" target="_blank">regex101.com</a> with real email subjects before adding them!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="copyDefaultPattern()">
+                        <i class="fas fa-copy"></i> Copy Default Pattern
+                    </button>
                 </div>
             </div>
         </div>
@@ -466,39 +659,72 @@
 
         // Load email configuration details
         async function loadEmailConfig() {
-            try {
-                const response = await fetch(`/api/email-filing/config/${instanceId}`);
-                const data = await response.json();
-                
-                if (data.success && data.config) {
-                    displayConfigDetails(data.config);
-                }
-            } catch (error) {
-                console.error('Error loading email config:', error);
-            }
+            await displayConfigDetails();
         }
 
         // Display configuration details
-        function displayConfigDetails(config) {
-            const detailsDiv = document.getElementById('config-details');
-            
-            const configType = config.config_type === 'managed' ? 'Managed by Us' : 'Your Email System';
-            const lastTested = config.last_tested_at ? new Date(config.last_tested_at).toLocaleString() : 'Never';
-            
-            detailsDiv.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Configuration Type:</strong> ${configType}</p>
-                        <p><strong>Email Address:</strong> ${config.email_address}</p>
-                        <p><strong>Last Tested:</strong> ${lastTested}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Auto Extract Control Numbers:</strong> ${config.auto_extract_control_numbers ? 'Yes' : 'No'}</p>
-                        <p><strong>Include Attachments:</strong> ${config.include_attachments ? 'Yes' : 'No'}</p>
-                        <p><strong>Test Status:</strong> <span class="badge bg-${config.test_status === 'success' ? 'success' : 'danger'}">${config.test_status || 'Unknown'}</span></p>
-                    </div>
-                </div>
-            `;
+        async function displayConfigDetails() {
+            try {
+                const response = await fetch(`/api/email-filing/config/${instanceId}/all`);
+                const data = await response.json();
+                
+                if (data.success && data.configs && data.configs.length > 0) {
+                    const configListDiv = document.getElementById('config-list');
+                    
+                    configListDiv.innerHTML = data.configs.map(config => {
+                        const configType = config.config_type === 'managed' ? 'Managed by Us' : 'Your Email System';
+                        const lastTested = config.last_tested_at ? new Date(config.last_tested_at).toLocaleString() : 'Never';
+                        const statusClass = config.test_status === 'success' ? 'success' : 'danger';
+                        
+                        return `
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="card-title">${configType}</h6>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <p class="mb-1"><strong>Email Address:</strong> ${config.email_address}</p>
+                                                    <p class="mb-1"><strong>Last Tested:</strong> ${lastTested}</p>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <p class="mb-1"><strong>Auto Extract:</strong> ${config.auto_extract_control_numbers ? 'Yes' : 'No'}</p>
+                                                    <p class="mb-1"><strong>Include Attachments:</strong> ${config.include_attachments ? 'Yes' : 'No'}</p>
+                                                </div>
+                                            </div>
+                                            <div class="mt-2">
+                                                <small class="text-muted">
+                                                    <strong>Control Patterns:</strong> 
+                                                    ${config.control_number_patterns && config.control_number_patterns.length > 0 
+                                                        ? config.control_number_patterns.slice(0, 2).join(', ') + (config.control_number_patterns.length > 2 ? '...' : '')
+                                                        : 'Default ID: patterns'}
+                                                </small>
+                                            </div>
+                                            <span class="badge bg-${statusClass}">${config.test_status || 'Unknown'}</span>
+                                        </div>
+                                        <div class="btn-group ms-3">
+                                            <button class="btn btn-sm btn-outline-secondary" onclick="editPatterns('${config.id}', '${configType}', '${config.email_address}')" title="Edit Control Number Patterns">
+                                                <i class="fas fa-edit"></i> Patterns
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-primary" onclick="testConfig('${config.id}')">
+                                                <i class="fas fa-vial"></i> Test
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteConfig('${config.id}')">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    document.getElementById('config-list').innerHTML = '<p class="text-muted">No configurations found.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading configurations:', error);
+                document.getElementById('config-list').innerHTML = '<p class="text-danger">Error loading configurations.</p>';
+            }
         }
 
         // Setup option selection
@@ -650,6 +876,311 @@
                 this.innerHTML = '<i class="fas fa-vial"></i> Test Configuration';
             }
         });
+
+        // Show add configuration options
+        function showAddConfigOptions() {
+            document.getElementById('configured-view').classList.add('hidden');
+            document.getElementById('not-configured-view').classList.remove('hidden');
+            document.getElementById('setup-title').textContent = 'Add Another Email Configuration';
+        }
+
+        // Test individual configuration
+        async function testConfig(configId) {
+            try {
+                const response = await fetch(`/api/email-filing/test-config/${instanceId}/${configId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Configuration test passed!');
+                    await displayConfigDetails(); // Refresh the display
+                } else {
+                    alert('Configuration test failed: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error testing configuration: ' + error.message);
+            }
+        }
+
+        // Delete configuration
+        async function deleteConfig(configId) {
+            if (!confirm('Are you sure you want to delete this email configuration?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/email-filing/config/${instanceId}/${configId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Configuration deleted successfully!');
+                    await loadPageData(); // Refresh the entire page
+                } else {
+                    alert('Failed to delete configuration: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error deleting configuration: ' + error.message);
+            }
+        }
+
+        // Test all configurations
+        document.getElementById('test-all-configs')?.addEventListener('click', async function() {
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing All...';
+            
+            try {
+                const response = await fetch(`/api/email-filing/test-all-configs/${instanceId}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`All configurations tested. ${data.results.passed}/${data.results.total} passed.`);
+                    await displayConfigDetails(); // Refresh the display
+                } else {
+                    alert('Error testing configurations: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error testing configurations: ' + error.message);
+            } finally {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-vial"></i> Test All Configurations';
+            }
+        });
+
+        // Edit control number patterns
+        async function editPatterns(configId, configType, emailAddress) {
+            try {
+                document.getElementById('edit-config-id').value = configId;
+                document.getElementById('edit-config-display').value = `${configType} - ${emailAddress}`;
+                
+                // Load current patterns
+                const response = await fetch(`/api/email-filing/config/${instanceId}/${configId}`);
+                const data = await response.json();
+                
+                if (data.success && data.config) {
+                    loadPatternsIntoForm(data.config.control_number_patterns || getDefaultPatterns());
+                } else {
+                    loadPatternsIntoForm(getDefaultPatterns());
+                }
+                
+                const modal = new bootstrap.Modal(document.getElementById('patternsModal'));
+                modal.show();
+            } catch (error) {
+                alert('Error loading patterns: ' + error.message);
+            }
+        }
+
+        // Get default control number patterns
+        function getDefaultPatterns() {
+            return [
+                'ID:\\\\s*(\\\\d{1,9})\\\\b',           // Primary: Look for "ID:" followed by control number
+                '^(?:RE:\\\\s*)?ID:\\\\s*(\\\\d{1,9})\\\\b', // Secondary: "RE: ID:10000" at start of subject  
+                '\\\\bID:\\\\s*(\\\\d{1,9})\\\\b'          // Fallback: "ID:" pattern anywhere in content
+            ];
+        }
+
+        // Load patterns into the form
+        function loadPatternsIntoForm(patterns) {
+            const patternList = document.getElementById('pattern-list');
+            patternList.innerHTML = '';
+            
+            patterns.forEach((pattern, index) => {
+                addPatternField(pattern);
+            });
+            
+            if (patterns.length === 0) {
+                addPatternField();
+            }
+        }
+
+        // Add a pattern input field
+        function addPatternField(value = '') {
+            const patternList = document.getElementById('pattern-list');
+            const index = patternList.children.length;
+            
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2';
+            div.innerHTML = `
+                <span class="input-group-text">${index + 1}</span>
+                <input type="text" class="form-control pattern-input" value="${value}" 
+                       placeholder="e.g., ID:\\\\s*(\\\\d{1,9})\\\\b">
+                <button type="button" class="btn btn-outline-danger" onclick="removePatternField(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            patternList.appendChild(div);
+        }
+
+        // Remove a pattern field
+        function removePatternField(button) {
+            const patternList = document.getElementById('pattern-list');
+            if (patternList.children.length > 1) {
+                button.parentElement.remove();
+                updatePatternNumbers();
+            }
+        }
+
+        // Update pattern numbers
+        function updatePatternNumbers() {
+            const patternList = document.getElementById('pattern-list');
+            Array.from(patternList.children).forEach((div, index) => {
+                const span = div.querySelector('.input-group-text');
+                span.textContent = index + 1;
+            });
+        }
+
+        // Test patterns against a subject
+        function testPatterns() {
+            const testSubject = document.getElementById('test-subject').value;
+            const resultDiv = document.getElementById('test-result');
+            
+            if (!testSubject.trim()) {
+                resultDiv.innerHTML = '<div class="alert alert-warning">Please enter a test subject</div>';
+                return;
+            }
+            
+            const patterns = Array.from(document.querySelectorAll('.pattern-input'))
+                .map(input => input.value.trim())
+                .filter(pattern => pattern.length > 0);
+            
+            if (patterns.length === 0) {
+                resultDiv.innerHTML = '<div class="alert alert-warning">Please add at least one pattern</div>';
+                return;
+            }
+            
+            let foundMatch = false;
+            let resultsHtml = '<div class="alert alert-info"><h6>Test Results:</h6><ul class="mb-0">';
+            
+            patterns.forEach((patternStr, index) => {
+                try {
+                    const regex = new RegExp(patternStr, 'i');
+                    const match = testSubject.match(regex);
+                    
+                    if (match && match[1]) {
+                        resultsHtml += `<li><strong>Pattern ${index + 1}:</strong> ✅ Matched "<code>${match[1]}</code>"</li>`;
+                        if (!foundMatch) foundMatch = true;
+                    } else {
+                        resultsHtml += `<li><strong>Pattern ${index + 1}:</strong> ❌ No match</li>`;
+                    }
+                } catch (error) {
+                    resultsHtml += `<li><strong>Pattern ${index + 1}:</strong> ❌ Invalid regex: ${error.message}</li>`;
+                }
+            });
+            
+            resultsHtml += '</ul>';
+            
+            if (foundMatch) {
+                resultsHtml += '<div class="mt-2 text-success"><strong>✅ Control number extraction will work!</strong></div>';
+            } else {
+                resultsHtml += '<div class="mt-2 text-danger"><strong>❌ No control number found - check your patterns</strong></div>';
+            }
+            
+            resultsHtml += '</div>';
+            resultDiv.innerHTML = resultsHtml;
+        }
+
+        // Load default patterns into form
+        function loadDefaultPatterns() {
+            loadPatternsIntoForm(getDefaultPatterns());
+            document.getElementById('test-result').innerHTML = '';
+        }
+
+        // Save patterns
+        async function savePatterns() {
+            try {
+                const configId = document.getElementById('edit-config-id').value;
+                const patterns = Array.from(document.querySelectorAll('.pattern-input'))
+                    .map(input => input.value.trim())
+                    .filter(pattern => pattern.length > 0);
+                
+                if (patterns.length === 0) {
+                    alert('Please add at least one pattern');
+                    return;
+                }
+                
+                // Validate patterns
+                for (let i = 0; i < patterns.length; i++) {
+                    try {
+                        new RegExp(patterns[i]);
+                    } catch (error) {
+                        alert(`Pattern ${i + 1} is invalid: ${error.message}`);
+                        return;
+                    }
+                }
+                
+                const response = await fetch(`/api/email-filing/config/${instanceId}/${configId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        control_number_patterns: patterns
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Control number patterns saved successfully!');
+                    
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('patternsModal'));
+                    modal.hide();
+                    
+                    // Refresh the configuration display
+                    await displayConfigDetails();
+                } else {
+                    alert('Failed to save patterns: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error saving patterns: ' + error.message);
+            }
+        }
+
+        // Show regex help modal
+        function showRegexHelp() {
+            const modal = new bootstrap.Modal(document.getElementById('regexHelpModal'));
+            modal.show();
+        }
+
+        // Copy default pattern to clipboard
+        async function copyDefaultPattern() {
+            const defaultPattern = 'ID:\\\\s*(\\\\d{1,9})\\\\b';
+            try {
+                await navigator.clipboard.writeText(defaultPattern);
+                
+                // Show temporary success message
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.classList.remove('btn-success');
+                    button.classList.add('btn-primary');
+                }, 2000);
+            } catch (error) {
+                // Fallback for browsers that don't support clipboard API
+                const textArea = document.createElement('textarea');
+                textArea.value = defaultPattern;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                alert('Default pattern copied to clipboard!');
+            }
+        }
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', loadPageData);

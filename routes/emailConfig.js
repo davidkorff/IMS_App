@@ -3,6 +3,87 @@ const emailConfigService = require('../services/emailConfigService');
 const emailProcessor = require('../services/emailProcessor');
 const pool = require('../config/db');
 
+// Get all email configurations for an instance
+router.get('/config/:instanceId/all', async (req, res) => {
+    try {
+        const { instanceId } = req.params;
+        
+        const result = await pool.query(`
+            SELECT 
+                id,
+                config_type,
+                email_address,
+                auto_extract_control_numbers,
+                include_attachments,
+                default_folder_id,
+                test_status,
+                last_tested_at,
+                created_at,
+                updated_at
+            FROM email_configurations 
+            WHERE instance_id = $1
+            ORDER BY created_at ASC
+        `, [instanceId]);
+        
+        res.json({
+            success: true,
+            configs: result.rows
+        });
+    } catch (error) {
+        console.error('Error getting all email configs:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get email configurations',
+            error: error.message
+        });
+    }
+});
+
+// Get specific email configuration
+router.get('/config/:instanceId/:configId', async (req, res) => {
+    try {
+        const { instanceId, configId } = req.params;
+        
+        const result = await pool.query(`
+            SELECT 
+                ec.*,
+                ii.name as instance_name,
+                ii.email_status
+            FROM email_configurations ec
+            JOIN ims_instances ii ON ec.instance_id = ii.instance_id
+            WHERE ec.instance_id = $1 AND ec.id = $2
+        `, [instanceId, configId]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Configuration not found'
+            });
+        }
+
+        const config = result.rows[0];
+        
+        // Remove sensitive data from response
+        const safeConfig = { ...config };
+        delete safeConfig.graph_client_secret;
+        delete safeConfig.graph_client_id_encrypted;
+        delete safeConfig.graph_client_secret_encrypted;
+        delete safeConfig.graph_tenant_id_encrypted;
+
+        res.json({
+            success: true,
+            config: safeConfig
+        });
+    } catch (error) {
+        console.error('Error getting specific email config:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get email configuration',
+            error: error.message
+        });
+    }
+});
+
 // Get email configuration for an instance
 router.get('/config/:instanceId', async (req, res) => {
     try {
@@ -44,9 +125,14 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
     try {
         const { instanceId } = req.params;
         
-        // Check if configuration already exists
-        const existingConfig = await emailConfigService.getEmailConfig(instanceId);
-        if (existingConfig) {
+        // Check if managed configuration already exists
+        const existingResult = await pool.query(`
+            SELECT * FROM email_configurations 
+            WHERE instance_id = $1 AND config_type = 'managed'
+        `, [instanceId]);
+        
+        if (existingResult.rows.length > 0) {
+            const existingConfig = existingResult.rows[0];
             return res.json({
                 success: true,
                 message: 'Managed email configuration already exists',
@@ -113,6 +199,19 @@ router.post('/setup-client-hosted/:instanceId', async (req, res) => {
             });
         }
 
+        // Check if this exact configuration already exists
+        const existingResult = await pool.query(`
+            SELECT * FROM email_configurations 
+            WHERE instance_id = $1 AND config_type = 'client_hosted' AND email_address = $2
+        `, [instanceId, email_address]);
+        
+        if (existingResult.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'A client-hosted configuration for this email address already exists'
+            });
+        }
+
         // Create client-hosted email configuration
         const config = await emailConfigService.createClientHostedEmailConfig(instanceId, {
             email_address,
@@ -124,8 +223,8 @@ router.post('/setup-client-hosted/:instanceId', async (req, res) => {
             default_folder_id
         });
 
-        // Test the configuration
-        const testResult = await emailConfigService.testEmailConfig(instanceId);
+        // Test the specific configuration
+        const testResult = await emailConfigService.testSpecificEmailConfig(instanceId, config.id);
         
         res.json({
             success: testResult.success,
@@ -145,7 +244,53 @@ router.post('/setup-client-hosted/:instanceId', async (req, res) => {
     }
 });
 
-// Test email configuration
+// Test specific email configuration
+router.post('/test-config/:instanceId/:configId', async (req, res) => {
+    try {
+        const { instanceId, configId } = req.params;
+        
+        const testResult = await emailConfigService.testSpecificEmailConfig(instanceId, configId);
+        
+        res.json({
+            success: testResult.success,
+            message: testResult.success ? 
+                'Email configuration test passed' : 
+                'Email configuration test failed',
+            test_result: testResult
+        });
+    } catch (error) {
+        console.error('Error testing email config:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to test email configuration',
+            error: error.message
+        });
+    }
+});
+
+// Test all configurations for an instance
+router.post('/test-all-configs/:instanceId', async (req, res) => {
+    try {
+        const { instanceId } = req.params;
+        
+        const results = await emailConfigService.testAllEmailConfigs(instanceId);
+        
+        res.json({
+            success: true,
+            message: 'All configurations tested',
+            results: results
+        });
+    } catch (error) {
+        console.error('Error testing all email configs:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to test email configurations',
+            error: error.message
+        });
+    }
+});
+
+// Test email configuration (legacy route - tests first config)
 router.post('/test-config/:instanceId', async (req, res) => {
     try {
         const { instanceId } = req.params;
@@ -169,7 +314,55 @@ router.post('/test-config/:instanceId', async (req, res) => {
     }
 });
 
-// Delete email configuration
+// Delete specific email configuration
+router.delete('/config/:instanceId/:configId', async (req, res) => {
+    try {
+        const { instanceId, configId } = req.params;
+        
+        // Delete specific configuration
+        const deleteResult = await pool.query(
+            'DELETE FROM email_configurations WHERE instance_id = $1 AND id = $2',
+            [instanceId, configId]
+        );
+        
+        if (deleteResult.rowCount === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Email configuration not found'
+            });
+        }
+        
+        // Check if any configurations remain
+        const remainingResult = await pool.query(
+            'SELECT COUNT(*) as count FROM email_configurations WHERE instance_id = $1',
+            [instanceId]
+        );
+        
+        // Update instance status if no configurations remain
+        if (parseInt(remainingResult.rows[0].count) === 0) {
+            await pool.query(`
+                UPDATE ims_instances 
+                SET email_status = 'not_configured',
+                    email_config = NULL
+                WHERE instance_id = $1
+            `, [instanceId]);
+        }
+        
+        res.json({
+            success: true,
+            message: 'Email configuration deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting email config:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete email configuration',
+            error: error.message
+        });
+    }
+});
+
+// Delete email configuration (legacy route for all configs)
 router.delete('/config/:instanceId', async (req, res) => {
     try {
         const { instanceId } = req.params;
@@ -260,7 +453,84 @@ router.get('/logs/:instanceId', async (req, res) => {
     }
 });
 
-// Update email configuration settings
+// Update specific email configuration
+router.put('/config/:instanceId/:configId', async (req, res) => {
+    try {
+        const { instanceId, configId } = req.params;
+        const {
+            auto_extract_control_numbers,
+            include_attachments,
+            default_folder_id,
+            control_number_patterns
+        } = req.body;
+
+        const updateFields = [];
+        const updateValues = [];
+        let paramIndex = 1;
+
+        if (typeof auto_extract_control_numbers === 'boolean') {
+            updateFields.push(`auto_extract_control_numbers = $${paramIndex++}`);
+            updateValues.push(auto_extract_control_numbers);
+        }
+
+        if (typeof include_attachments === 'boolean') {
+            updateFields.push(`include_attachments = $${paramIndex++}`);
+            updateValues.push(include_attachments);
+        }
+
+        if (default_folder_id) {
+            updateFields.push(`default_folder_id = $${paramIndex++}`);
+            updateValues.push(default_folder_id);
+        }
+
+        if (control_number_patterns && Array.isArray(control_number_patterns)) {
+            updateFields.push(`control_number_patterns = $${paramIndex++}`);
+            updateValues.push(control_number_patterns);
+        }
+
+        if (updateFields.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'No valid fields to update'
+            });
+        }
+
+        updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+        updateValues.push(configId);
+
+        const query = `
+            UPDATE email_configurations 
+            SET ${updateFields.join(', ')}
+            WHERE id = $${paramIndex} AND instance_id = $${paramIndex + 1}
+            RETURNING *
+        `;
+        updateValues.push(instanceId);
+
+        const result = await pool.query(query, updateValues);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Email configuration not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Email configuration updated successfully',
+            config: result.rows[0]
+        });
+    } catch (error) {
+        console.error('Error updating specific email config:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update email configuration',
+            error: error.message
+        });
+    }
+});
+
+// Update email configuration settings (legacy route)
 router.put('/config/:instanceId', async (req, res) => {
     try {
         const { instanceId } = req.params;

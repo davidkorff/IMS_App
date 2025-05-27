@@ -8,8 +8,9 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 class EmailFilingService {
     constructor() {
         this.defaultControlNumberPatterns = [
-            /^(?:RE:\s*)?(\d{1,9})\b/i,     // Control number at start of subject (1-9 digits), optionally preceded by "RE:"
-            /\b(\d{1,9})\b/g               // Fallback: any 1-9 digit number in email content
+            /ID:\s*(\d{1,9})\b/i,           // Primary: Look for "ID:" followed by control number (e.g., "ID:10000")
+            /^(?:RE:\s*)?ID:\s*(\d{1,9})\b/i, // Secondary: "RE: ID:10000" at start of subject
+            /\bID:\s*(\d{1,9})\b/gi        // Fallback: "ID:" pattern anywhere in content
         ];
     }
 
@@ -246,13 +247,13 @@ class EmailFilingService {
             
             const foundNumbers = new Set();
 
-            // First check subject line with the first pattern (start of subject only)
-            const subjectStartPattern = /^(?:RE:\s*)?(\d{1,9})\b/i;
-            const subjectMatch = subjectText.match(subjectStartPattern);
+            // First check subject line with the primary ID: pattern
+            const primaryPattern = /ID:\s*(\d{1,9})\b/i;
+            const subjectMatch = subjectText.match(primaryPattern);
             if (subjectMatch) {
                 foundNumbers.add(subjectMatch[1].trim());
-                console.log(`Found control number in subject: ${subjectMatch[1]}`);
-                return Array.from(foundNumbers); // Return immediately if found in subject
+                console.log(`Found control number with ID: pattern in subject: ${subjectMatch[1]}`);
+                return Array.from(foundNumbers); // Return immediately if found with ID: pattern
             }
 
             // If no match at start of subject, try other patterns on subject
