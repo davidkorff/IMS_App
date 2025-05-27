@@ -18,7 +18,8 @@
       "Bash(pkill:*)",
       "Bash(true)",
       "Bash(find:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(git rev-parse:*)"
     ],
     "deny": []
   }
