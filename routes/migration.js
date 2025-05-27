@@ -220,4 +220,34 @@ router.get('/run-email-config-migration', async (req, res) => {
     }
 });
 
+// Run last processed timestamp migration
+router.get('/run-last-processed-migration', async (req, res) => {
+    try {
+        console.log('Running last processed timestamp migration...');
+        
+        const migrationSQL = fs.readFileSync(
+            path.join(__dirname, '..', 'migrations', '004_add_last_processed_timestamp.sql'), 
+            'utf8'
+        );
+        
+        // Execute the migration
+        await pool.query(migrationSQL);
+        
+        console.log('Last processed timestamp migration completed!');
+        
+        res.json({
+            success: true,
+            message: 'Last processed timestamp migration completed',
+            migration: '004_add_last_processed_timestamp.sql'
+        });
+    } catch (error) {
+        console.error('Last processed timestamp migration error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Last processed timestamp migration failed',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

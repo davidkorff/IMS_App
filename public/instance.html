@@ -396,7 +396,8 @@
                     throw new Error('Failed to load instance details');
                 }
 
-                currentInstance = await response.json();
+                const data = await response.json();
+                currentInstance = data.instance || data; // Handle both old and new response formats
                 displayInstanceDetails();
             } catch (err) {
                 console.error('Error loading instance:', err);
