@@ -667,7 +667,11 @@
 
             try {
                 // Load instance details
-                const instanceResponse = await fetch(`/api/instances/${instanceId}`);
+                const instanceResponse = await fetch(`/api/instances/${instanceId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
                 const instanceData = await instanceResponse.json();
                 
                 if (instanceData.success) {
@@ -721,7 +725,11 @@
         async function displayPatternConfigs() {
             try {
                 console.log('Loading pattern configurations for instance:', instanceId);
-                const response = await fetch(`/api/email-filing/config/${instanceId}/all`);
+                const response = await fetch(`/api/email-filing/config/${instanceId}/all`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
                 const data = await response.json();
                 console.log('Pattern configs response:', data);
                 
@@ -769,7 +777,11 @@
         // Display configuration details
         async function displayConfigDetails() {
             try {
-                const response = await fetch(`/api/email-filing/config/${instanceId}/all`);
+                const response = await fetch(`/api/email-filing/config/${instanceId}/all`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.success && data.configs && data.configs.length > 0) {
@@ -1083,7 +1095,11 @@
                 document.getElementById('edit-config-display').value = `${configType} - ${emailAddress}`;
                 
                 // Load current patterns
-                const response = await fetch(`/api/email-filing/config/${instanceId}/${configId}`);
+                const response = await fetch(`/api/email-filing/config/${instanceId}/${configId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.success && data.config) {
@@ -1381,7 +1397,11 @@
         // Load email processing logs
         async function loadEmailLogs() {
             try {
-                const response = await fetch(`/api/email-filing/logs/${instanceId}?limit=20`);
+                const response = await fetch(`/api/email-filing/logs/${instanceId}?limit=20`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
                 const data = await response.json();
                 
                 const statsDiv = document.getElementById('email-stats');
@@ -1496,7 +1516,11 @@
         // Show error details for failed email processing
         async function showErrorDetails(logId) {
             try {
-                const response = await fetch(`/api/email-filing/logs/${instanceId}?limit=100`);
+                const response = await fetch(`/api/email-filing/logs/${instanceId}?limit=100`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.success) {
@@ -1514,6 +1538,13 @@
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', () => {
+            // Check authentication
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/index.html';
+                return;
+            }
+            
             loadPageData();
             checkMonitoringStatus();
         });
