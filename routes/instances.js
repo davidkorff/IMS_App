@@ -100,8 +100,23 @@ router.get('/:id', auth, async (req, res) => {
             return res.status(404).json({ message: 'Instance not found' });
         }
 
-        console.log('Found instance:', instance.rows[0]);
-        res.json(instance.rows[0]);
+        // Check if instance has email configuration
+        const emailConfig = await pool.query(
+            'SELECT * FROM email_configurations WHERE instance_id = $1',
+            [id]
+        );
+
+        const instanceData = instance.rows[0];
+        
+        // Update email_status based on actual configuration existence
+        if (emailConfig.rows.length > 0) {
+            instanceData.email_status = 'active';
+        } else {
+            instanceData.email_status = 'not_configured';
+        }
+
+        console.log('Found instance with email_status:', instanceData);
+        res.json({ success: true, instance: instanceData });
     } catch (err) {
         console.error('Error fetching instance:', err.message);
         res.status(500).json({ message: 'Server error' });
