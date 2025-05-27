@@ -23,20 +23,12 @@ class GraphService {
         console.log('- Email Address:', this.emailAddress);
     }
 
-    // Get OAuth authorization URL for admin consent
+    // Get admin consent URL for application permissions
     getAuthUrl() {
-        const scopes = [
-            'https://graph.microsoft.com/Mail.ReadWrite',
-            'https://graph.microsoft.com/User.Read.All'
-        ].join(' ');
-
-        const authUrl = `https://login.microsoftonline.com/${this.tenantId}/oauth2/v2.0/authorize?` +
+        // For application permissions, we need to use the admin consent endpoint directly
+        const authUrl = `https://login.microsoftonline.com/${this.tenantId}/adminconsent?` +
             `client_id=${this.clientId}&` +
-            `response_type=code&` +
-            `redirect_uri=${encodeURIComponent(this.redirectUri)}&` +
-            `scope=${encodeURIComponent(scopes)}&` +
-            `response_mode=query&` +
-            `prompt=admin_consent`;
+            `redirect_uri=${encodeURIComponent(this.redirectUri)}`;
 
         return authUrl;
     }

@@ -26,7 +26,7 @@ router.get('/callback', async (req, res) => {
         console.log('=== GRAPH AUTHORIZATION CALLBACK ===');
         console.log('Query params:', req.query);
         
-        const { code, error, error_description, admin_consent } = req.query;
+        const { code, error, error_description, admin_consent, tenant } = req.query;
         
         if (error) {
             console.error('Authorization error:', error, error_description);
@@ -38,29 +38,33 @@ router.get('/callback', async (req, res) => {
             });
         }
 
-        if (admin_consent === 'True') {
+        // For admin consent flow, we get admin_consent=True and tenant parameters
+        if (admin_consent === 'True' || tenant) {
             console.log('✅ Admin consent granted successfully');
+            console.log('Tenant:', tenant);
             
-            // Test the connection
+            // Test the connection using client credentials flow
             const testResult = await graphService.testConnection();
             
             if (testResult.success) {
                 res.json({
                     success: true,
-                    message: 'Microsoft Graph authorization successful!',
+                    message: 'Microsoft Graph admin consent successful!',
                     admin_consent: true,
+                    tenant: tenant,
                     user_info: testResult.user,
                     next_steps: [
-                        'Authorization complete',
-                        'Service can now access emails',
+                        'Admin consent granted',
+                        'Service can now access emails using application permissions',
                         'Test email reading at /auth/graph/test-emails'
                     ]
                 });
             } else {
                 res.status(500).json({
                     success: false,
-                    message: 'Authorization completed but connection test failed',
+                    message: 'Admin consent granted but connection test failed',
                     admin_consent: true,
+                    tenant: tenant,
                     error: testResult.error
                 });
             }
