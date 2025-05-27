@@ -174,44 +174,56 @@ class GraphService {
         }
     }
 
-    // Get recent emails (for testing)
-    async getRecentEmails(count = 5) {
+    // Get emails since a specific timestamp (for incremental processing)
+    async getEmailsSinceTimestamp(sinceTimestamp) {
         try {
-            console.log(`=== GETTING ${count} RECENT EMAILS (INCLUDING CC/BCC) ===`);
+            console.log(`=== GETTING EMAILS SINCE ${sinceTimestamp} ===`);
             
             const client = await this.getGraphClient();
             
-            // Search for emails where our address is in TO, CC, or BCC fields
-            // Note: BCC is not directly searchable, but we can get all recent emails and filter
+            // Get ALL emails newer than timestamp (no TO/CC filtering)
             const messages = await client
                 .api(`/users/${this.emailAddress}/messages`)
-                .top(count * 2) // Get more to account for filtering
-                .select('id,subject,from,receivedDateTime,hasAttachments,toRecipients,ccRecipients')
+                .filter(`receivedDateTime gt ${sinceTimestamp}`)
+                .top(100) // Get up to 100 new emails
+                .select('id,subject,from,receivedDateTime,hasAttachments')
                 .orderby('receivedDateTime desc')
                 .get();
 
-            console.log(`Retrieved ${messages.value.length} total emails for filtering`);
+            console.log(`Retrieved ${messages.value.length} emails newer than ${sinceTimestamp}`);
             
-            // Filter emails where our address appears in TO or CC
-            const relevantEmails = messages.value.filter(msg => {
-                const targetEmail = this.emailAddress.toLowerCase();
-                
-                // Check TO recipients
-                const inTo = msg.toRecipients && msg.toRecipients.some(recipient => 
-                    recipient.emailAddress && recipient.emailAddress.address.toLowerCase() === targetEmail
-                );
-                
-                // Check CC recipients
-                const inCc = msg.ccRecipients && msg.ccRecipients.some(recipient => 
-                    recipient.emailAddress && recipient.emailAddress.address.toLowerCase() === targetEmail
-                );
-                
-                return inTo || inCc;
-            }).slice(0, count); // Limit to requested count
+            // Return ALL emails (no filtering by TO/CC)
+            return messages.value.map(msg => ({
+                id: msg.id,
+                subject: msg.subject,
+                from: msg.from ? msg.from.emailAddress.address : 'Unknown',
+                receivedDateTime: msg.receivedDateTime,
+                hasAttachments: msg.hasAttachments
+            }));
+        } catch (error) {
+            console.error('Error getting emails since timestamp:', error);
+            throw error;
+        }
+    }
+
+    // Get recent emails (for testing - legacy method)
+    async getRecentEmails(count = 5) {
+        try {
+            console.log(`=== GETTING ${count} RECENT EMAILS ===`);
             
-            console.log(`Found ${relevantEmails.length} emails where ${this.emailAddress} is TO/CC recipient`);
+            const client = await this.getGraphClient();
             
-            return relevantEmails.map(msg => ({
+            // Get ALL recent emails (no TO/CC filtering)
+            const messages = await client
+                .api(`/users/${this.emailAddress}/messages`)
+                .top(count)
+                .select('id,subject,from,receivedDateTime,hasAttachments')
+                .orderby('receivedDateTime desc')
+                .get();
+
+            console.log(`Retrieved ${messages.value.length} recent emails`);
+            
+            return messages.value.map(msg => ({
                 id: msg.id,
                 subject: msg.subject,
                 from: msg.from ? msg.from.emailAddress.address : 'Unknown',
