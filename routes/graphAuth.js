@@ -65,7 +65,8 @@ router.get('/callback', async (req, res) => {
                     message: 'Admin consent granted but connection test failed',
                     admin_consent: true,
                     tenant: tenant,
-                    error: testResult.error
+                    error: testResult.error,
+                    error_details: testResult.details
                 });
             }
         } else if (code) {
@@ -177,6 +178,68 @@ router.get('/test-email/:messageId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to get email details',
+            error: error.message
+        });
+    }
+});
+
+// Debug endpoint - test different user approaches
+router.get('/debug-users', async (req, res) => {
+    try {
+        console.log('=== DEBUGGING USER ACCESS ===');
+        
+        const client = await graphService.getGraphClient();
+        const results = {};
+        
+        // Test 1: Try to list all users
+        try {
+            console.log('Testing: List all users');
+            const users = await client.api('/users').top(10).get();
+            results.allUsers = users.value.map(u => ({
+                displayName: u.displayName,
+                mail: u.mail,
+                userPrincipalName: u.userPrincipalName
+            }));
+        } catch (error) {
+            results.allUsersError = error.message;
+        }
+        
+        // Test 2: Try documents@42consultingllc.com
+        try {
+            console.log('Testing: documents@42consultingllc.com');
+            const user = await client.api('/users/documents@42consultingllc.com').get();
+            results.documentsUser = {
+                displayName: user.displayName,
+                mail: user.mail,
+                userPrincipalName: user.userPrincipalName
+            };
+        } catch (error) {
+            results.documentsUserError = error.message;
+        }
+        
+        // Test 3: Try david@42consultingllc.com (your admin account)
+        try {
+            console.log('Testing: david@42consultingllc.com');
+            const user = await client.api('/users/david@42consultingllc.com').get();
+            results.davidUser = {
+                displayName: user.displayName,
+                mail: user.mail,
+                userPrincipalName: user.userPrincipalName
+            };
+        } catch (error) {
+            results.davidUserError = error.message;
+        }
+        
+        res.json({
+            success: true,
+            message: 'Debug results',
+            results: results
+        });
+    } catch (error) {
+        console.error('Error in debug:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Debug failed',
             error: error.message
         });
     }
