@@ -20,6 +20,7 @@ app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/email-filing', require('./routes/emailFiling'));
 app.use('/api/billing', require('./routes/billing'));
 app.use('/api/migration', require('./routes/migration'));
+app.use('/auth/graph', require('./routes/graphAuth'));
 
 // Load webui routes with error handling
 console.log('Loading webui routes...');
@@ -98,6 +99,11 @@ app.get('/instance/:id/email-filing', (req, res) => {
 // Add this route for billing
 app.get('/instance/:id/billing', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'billing.html'));
+});
+
+// Add graph testing page
+app.get('/graph-test', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'graph-test.html'));
 });
 
 const PORT = process.env.PORT || 5000;

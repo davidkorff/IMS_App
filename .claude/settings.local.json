@@ -12,7 +12,8 @@
       "Bash(node test-filing.js)",
       "Bash(rg:*)",
       "Bash(node test_webhook.js)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   }

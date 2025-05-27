@@ -1,0 +1,201 @@
+const router = require('express').Router();
+const graphService = require('../services/graphService');
+
+// Step 1: Redirect to Microsoft for admin consent
+router.get('/authorize', (req, res) => {
+    try {
+        console.log('=== STARTING GRAPH AUTHORIZATION ===');
+        
+        const authUrl = graphService.getAuthUrl();
+        console.log('Redirecting to Microsoft for admin consent:', authUrl);
+        
+        res.redirect(authUrl);
+    } catch (error) {
+        console.error('Error starting authorization:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to start authorization',
+            error: error.message
+        });
+    }
+});
+
+// Step 2: Handle callback from Microsoft
+router.get('/callback', async (req, res) => {
+    try {
+        console.log('=== GRAPH AUTHORIZATION CALLBACK ===');
+        console.log('Query params:', req.query);
+        
+        const { code, error, error_description, admin_consent } = req.query;
+        
+        if (error) {
+            console.error('Authorization error:', error, error_description);
+            return res.status(400).json({
+                success: false,
+                message: 'Authorization failed',
+                error: error,
+                error_description: error_description
+            });
+        }
+
+        if (admin_consent === 'True') {
+            console.log('✅ Admin consent granted successfully');
+            
+            // Test the connection
+            const testResult = await graphService.testConnection();
+            
+            if (testResult.success) {
+                res.json({
+                    success: true,
+                    message: 'Microsoft Graph authorization successful!',
+                    admin_consent: true,
+                    user_info: testResult.user,
+                    next_steps: [
+                        'Authorization complete',
+                        'Service can now access emails',
+                        'Test email reading at /auth/graph/test-emails'
+                    ]
+                });
+            } else {
+                res.status(500).json({
+                    success: false,
+                    message: 'Authorization completed but connection test failed',
+                    admin_consent: true,
+                    error: testResult.error
+                });
+            }
+        } else if (code) {
+            console.log('Received authorization code, exchanging for token');
+            
+            const tokenData = await graphService.getAccessToken(code);
+            console.log('Token exchange successful');
+            
+            // Test the connection
+            const testResult = await graphService.testConnection();
+            
+            res.json({
+                success: true,
+                message: 'Microsoft Graph authorization successful!',
+                token_obtained: true,
+                user_info: testResult.success ? testResult.user : null,
+                next_steps: [
+                    'Authorization complete',
+                    'Service can now access emails',
+                    'Test email reading at /auth/graph/test-emails'
+                ]
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: 'No authorization code or admin consent received'
+            });
+        }
+    } catch (error) {
+        console.error('Error in authorization callback:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Authorization callback failed',
+            error: error.message
+        });
+    }
+});
+
+// Test endpoint - check connection and get recent emails
+router.get('/test-connection', async (req, res) => {
+    try {
+        console.log('=== TESTING GRAPH CONNECTION ===');
+        
+        const testResult = await graphService.testConnection();
+        
+        res.json({
+            success: testResult.success,
+            message: testResult.success ? 'Connection successful' : 'Connection failed',
+            user_info: testResult.user || null,
+            error: testResult.error || null
+        });
+    } catch (error) {
+        console.error('Error testing connection:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Connection test failed',
+            error: error.message
+        });
+    }
+});
+
+// Test endpoint - get recent emails
+router.get('/test-emails', async (req, res) => {
+    try {
+        console.log('=== TESTING EMAIL READING ===');
+        
+        const emails = await graphService.getRecentEmails(5);
+        
+        res.json({
+            success: true,
+            message: `Found ${emails.length} recent emails`,
+            emails: emails
+        });
+    } catch (error) {
+        console.error('Error getting test emails:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get emails',
+            error: error.message
+        });
+    }
+});
+
+// Test endpoint - get specific email with attachments
+router.get('/test-email/:messageId', async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        console.log(`=== TESTING EMAIL DETAILS FOR ${messageId} ===`);
+        
+        const emailData = await graphService.getEmailWithAttachments(messageId);
+        
+        res.json({
+            success: true,
+            message: 'Email retrieved successfully',
+            email: {
+                ...emailData,
+                // Don't return full attachment data in API response (too large)
+                attachments: emailData.attachments.map(att => ({
+                    name: att.name,
+                    contentType: att.contentType,
+                    size: att.size,
+                    hasData: !!att.data
+                }))
+            }
+        });
+    } catch (error) {
+        console.error('Error getting email details:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get email details',
+            error: error.message
+        });
+    }
+});
+
+// Status endpoint
+router.get('/status', (req, res) => {
+    const config = {
+        clientId: !!process.env.GRAPH_CLIENT_ID,
+        clientSecret: !!process.env.GRAPH_CLIENT_SECRET,
+        tenantId: !!process.env.GRAPH_TENANT_ID,
+        redirectUri: process.env.GRAPH_REDIRECT_URI || 'https://ims-application.onrender.com/auth/graph/callback',
+        webhookUrl: process.env.GRAPH_WEBHOOK_URL || 'https://ims-application.onrender.com/webhooks/graph/email'
+    };
+
+    res.json({
+        success: true,
+        message: 'Graph Service Status',
+        configuration: config,
+        ready: config.clientId && config.clientSecret && config.tenantId,
+        next_steps: config.clientId && config.clientSecret && config.tenantId 
+            ? ['Configuration complete', 'Visit /auth/graph/authorize to start authorization']
+            : ['Set GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, and GRAPH_TENANT_ID environment variables']
+    });
+});
+
+module.exports = router;
