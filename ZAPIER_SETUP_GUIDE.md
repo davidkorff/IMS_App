@@ -40,16 +40,20 @@
 - **Connect Outlook Account**: Connect the account that has access to `documents@42consultingllc.com`
 - **Folder**: Choose the folder where emails to `documents@42consultingllc.com` arrive (usually "Inbox")
 - **Search/Filter**: Set up filter for emails sent to `documents@42consultingllc.com`
+- **⚠️ IMPORTANT**: Enable **"Include Attachments"** option in the trigger settings
 
 **If using Gmail:**
 - **Trigger Event**: "New Email Matching Search" 
 - **Connect Gmail Account**: Connect the account that has access to `documents@42consultingllc.com`
 - **Search String**: `to:documents@42consultingllc.com`
+- **⚠️ IMPORTANT**: Enable **"Include Attachments"** option in the trigger settings
 
-**If using "Email by Zapier":**
+**If using "Email by Zapier" (RECOMMENDED FOR ATTACHMENTS):**
 - **Trigger Event**: "New Inbound Email"
-- **Set up webhook email address** as provided by Zapier
-- **Forward emails** from `documents@42consultingllc.com` to this address
+- **Set up webhook email address** as provided by Zapier (e.g., `hook@zapier.com`)
+- **Forward emails** from `documents@42consultingllc.com` to this Zapier address
+- **⚠️ IMPORTANT**: "Email by Zapier" automatically includes attachment content as base64
+- **✅ ADVANTAGE**: Actually provides "Attachment 1: File" field with base64 content
 
 ## Step 3: Configure Webhook Action
 
@@ -61,6 +65,7 @@
    - **Payload Type**: "JSON"
    - **Data** (map these fields exactly):
 
+### Basic Fields (Required):
 ```json
 {
   "subject": "Email Subject",
@@ -73,19 +78,90 @@
 }
 ```
 
+### With Attachments (Enhanced Setup):
+If your emails have attachments, you need to configure Zapier to send the actual file content, not just metadata:
+
+**CRITICAL: Attachment Configuration in Zapier**
+
+1. **In your email trigger**: Make sure "Include Attachments" is enabled
+2. **In webhook action**: Map attachment fields as follows:
+
+```json
+{
+  "subject": "Email Subject",
+  "from": "From Email", 
+  "to": "To Email",
+  "body_text": "Body Plain",
+  "body_html": "Body HTML",
+  "date": "Date",
+  "message_id": "Message ID",
+  "attachments": [
+    {
+      "name": "Attachment 1: Name",
+      "data": "Attachment 1: File",
+      "content_type": "Attachment 1: Content Type"
+    }
+  ]
+}
+```
+
+**⚠️ IMPORTANT**: 
+- Map **"Attachment 1: File"** (NOT "Attachment 1: Content" or other metadata fields)
+- The "File" field contains the base64-encoded file content needed for IMS
+- DO NOT use Microsoft Graph metadata fields - they don't contain file data
+
+**Common Zapier Attachment Field Names:**
+- ✅ **"Attachment 1: File"** - Contains base64 file data (USE THIS)
+- ❌ "Attachment 1: Content" - Often just metadata
+- ❌ "Attachment 1: Data" - May be metadata only
+- ✅ **"Attachment 1: Name"** - File name (USE THIS)  
+- ✅ **"Attachment 1: Content Type"** - MIME type (USE THIS)
+
+**Testing Attachment Configuration:**
+Send a test email and check the webhook logs. You should see:
+```json
+"attachments": [
+  {
+    "name": "document.pdf",
+    "data": "JVBERi0xLjQK...", // Long base64 string
+    "content_type": "application/pdf"
+  }
+]
+```
+
+If you see metadata strings instead of base64 data, reconfigure the attachment mapping in Zapier.
+
 ## Step 4: Test the Integration
 
-### Test Email Format:
-Send a test email to `documents@42consultingllc.com` with:
+### Test Email Formats:
 
-**Subject**: `123456789 - Policy Question`
-**Subject**: `RE: 987654321 - Claim Update`
+#### Basic Email (No Attachments):
+Send a test email to `documents@42consultingllc.com` with:
+- **Subject**: `123456789 - Policy Question`
+- **Subject**: `RE: 987654321 - Claim Update`
+- **Body**: Any text content
+
+#### Email with Attachments:
+Send a test email to `documents@42consultingllc.com` with:
+- **Subject**: `10000 - Policy Documents`
+- **Body**: `Please file these documents to policy 10000`
+- **Attachments**: 
+  - Small PDF file (contract.pdf)
+  - Image file (photo.jpg)
+  - Word document (notes.docx)
 
 ### Verify Processing:
 1. **Send test email** 
-2. **Check Zapier Activity** - webhook should trigger
+2. **Check Zapier Activity** - webhook should trigger and show attachment data
 3. **Check IMS Email Filing** → Activity Log for processing results
-4. **Verify in IMS** that document was filed to policy
+4. **Verify in IMS** that email AND all attachments were filed to policy as separate documents
+
+### Expected Results with Attachments:
+- **Email content** → Filed as `Email_10000_2025-05-25.html`
+- **PDF attachment** → Filed as `contract.pdf`
+- **Image attachment** → Filed as `photo.jpg` 
+- **Word attachment** → Filed as `notes.docx`
+- All documents associated with the same control number/policy
 
 ## Step 5: Control Number Patterns
 
@@ -115,6 +191,45 @@ Your system will automatically detect:
 **❌ "Document upload failed"**
 - IMS authentication token may have expired
 - Check IMS instance credentials
+
+**❌ "Attachments not processed"**
+- Verify "Include Attachments" is enabled in Zapier email trigger
+- Check that attachments field is mapped in webhook payload
+- Verify attachment data is base64 encoded in webhook logs
+- Ensure attachment files are not too large (check Zapier limits)
+
+**❌ "Receiving Microsoft Graph metadata instead of file data"**
+- You're mapping the wrong attachment field in Zapier
+- Look for field named "Attachment 1: File" (contains base64 data)
+- Avoid fields like "Attachment 1: Content" or raw Graph metadata
+- Test with small attachment first to verify correct field mapping
+
+**✅ "Receiving hydrate format data from Outlook"**
+- If you see data like `hydrate|||[encoded_data]|||hydrate`, this is supported!
+- The system will automatically decode hydrate format and fetch actual file content
+- Map any field containing hydrate data (like "files" or "Attachment 1: File") 
+- **IMPORTANT**: Include `X-Zapier-Access-Token` header with Zapier's access token
+
+**Configuring Hydrate Support in Zapier:**
+1. In your webhook action, add a custom header:
+   - **Header Name**: `X-Zapier-Access-Token`
+   - **Header Value**: `{{bundle.authData.access_token}}` (or your Zapier token)
+2. Map the hydrate field to your webhook data:
+   ```json
+   {
+     "files": "Attachment 1: File"  // Contains hydrate data
+   }
+   ```
+3. The system will:
+   - Decode the hydrate metadata
+   - Extract the email ID and authentication info
+   - Call Microsoft Graph API to fetch actual file content
+   - File the attachment to IMS automatically
+
+**❌ "Document shows 0 bytes in IMS"**
+- Check document size logging in webhook activity
+- Verify base64 encoding is working correctly
+- May indicate compression or storage issue in IMS
 
 ### Debug Information:
 - All webhook requests logged with unique IDs

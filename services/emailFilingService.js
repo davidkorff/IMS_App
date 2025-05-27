@@ -679,12 +679,15 @@ class EmailFilingService {
     async uploadDocumentToIMSByControl(instance, token, documentData, controlGuid, userGuid, config) {
         try {
             console.log(`=== UPLOADING DOCUMENT TO IMS BY CONTROL ===`);
-            console.log(`Control GUID: ${controlGuid}`);
+            console.log(`Control GUID (QuoteGuid): ${controlGuid}`);
             console.log(`User GUID: ${userGuid}`);
             console.log(`Document name: ${documentData.name}`);
             console.log(`Document description: ${documentData.description}`);
             
-            // Use IMS InsertAssociatedDocument webservice with ControlGuid
+            // Use InsertAssociatedDocument to properly create the document association
+            // This creates both the document in tblDocumentStore AND the association in tblDocumentAssociations
+            console.log('Using InsertAssociatedDocument to create proper quote association...');
+            
             const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
                xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
@@ -707,12 +710,12 @@ class EmailFilingService {
             <doc>
                 <UserGuid>${userGuid}</UserGuid>
                 <TypeGuid>00000000-0000-0000-0000-000000000000</TypeGuid>
-                <FolderID>${config.default_folder_id || 0}</FolderID>
+                <FolderID>${config.default_folder_id || 3}</FolderID>
                 <CopyForwardOnRenewal>false</CopyForwardOnRenewal>
             </doc>
             <entity>
-                <EntityGuid>00000000-0000-0000-0000-000000000000</EntityGuid>
-                <ControlGuid>${controlGuid}</ControlGuid>
+                <EntityGuid>${controlGuid}</EntityGuid>
+                <ControlGuid>00000000-0000-0000-0000-000000000000</ControlGuid>
                 <EntityName>Email Communication</EntityName>
                 <EntityType>Quote</EntityType>
                 <EntityAssociation>Quote</EntityAssociation>
@@ -758,6 +761,7 @@ class EmailFilingService {
             throw error;
         }
     }
+
 
     async uploadDocumentToIMSByPolicy(instance, token, documentData, controlNumber, config) {
         console.error('=== ERROR: OLD POLICY-BASED METHOD CALLED ===');
