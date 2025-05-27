@@ -331,6 +331,8 @@ class EmailProcessor {
 
             const imsConfig = imsInstance.rows[0];
 
+            let filedDocuments = [];
+
             // File email body as HTML document
             if (email.bodyContent) {
                 const emailDocumentData = {
@@ -340,7 +342,10 @@ class EmailProcessor {
                     contentType: 'text/html'
                 };
 
-                await this.fileDocumentToIMS(imsConfig, emailDocumentData, controlNumber);
+                const documentGuid = await this.fileDocumentToIMS(imsConfig, emailDocumentData, controlNumber);
+                if (documentGuid) {
+                    filedDocuments.push({ type: 'email', guid: documentGuid, name: emailDocumentData.name });
+                }
             }
 
             // File attachments
@@ -354,17 +359,27 @@ class EmailProcessor {
                             contentType: attachment.contentType
                         };
 
-                        await this.fileDocumentToIMS(imsConfig, attachmentData, controlNumber);
+                        const documentGuid = await this.fileDocumentToIMS(imsConfig, attachmentData, controlNumber);
+                        if (documentGuid) {
+                            filedDocuments.push({ type: 'attachment', guid: documentGuid, name: attachment.name });
+                        }
                     }
                 }
             }
 
-            // Log successful filing
-            await emailConfigService.logEmailProcessing(
-                instanceConfig.instance_id,
-                { ...email, control_number: controlNumber },
-                'filed'
-            );
+            // Log successful filing with document details
+            await pool.query(`
+                UPDATE email_processing_logs 
+                SET processing_status = 'filed',
+                    filed_to_ims = true,
+                    ims_document_guid = $2
+                WHERE message_id = $1
+            `, [email.id, filedDocuments.length > 0 ? filedDocuments[0].guid : null]);
+
+            console.log(`📄 Filed ${filedDocuments.length} documents to IMS:`);
+            filedDocuments.forEach(doc => {
+                console.log(`   ${doc.type}: ${doc.name} (GUID: ${doc.guid})`);
+            });
 
         } catch (error) {
             console.error('Error filing email to IMS:', error);
@@ -375,16 +390,40 @@ class EmailProcessor {
     // File a single document to IMS
     async fileDocumentToIMS(imsConfig, documentData, controlNumber) {
         try {
-            // Use the existing email filing service to file the document
-            // This will use your fixed InsertAssociatedDocument code
-            
             console.log(`Filing document to IMS: ${documentData.name}`);
             console.log(`IMS URL: ${imsConfig.url}`);
             console.log(`Control number: ${controlNumber}`);
 
-            // For now, just log that we would file it
-            // TODO: Integrate with the actual IMS filing service
-            console.log('Document filing to IMS - TODO: Implement actual filing');
+            // Use the existing email filing service to file the document
+            // This uses your fixed InsertAssociatedDocument code
+            const result = await emailFilingService.fileEmailToIMS({
+                url: imsConfig.url,
+                username: imsConfig.username,
+                password: imsConfig.password
+            }, {
+                subject: `Document: ${documentData.name}`,
+                from: 'email-filing-system@42consultingllc.com',
+                to: ['documents@42consultingllc.com'],
+                date: new Date().toISOString(),
+                message_id: `auto-${Date.now()}`,
+                body_text: `Automatically filed document: ${documentData.description}`,
+                body_html: `<p>Automatically filed document: ${documentData.description}</p>`,
+                attachments: [{
+                    name: documentData.name,
+                    content_type: documentData.contentType,
+                    size: Math.ceil(documentData.data.length * 0.75), // Approximate size from base64
+                    data: documentData.data
+                }]
+            }, controlNumber);
+
+            if (result && result.success) {
+                console.log(`✅ Successfully filed document to IMS: ${documentData.name}`);
+                console.log(`   Document GUID: ${result.documentGuid}`);
+                console.log(`   Quote GUID: ${result.quoteGuid}`);
+                return result.documentGuid;
+            } else {
+                throw new Error(`IMS filing failed: ${result ? result.message : 'Unknown error'}`);
+            }
             
         } catch (error) {
             console.error('Error filing document to IMS:', error);
