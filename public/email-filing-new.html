@@ -538,6 +538,13 @@
                     document.getElementById('managed-creating').classList.add('hidden');
                     document.getElementById('managed-success').classList.remove('hidden');
                     document.getElementById('created-email-address').textContent = data.email_address;
+                    
+                    // Update success message if already configured
+                    if (data.already_configured) {
+                        document.querySelector('#managed-success h4').innerHTML = 
+                            '<i class="fas fa-check-circle"></i> Email Filing Already Configured!';
+                    }
+                    
                     updateEmailStatus('active');
                 } else {
                     throw new Error(data.message || 'Setup failed');
@@ -545,6 +552,9 @@
             } catch (error) {
                 alert('Error setting up managed email: ' + error.message);
                 console.error('Managed setup error:', error);
+                // Go back to main view on error
+                document.getElementById('managed-setup').classList.add('hidden');
+                document.getElementById('not-configured-view').classList.remove('hidden');
             }
         }
 

@@ -43,6 +43,18 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
     try {
         const { instanceId } = req.params;
         
+        // Check if configuration already exists
+        const existingConfig = await emailConfigService.getEmailConfig(instanceId);
+        if (existingConfig) {
+            return res.json({
+                success: true,
+                message: 'Managed email configuration already exists',
+                email_address: existingConfig.email_address,
+                config_id: existingConfig.id,
+                already_configured: true
+            });
+        }
+        
         // Get instance details
         const instanceResult = await pool.query(
             'SELECT name FROM ims_instances WHERE instance_id = $1',
@@ -65,7 +77,8 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             success: true,
             message: 'Managed email configuration created successfully',
             email_address: config.email_address,
-            config_id: config.id
+            config_id: config.id,
+            already_configured: false
         });
     } catch (error) {
         console.error('Error setting up managed email:', error);
