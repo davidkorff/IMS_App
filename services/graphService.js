@@ -188,19 +188,50 @@ class GraphService {
             
             const client = await this.getGraphClient();
             
+            // Extract base email from plus address if needed
+            let mailboxEmail = this.emailAddress;
+            const targetEmailAddress = this.emailAddress; // Store original for filtering
+            const plusAddressRegex = /^(documents)\+[^@]+(@42consultingllc\.com)$/i;
+            const plusMatch = this.emailAddress.match(plusAddressRegex);
+            
+            if (plusMatch) {
+                // Use base email for mailbox access
+                mailboxEmail = plusMatch[1] + plusMatch[2];
+                console.log(`Using base mailbox: ${mailboxEmail} (from plus address: ${targetEmailAddress})`);
+            }
+            
             // Get ALL emails newer than timestamp (no TO/CC filtering)
             const messages = await client
-                .api(`/users/${this.emailAddress}/messages`)
+                .api(`/users/${mailboxEmail}/messages`)
                 .filter(`receivedDateTime gt ${sinceTimestamp}`)
                 .top(100) // Get up to 100 new emails
-                .select('id,subject,from,receivedDateTime,hasAttachments')
+                .select('id,subject,from,receivedDateTime,hasAttachments,toRecipients,ccRecipients')
                 .orderby('receivedDateTime desc')
                 .get();
 
             console.log(`Retrieved ${messages.value.length} emails newer than ${sinceTimestamp}`);
             
-            // Return ALL emails (no filtering by TO/CC)
-            return messages.value.map(msg => ({
+            // If using plus addressing, filter for emails sent to the plus address
+            let filteredMessages = messages.value;
+            if (plusMatch) {
+                filteredMessages = messages.value.filter(msg => {
+                    // Check if the plus address is in TO or CC recipients
+                    const checkRecipients = (recipients) => {
+                        if (!recipients) return false;
+                        return recipients.some(r => 
+                            r.emailAddress && 
+                            r.emailAddress.address && 
+                            r.emailAddress.address.toLowerCase() === targetEmailAddress.toLowerCase()
+                        );
+                    };
+                    
+                    return checkRecipients(msg.toRecipients) || checkRecipients(msg.ccRecipients);
+                });
+                console.log(`Filtered to ${filteredMessages.length} emails sent to ${targetEmailAddress}`);
+            }
+            
+            // Return filtered emails
+            return filteredMessages.map(msg => ({
                 id: msg.id,
                 subject: msg.subject,
                 from: msg.from ? msg.from.emailAddress.address : 'Unknown',
@@ -220,9 +251,20 @@ class GraphService {
             
             const client = await this.getGraphClient();
             
+            // Extract base email from plus address if needed
+            let mailboxEmail = this.emailAddress;
+            const plusAddressRegex = /^(documents)\+[^@]+(@42consultingllc\.com)$/i;
+            const plusMatch = this.emailAddress.match(plusAddressRegex);
+            
+            if (plusMatch) {
+                // Use base email for mailbox access
+                mailboxEmail = plusMatch[1] + plusMatch[2];
+                console.log(`Using base mailbox: ${mailboxEmail} (from plus address: ${this.emailAddress})`);
+            }
+            
             // Get ALL recent emails (no TO/CC filtering)
             const messages = await client
-                .api(`/users/${this.emailAddress}/messages`)
+                .api(`/users/${mailboxEmail}/messages`)
                 .top(count)
                 .select('id,subject,from,receivedDateTime,hasAttachments')
                 .orderby('receivedDateTime desc')
@@ -250,9 +292,20 @@ class GraphService {
             
             const client = await this.getGraphClient();
             
+            // Extract base email from plus address if needed
+            let mailboxEmail = this.emailAddress;
+            const plusAddressRegex = /^(documents)\+[^@]+(@42consultingllc\.com)$/i;
+            const plusMatch = this.emailAddress.match(plusAddressRegex);
+            
+            if (plusMatch) {
+                // Use base email for mailbox access
+                mailboxEmail = plusMatch[1] + plusMatch[2];
+                console.log(`Using base mailbox: ${mailboxEmail} (from plus address: ${this.emailAddress})`);
+            }
+            
             // Get the email message
             const message = await client
-                .api(`/users/${this.emailAddress}/messages/${messageId}`)
+                .api(`/users/${mailboxEmail}/messages/${messageId}`)
                 .expand('attachments')
                 .get();
 

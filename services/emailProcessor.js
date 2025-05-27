@@ -200,19 +200,49 @@ class EmailProcessor {
 
             const client = Client.initWithMiddleware({ authProvider });
             
+            // Extract base email from plus address if needed
+            let mailboxEmail = config.email_address;
+            const plusAddressRegex = /^(documents)\+[^@]+(@42consultingllc\.com)$/i;
+            const plusMatch = config.email_address.match(plusAddressRegex);
+            
+            if (plusMatch) {
+                // Use base email for mailbox access
+                mailboxEmail = plusMatch[1] + plusMatch[2];
+                console.log(`Using base mailbox: ${mailboxEmail} (from plus address: ${config.email_address})`);
+            }
+            
             // Get ALL emails newer than timestamp (no TO/CC filtering)
             const messages = await client
-                .api(`/users/${config.email_address}/messages`)
+                .api(`/users/${mailboxEmail}/messages`)
                 .filter(`receivedDateTime gt ${sinceTimestamp}`)
                 .top(100) // Get up to 100 new emails
-                .select('id,subject,from,receivedDateTime,hasAttachments')
+                .select('id,subject,from,receivedDateTime,hasAttachments,toRecipients,ccRecipients')
                 .orderby('receivedDateTime desc')
                 .get();
 
             console.log(`Retrieved ${messages.value.length} emails newer than ${sinceTimestamp}`);
 
-            // Return ALL emails (no filtering by TO/CC)
-            return messages.value.map(msg => ({
+            // If using plus addressing, filter for emails sent to the plus address
+            let filteredMessages = messages.value;
+            if (plusMatch) {
+                filteredMessages = messages.value.filter(msg => {
+                    // Check if the plus address is in TO or CC recipients
+                    const checkRecipients = (recipients) => {
+                        if (!recipients) return false;
+                        return recipients.some(r => 
+                            r.emailAddress && 
+                            r.emailAddress.address && 
+                            r.emailAddress.address.toLowerCase() === config.email_address.toLowerCase()
+                        );
+                    };
+                    
+                    return checkRecipients(msg.toRecipients) || checkRecipients(msg.ccRecipients);
+                });
+                console.log(`Filtered to ${filteredMessages.length} emails sent to ${config.email_address}`);
+            }
+
+            // Return filtered emails
+            return filteredMessages.map(msg => ({
                 id: msg.id,
                 subject: msg.subject,
                 from: msg.from ? msg.from.emailAddress.address : 'Unknown',
@@ -331,9 +361,70 @@ class EmailProcessor {
 
     // Get full email with client credentials
     async getFullEmailWithClientCredentials(config, messageId) {
-        // Implementation similar to graphService.getEmailWithAttachments
-        // but using client credentials - simplified for now
-        return null; // TODO: Implement this
+        try {
+            const { Client } = require('@microsoft/microsoft-graph-client');
+            const axios = require('axios');
+
+            // Get access token
+            const tokenUrl = `https://login.microsoftonline.com/${config.graph_tenant_id}/oauth2/v2.0/token`;
+            
+            const params = new URLSearchParams();
+            params.append('client_id', config.graph_client_id);
+            params.append('client_secret', config.graph_client_secret);
+            params.append('scope', 'https://graph.microsoft.com/.default');
+            params.append('grant_type', 'client_credentials');
+
+            const tokenResponse = await axios.post(tokenUrl, params, {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            });
+
+            const accessToken = tokenResponse.data.access_token;
+
+            // Create Graph client
+            const authProvider = {
+                getAccessToken: async () => accessToken
+            };
+
+            const client = Client.initWithMiddleware({ authProvider });
+            
+            // Extract base email from plus address if needed
+            let mailboxEmail = config.email_address;
+            const plusAddressRegex = /^(documents)\+[^@]+(@42consultingllc\.com)$/i;
+            const plusMatch = config.email_address.match(plusAddressRegex);
+            
+            if (plusMatch) {
+                // Use base email for mailbox access
+                mailboxEmail = plusMatch[1] + plusMatch[2];
+                console.log(`Using base mailbox: ${mailboxEmail} (from plus address: ${config.email_address})`);
+            }
+            
+            // Get the email message with attachments
+            const message = await client
+                .api(`/users/${mailboxEmail}/messages/${messageId}`)
+                .expand('attachments')
+                .get();
+
+            console.log('Email details:', {
+                subject: message.subject,
+                from: message.from ? message.from.emailAddress.address : 'Unknown',
+                hasAttachments: message.hasAttachments,
+                attachmentCount: message.attachments ? message.attachments.length : 0
+            });
+
+            // Format response similar to graphService
+            return {
+                id: message.id,
+                subject: message.subject,
+                from: message.from ? message.from.emailAddress.address : 'Unknown',
+                body: message.body,
+                receivedDateTime: message.receivedDateTime,
+                hasAttachments: message.hasAttachments,
+                attachments: message.attachments || []
+            };
+        } catch (error) {
+            console.error('Error getting full email with client credentials:', error);
+            return null;
+        }
     }
 
     // File email and attachments to IMS
