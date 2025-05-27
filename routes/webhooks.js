@@ -311,9 +311,37 @@ async function parseOutlookHydrateAttachments(emailData, zapierAccessToken = nul
 // Webhook endpoint for Zapier email integration
 router.post('/zapier/:configId/email', async (req, res) => {
     const requestId = Math.random().toString(36).substring(7);
-    console.log(`[${requestId}] Zapier webhook received for config: ${req.params.configId}`);
-    console.log(`[${requestId}] Request body:`, JSON.stringify(req.body, null, 2));
-    console.log(`[${requestId}] Request headers:`, JSON.stringify(req.headers, null, 2));
+    console.log(`\n=== [${requestId}] ZAPIER WEBHOOK RECEIVED ===`);
+    console.log(`Config ID: ${req.params.configId}`);
+    console.log(`Method: ${req.method}`);
+    console.log(`URL: ${req.originalUrl}`);
+    console.log(`Content-Type: ${req.headers['content-type']}`);
+    console.log(`User-Agent: ${req.headers['user-agent']}`);
+    
+    console.log(`\n=== [${requestId}] FULL REQUEST HEADERS ===`);
+    console.log(JSON.stringify(req.headers, null, 2));
+    
+    console.log(`\n=== [${requestId}] FULL REQUEST BODY ===`);
+    console.log(JSON.stringify(req.body, null, 2));
+    
+    console.log(`\n=== [${requestId}] BODY TYPE AND STRUCTURE ANALYSIS ===`);
+    console.log(`Body type: ${typeof req.body}`);
+    console.log(`Body keys: ${req.body ? Object.keys(req.body) : 'no keys'}`);
+    console.log(`Body length: ${req.body ? Object.keys(req.body).length : 0}`);
+    
+    if (req.body) {
+        Object.keys(req.body).forEach(key => {
+            const value = req.body[key];
+            console.log(`- ${key}: ${typeof value} (${Array.isArray(value) ? 'array' : typeof value})`);
+            if (typeof value === 'string' && value.length > 100) {
+                console.log(`  Preview: ${value.substring(0, 100)}...`);
+            } else if (typeof value === 'object' && value !== null) {
+                console.log(`  Keys: ${Object.keys(value)}`);
+            } else {
+                console.log(`  Value: ${value}`);
+            }
+        });
+    }
     
     try {
         const { configId } = req.params;
