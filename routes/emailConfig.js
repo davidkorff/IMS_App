@@ -134,10 +134,11 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             });
         }
         
-        const subdomainEmailService = require('../services/subdomainEmailService');
+        const PlusAddressEmailService = require('../services/plusAddressEmailService');
+        const plusAddressEmailService = new PlusAddressEmailService();
         
         // Validate prefix
-        if (!subdomainEmailService.validatePrefix(email_prefix)) {
+        if (!plusAddressEmailService.validatePrefix(email_prefix)) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid email prefix format'
@@ -145,7 +146,7 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
         }
         
         // Check if prefix already exists for this instance
-        const prefixAvailable = await subdomainEmailService.isPrefixAvailable(instanceId, email_prefix);
+        const prefixAvailable = await plusAddressEmailService.isPrefixAvailable(instanceId, email_prefix);
         if (!prefixAvailable) {
             return res.status(400).json({
                 success: false,
@@ -175,10 +176,10 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             });
         }
         
-        // Generate full email address
-        const fullEmailAddress = subdomainEmailService.generateEmailAddress(email_prefix, instance.email_subdomain);
+        // Generate full plus email address
+        const fullEmailAddress = plusAddressEmailService.generatePlusAddress(instance.email_subdomain, email_prefix);
         
-        // Create subdomain-based email configuration
+        // Create plus address-based email configuration
         const config = await emailConfigService.createSubdomainEmailConfig(
             instanceId, 
             email_prefix,

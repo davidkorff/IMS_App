@@ -1,7 +1,8 @@
 const emailConfigService = require('./emailConfigService');
 const emailFilingService = require('./emailFilingService');
 const graphService = require('./graphService');
-const subdomainEmailService = require('./subdomainEmailService');
+const PlusAddressEmailService = require('./plusAddressEmailService');
+const plusAddressEmailService = new PlusAddressEmailService();
 const pool = require('../config/db');
 
 class EmailProcessorV2 {
@@ -49,12 +50,12 @@ class EmailProcessorV2 {
         }
 
         this.isProcessing = true;
-        console.log('=== STARTING EMAIL PROCESSING CYCLE V2 ===');
+        console.log('=== STARTING EMAIL PROCESSING CYCLE V2 (Plus Addressing) ===');
 
         try {
-            // Get emails from the catch-all inbox
-            const catchAllEmail = subdomainEmailService.catchAllEmail;
-            console.log(`Checking catch-all inbox: ${catchAllEmail}`);
+            // Get emails from the main documents inbox
+            const mainEmail = plusAddressEmailService.baseEmail;
+            console.log(`Checking main inbox: ${mainEmail}`);
             
             // Get last processed timestamp for catch-all
             const lastProcessed = await this.getLastProcessedTimestamp();
@@ -78,16 +79,16 @@ class EmailProcessorV2 {
             console.error('Error in email processing cycle V2:', error);
         } finally {
             this.isProcessing = false;
-            console.log('=== EMAIL PROCESSING CYCLE V2 COMPLETE ===');
+            console.log('=== EMAIL PROCESSING CYCLE V2 (Plus Addressing) COMPLETE ===');
         }
     }
 
     // Get emails from catch-all inbox
     async getEmailsFromCatchAll(sinceTimestamp) {
         try {
-            // Use the main graph service with catch-all email
+            // Use the main graph service with base email
             const originalEmail = graphService.emailAddress;
-            graphService.emailAddress = subdomainEmailService.catchAllEmail;
+            graphService.emailAddress = plusAddressEmailService.baseEmail;
             
             const emails = await graphService.getEmailsSinceTimestamp(sinceTimestamp);
             
@@ -176,8 +177,8 @@ class EmailProcessorV2 {
             return null;
         }
         
-        // Use subdomain service to route
-        return await subdomainEmailService.routeEmail(toAddress);
+        // Use plus addressing service to route
+        return await plusAddressEmailService.routeEmail(toAddress);
     }
 
     // Extract To address from email
@@ -195,7 +196,7 @@ class EmailProcessorV2 {
     async getFullEmailContent(messageId) {
         try {
             const originalEmail = graphService.emailAddress;
-            graphService.emailAddress = subdomainEmailService.catchAllEmail;
+            graphService.emailAddress = plusAddressEmailService.baseEmail;
             
             const fullEmail = await graphService.getEmailWithAttachments(messageId);
             
