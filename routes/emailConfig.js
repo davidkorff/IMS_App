@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const emailConfigService = require('../services/emailConfigService');
-const emailProcessor = require('../services/emailProcessor');
+const emailProcessor = require('../services/emailProcessorV2');
 const pool = require('../config/db');
 
 // Get all email configurations for an instance
