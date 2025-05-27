@@ -274,6 +274,14 @@
                         <form id="managed-settings-form" class="row justify-content-center">
                             <div class="col-md-6">
                                 <div class="mb-3">
+                                    <label class="form-label">Email Prefix</label>
+                                    <input type="text" class="form-control" id="managed-email-prefix" 
+                                           placeholder="e.g., docs, forms, quotes" required
+                                           pattern="^[a-z0-9]([a-z0-9._-]{0,62}[a-z0-9])?$">
+                                    <div class="form-text" id="managed-email-preview">Enter a prefix to see your email address</div>
+                                </div>
+                                
+                                <div class="mb-3">
                                     <label class="form-label">IMS Folder ID</label>
                                     <input type="number" class="form-control" id="managed-folder-id" 
                                            placeholder="0" value="0" min="0" max="999">
@@ -895,15 +903,20 @@
             document.getElementById('managed-configure').classList.add('hidden');
             document.getElementById('managed-creating').classList.remove('hidden');
             
+            const emailPrefix = document.getElementById('managed-email-prefix').value.toLowerCase();
             const folderId = parseInt(document.getElementById('managed-folder-id').value) || 0;
             
             try {
                 const response = await fetch(`/api/email-filing/setup-managed/${instanceId}`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
-                    body: JSON.stringify({ default_folder_id: folderId })
+                    body: JSON.stringify({ 
+                        email_prefix: emailPrefix,
+                        default_folder_id: folderId 
+                    })
                 });
                 
                 const data = await response.json();
@@ -1547,6 +1560,30 @@
                 alert('Error loading error details: ' + error.message);
             }
         }
+
+        // Preview email address for managed setup
+        document.getElementById('managed-email-prefix')?.addEventListener('input', async function() {
+            const prefix = this.value.toLowerCase();
+            if (prefix && instanceId) {
+                try {
+                    const response = await fetch(`/api/instances/${instanceId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    const data = await response.json();
+                    if (data.success && data.instance.email_subdomain) {
+                        document.getElementById('managed-email-preview').innerHTML = 
+                            `Your email address will be: <strong>${prefix}@${data.instance.email_subdomain}.42consultingllc.com</strong>`;
+                    } else {
+                        document.getElementById('managed-email-preview').textContent = 
+                            'This instance needs a subdomain configured. Please contact support.';
+                    }
+                } catch (error) {
+                    console.error('Error loading subdomain:', error);
+                }
+            }
+        });
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', () => {

@@ -10,7 +10,7 @@ router.post('/', auth, async (req, res) => {
     console.log(`[${requestId}] User:`, req.user);
     
     try {
-        const { name, url, userName, password } = req.body;
+        const { name, url, userName, password, emailSubdomain } = req.body;
         const userId = req.user.user_id;
         console.log(`[${requestId}] Using userId for creation:`, userId);
 
@@ -25,9 +25,26 @@ router.post('/', auth, async (req, res) => {
             return res.status(400).json({ message: 'Instance with this name already exists' });
         }
 
+        // Generate or validate subdomain
+        const subdomainEmailService = require('../services/subdomainEmailService');
+        let subdomain = emailSubdomain;
+        
+        if (!subdomain) {
+            // Auto-generate from instance name
+            subdomain = subdomainEmailService.generateSubdomain(name);
+        }
+        
+        // Check if subdomain is available
+        const availability = await subdomainEmailService.isSubdomainAvailable(subdomain);
+        if (!availability.available) {
+            return res.status(400).json({ 
+                message: `Subdomain not available: ${availability.reason}` 
+            });
+        }
+
         const newInstance = await pool.query(
-            'INSERT INTO ims_instances (user_id, name, url, username, password) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [userId, name, url, userName, password]
+            'INSERT INTO ims_instances (user_id, name, url, username, password, email_subdomain) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [userId, name, url, userName, password, subdomain]
         );
 
         console.log(`[${requestId}] Created instance:`, newInstance.rows[0]);

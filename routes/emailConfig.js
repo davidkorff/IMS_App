@@ -124,28 +124,38 @@ router.get('/config/:instanceId', async (req, res) => {
 router.post('/setup-managed/:instanceId', async (req, res) => {
     try {
         const { instanceId } = req.params;
-        const { default_folder_id = 0 } = req.body;
+        const { email_prefix, default_folder_id = 0 } = req.body;
         
-        // Check if managed configuration already exists
-        const existingResult = await pool.query(`
-            SELECT * FROM email_configurations 
-            WHERE instance_id = $1 AND config_type = 'managed'
-        `, [instanceId]);
-        
-        if (existingResult.rows.length > 0) {
-            const existingConfig = existingResult.rows[0];
-            return res.json({
-                success: true,
-                message: 'Managed email configuration already exists',
-                email_address: existingConfig.email_address,
-                config_id: existingConfig.id,
-                already_configured: true
+        // Validate email prefix
+        if (!email_prefix) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email prefix is required'
             });
         }
         
-        // Get instance details
+        const subdomainEmailService = require('../services/subdomainEmailService');
+        
+        // Validate prefix
+        if (!subdomainEmailService.validatePrefix(email_prefix)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid email prefix format'
+            });
+        }
+        
+        // Check if prefix already exists for this instance
+        const prefixAvailable = await subdomainEmailService.isPrefixAvailable(instanceId, email_prefix);
+        if (!prefixAvailable) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email prefix already in use for this instance'
+            });
+        }
+        
+        // Get instance details including subdomain
         const instanceResult = await pool.query(
-            'SELECT name FROM ims_instances WHERE instance_id = $1',
+            'SELECT name, email_subdomain FROM ims_instances WHERE instance_id = $1',
             [instanceId]
         );
         
@@ -156,17 +166,33 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             });
         }
 
-        const instanceName = instanceResult.rows[0].name;
+        const instance = instanceResult.rows[0];
         
-        // Create managed email configuration
-        const config = await emailConfigService.createManagedEmailConfig(instanceId, instanceName, default_folder_id);
+        if (!instance.email_subdomain) {
+            return res.status(400).json({
+                success: false,
+                message: 'Instance does not have a subdomain configured. Please contact support.'
+            });
+        }
+        
+        // Generate full email address
+        const fullEmailAddress = subdomainEmailService.generateEmailAddress(email_prefix, instance.email_subdomain);
+        
+        // Create subdomain-based email configuration
+        const config = await emailConfigService.createSubdomainEmailConfig(
+            instanceId, 
+            email_prefix,
+            fullEmailAddress,
+            default_folder_id
+        );
         
         res.json({
             success: true,
-            message: 'Managed email configuration created successfully',
-            email_address: config.email_address,
+            message: 'Email configuration created successfully',
+            email_address: fullEmailAddress,
             config_id: config.id,
-            already_configured: false
+            prefix: email_prefix,
+            subdomain: instance.email_subdomain
         });
     } catch (error) {
         console.error('Error setting up managed email:', error);

@@ -119,7 +119,51 @@ class EmailConfigService {
         ];
     }
 
-    // Create managed email configuration
+    // Create subdomain-based email configuration
+    async createSubdomainEmailConfig(instanceId, emailPrefix, fullEmailAddress, defaultFolderId = 0) {
+        try {
+            // Default control number patterns
+            const defaultPatterns = [
+                'ID:\\s*(\\d{1,9})\\b',
+                '^(?:RE:\\s*)?ID:\\s*(\\d{1,9})\\b',
+                '\\bID:\\s*(\\d{1,9})\\b'
+            ];
+
+            const result = await pool.query(`
+                INSERT INTO email_configurations 
+                (instance_id, config_type, email_address, email_prefix, email_system_type,
+                 auto_extract_control_numbers, control_number_patterns, 
+                 include_attachments, default_folder_id, test_status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                RETURNING *
+            `, [
+                instanceId,
+                'managed',
+                fullEmailAddress,
+                emailPrefix,
+                'subdomain',
+                true,
+                defaultPatterns,
+                true,
+                defaultFolderId,
+                'success' // Managed emails are always ready
+            ]);
+
+            // Update instance status
+            await pool.query(`
+                UPDATE ims_instances 
+                SET email_status = 'active'
+                WHERE instance_id = $1
+            `, [instanceId]);
+
+            return result.rows[0];
+        } catch (error) {
+            console.error('Error creating subdomain email config:', error);
+            throw error;
+        }
+    }
+
+    // Create managed email configuration (legacy - kept for backward compatibility)
     async createManagedEmailConfig(instanceId, instanceName, defaultFolderId = 0) {
         try {
             // Generate unique email address

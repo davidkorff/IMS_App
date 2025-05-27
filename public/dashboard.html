@@ -195,6 +195,15 @@
                     <input type="password" id="password" required 
                            placeholder="e.g., kCeTLc2bxqOmG72ZBvMFkA==">
                 </div>
+                <div class="form-group">
+                    <label for="emailSubdomain">Email Subdomain (Optional)</label>
+                    <input type="text" id="emailSubdomain" 
+                           placeholder="e.g., origintest" 
+                           pattern="^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
+                           title="Lowercase letters, numbers, and hyphens only">
+                    <small class="form-text">Leave blank to auto-generate from instance name. This will be used for email addresses like docs@<strong>subdomain</strong>.42consultingllc.com</small>
+                    <div id="subdomain-preview" style="margin-top: 5px; color: #666;"></div>
+                </div>
                 <div class="modal-buttons">
                     <button type="button" class="btn" onclick="closeModal()">Cancel</button>
                     <button type="submit" class="btn btn-primary">Add Instance</button>
@@ -329,7 +338,8 @@
                     name: document.getElementById('instanceName').value,
                     url: document.getElementById('instanceUrl').value,
                     userName: document.getElementById('userName').value,
-                    password: document.getElementById('password').value
+                    password: document.getElementById('password').value,
+                    emailSubdomain: document.getElementById('emailSubdomain').value || null
                 };
 
                 console.log('Instance data:', instanceData);
@@ -373,6 +383,39 @@
             localStorage.removeItem('token');
             window.location.href = '/index.html';
         }
+
+        // Generate subdomain from instance name
+        function generateSubdomain(instanceName) {
+            return instanceName
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, '')
+                .replace(/\s+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .substring(0, 63);
+        }
+
+        // Preview subdomain
+        document.getElementById('instanceName').addEventListener('input', function() {
+            const subdomain = document.getElementById('emailSubdomain').value || generateSubdomain(this.value);
+            if (subdomain) {
+                document.getElementById('subdomain-preview').innerHTML = 
+                    `Preview: <strong>${subdomain}.42consultingllc.com</strong>`;
+            }
+        });
+
+        document.getElementById('emailSubdomain').addEventListener('input', function() {
+            if (this.value) {
+                document.getElementById('subdomain-preview').innerHTML = 
+                    `Preview: <strong>${this.value}.42consultingllc.com</strong>`;
+            } else {
+                const instanceName = document.getElementById('instanceName').value;
+                if (instanceName) {
+                    const subdomain = generateSubdomain(instanceName);
+                    document.getElementById('subdomain-preview').innerHTML = 
+                        `Preview: <strong>${subdomain}.42consultingllc.com</strong>`;
+                }
+            }
+        });
     </script>
 </body>
 </html> 
