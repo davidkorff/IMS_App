@@ -95,6 +95,13 @@ class EmailProcessor {
             // Get unprocessed emails
             const emails = await this.getUnprocessedEmails(fullConfig);
             console.log(`Found ${emails.length} unprocessed emails`);
+            
+            if (emails.length > 0) {
+                console.log('Unprocessed emails:');
+                emails.forEach((email, index) => {
+                    console.log(`  ${index + 1}. "${email.subject}" from ${email.from}`);
+                });
+            }
 
             for (const email of emails) {
                 await this.processEmail(instanceConfig, fullConfig, email);
@@ -123,14 +130,21 @@ class EmailProcessor {
             }
 
             // Filter out emails we've already processed
+            console.log('Checking which emails are unprocessed...');
             const unprocessed = [];
             for (const email of emails) {
+                console.log(`Email: "${email.subject}" (ID: ${email.id.substring(0, 20)}...)`);
                 const alreadyProcessed = await this.isEmailAlreadyProcessed(email.id);
+                console.log(`  Already processed: ${alreadyProcessed}`);
                 if (!alreadyProcessed) {
                     unprocessed.push(email);
+                    console.log(`  ✅ Added to unprocessed list`);
+                } else {
+                    console.log(`  ⏭️ Skipping (already processed)`);
                 }
             }
 
+            console.log(`Total unprocessed emails: ${unprocessed.length}`);
             return unprocessed;
         } catch (error) {
             console.error('Error getting unprocessed emails:', error);
