@@ -258,10 +258,12 @@ class EmailProcessor {
         } catch (error) {
             console.error(`Error processing email ${email.subject}:`, error);
             
-            // Log error
+            // Log error - make sure controlNumber is available in scope
+            const emailControlNumber = controlNumber || this.extractControlNumber(email.subject, fullConfig?.control_number_patterns);
+            
             await emailConfigService.logEmailProcessing(
                 instanceConfig.instance_id,
-                { ...email, control_number: controlNumber || null },
+                { ...email, control_number: emailControlNumber },
                 'error',
                 error.message
             );
@@ -394,27 +396,50 @@ class EmailProcessor {
             console.log(`IMS URL: ${imsConfig.url}`);
             console.log(`Control number: ${controlNumber}`);
 
-            // Use the existing email filing service to file the document
-            // This uses your fixed InsertAssociatedDocument code
-            const result = await emailFilingService.fileEmailToIMS({
+            // Use the emailFilingService directly with the control-based approach
+            // First get the instance and validate the control number
+            const authService = require('./authService');
+            
+            // Get IMS token
+            const token = await authService.getToken(
+                imsConfig.url,
+                imsConfig.username,
+                imsConfig.password
+            );
+
+            // Validate control number and get quote GUID
+            const controlValidation = await emailFilingService.validateControlNumber({
                 url: imsConfig.url,
                 username: imsConfig.username,
                 password: imsConfig.password
-            }, {
-                subject: `Document: ${documentData.name}`,
-                from: 'email-filing-system@42consultingllc.com',
-                to: ['documents@42consultingllc.com'],
-                date: new Date().toISOString(),
-                message_id: `auto-${Date.now()}`,
-                body_text: `Automatically filed document: ${documentData.description}`,
-                body_html: `<p>Automatically filed document: ${documentData.description}</p>`,
-                attachments: [{
-                    name: documentData.name,
-                    content_type: documentData.contentType,
-                    size: Math.ceil(documentData.data.length * 0.75), // Approximate size from base64
-                    data: documentData.data
-                }]
-            }, controlNumber);
+            }, token, controlNumber);
+            
+            if (!controlValidation || !controlValidation.QuoteGuid) {
+                throw new Error(`Invalid control number: ${controlNumber}`);
+            }
+
+            // Get user GUID
+            const userGuid = await authService.getUserGuid(
+                imsConfig.url,
+                imsConfig.username,
+                imsConfig.password
+            );
+
+            // Upload document directly
+            const documentGuid = await emailFilingService.uploadDocumentToIMSByControl(
+                { url: imsConfig.url },
+                token,
+                documentData,
+                controlValidation.QuoteGuid,
+                userGuid,
+                { default_folder_id: 3 }
+            );
+            
+            const result = {
+                success: true,
+                documentGuid: documentGuid,
+                quoteGuid: controlValidation.QuoteGuid
+            };
 
             if (result && result.success) {
                 console.log(`✅ Successfully filed document to IMS: ${documentData.name}`);

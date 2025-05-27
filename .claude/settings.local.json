@@ -14,7 +14,9 @@
       "Bash(node test_webhook.js)",
       "Bash(node:*)",
       "Bash(npm install:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(pkill:*)",
+      "Bash(true)"
     ],
     "deny": []
   }
