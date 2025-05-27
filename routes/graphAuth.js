@@ -245,6 +245,31 @@ router.get('/debug-users', async (req, res) => {
     }
 });
 
+// Debug token endpoint
+router.get('/debug-token', async (req, res) => {
+    try {
+        console.log('=== DEBUGGING TOKEN GENERATION ===');
+        
+        const tokenResult = await graphService.getAccessToken();
+        
+        // Don't return the actual token for security, just confirm we got one
+        res.json({
+            success: true,
+            message: 'Token generation test',
+            hasToken: !!tokenResult,
+            tokenLength: tokenResult ? tokenResult.length : 0,
+            tokenPreview: tokenResult ? tokenResult.substring(0, 20) + '...' : null
+        });
+    } catch (error) {
+        console.error('Error getting token:', error);
+        res.json({
+            success: false,
+            message: 'Token generation failed',
+            error: error.message
+        });
+    }
+});
+
 // Status endpoint
 router.get('/status', (req, res) => {
     const config = {
