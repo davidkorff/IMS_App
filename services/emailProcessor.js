@@ -254,19 +254,19 @@ class EmailProcessor {
 
             console.log(`Found control number: ${controlNumber}`);
 
-            // Log processing start
-            await emailConfigService.logEmailProcessing(
-                instanceConfig.instance_id,
-                { ...email, control_number: controlNumber },
-                'processing'
-            );
-
-            // Get full email content and attachments
+            // Get full email content and attachments first
             const fullEmail = await this.getFullEmailContent(fullConfig, email.id);
             
             if (!fullEmail) {
                 throw new Error('Could not retrieve full email content');
             }
+
+            // Log processing start with full email info including attachments
+            await emailConfigService.logEmailProcessing(
+                instanceConfig.instance_id,
+                { ...email, ...fullEmail, control_number: controlNumber },
+                'processing'
+            );
 
             // File email and attachments to IMS
             await this.fileEmailToIMS(instanceConfig, fullConfig, fullEmail, controlNumber);
@@ -387,14 +387,16 @@ class EmailProcessor {
                 }
             }
 
-            // Log successful filing with document details
+            // Log successful filing with document details and correct attachment count
+            const attachmentCount = email.attachments ? email.attachments.length : 0;
             await pool.query(`
                 UPDATE email_processing_logs 
                 SET processing_status = 'filed',
                     filed_to_ims = true,
-                    ims_document_guid = $2
+                    ims_document_guid = $2,
+                    attachments_count = $3
                 WHERE message_id = $1
-            `, [email.id, filedDocuments.length > 0 ? filedDocuments[0].guid : null]);
+            `, [email.id, filedDocuments.length > 0 ? filedDocuments[0].guid : null, attachmentCount]);
 
             console.log(`📄 Filed ${filedDocuments.length} documents to IMS:`);
             filedDocuments.forEach(doc => {
