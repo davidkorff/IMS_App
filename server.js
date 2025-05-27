@@ -109,4 +109,16 @@ app.get('/graph-test', (req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    
+    // Start email processing automatically
+    try {
+        const emailProcessor = require('./services/emailProcessor');
+        const intervalMinutes = 5; // Check every 5 minutes
+        
+        console.log('Starting automatic email processing...');
+        emailProcessor.startProcessing(intervalMinutes);
+        console.log(`✅ Email monitoring started - checking every ${intervalMinutes} minutes`);
+    } catch (error) {
+        console.error('❌ Failed to start email processing:', error.message);
+    }
 }); 
