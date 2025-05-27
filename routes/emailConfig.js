@@ -489,7 +489,9 @@ router.put('/config/:instanceId/:configId', async (req, res) => {
             auto_extract_control_numbers,
             include_attachments,
             default_folder_id,
-            control_number_patterns
+            control_number_patterns,
+            email_address,
+            email_prefix
         } = req.body;
 
         const updateFields = [];
@@ -514,6 +516,38 @@ router.put('/config/:instanceId/:configId', async (req, res) => {
         if (control_number_patterns && Array.isArray(control_number_patterns)) {
             updateFields.push(`control_number_patterns = $${paramIndex++}`);
             updateValues.push(control_number_patterns);
+        }
+
+        if (email_address) {
+            // Validate email address format for plus addressing
+            const plusAddressPattern = /^documents\+[a-zA-Z0-9\-_]+@42consultingllc\.com$/;
+            if (!plusAddressPattern.test(email_address)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid email address format. Must be documents+[suffix]@42consultingllc.com'
+                });
+            }
+            
+            // Check if email address is already in use by another config
+            const existingConfig = await pool.query(
+                'SELECT id FROM email_configurations WHERE email_address = $1 AND id != $2',
+                [email_address, configId]
+            );
+            
+            if (existingConfig.rows.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This email address is already in use by another configuration'
+                });
+            }
+            
+            updateFields.push(`email_address = $${paramIndex++}`);
+            updateValues.push(email_address);
+        }
+
+        if (email_prefix) {
+            updateFields.push(`email_prefix = $${paramIndex++}`);
+            updateValues.push(email_prefix);
         }
 
         if (updateFields.length === 0) {
