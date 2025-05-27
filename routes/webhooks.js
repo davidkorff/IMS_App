@@ -319,10 +319,10 @@ router.post('/zapier/:configId/email', async (req, res) => {
     console.log(`User-Agent: ${req.headers['user-agent']}`);
     
     console.log(`\n=== [${requestId}] FULL REQUEST HEADERS ===`);
-    console.log(JSON.stringify(req.headers, null, 2));
+    console.log(req.headers);
     
-    console.log(`\n=== [${requestId}] FULL REQUEST BODY ===`);
-    console.log(JSON.stringify(req.body, null, 2));
+    console.log(`\n=== [${requestId}] RAW REQUEST BODY ===`);
+    console.log(req.body);
     
     console.log(`\n=== [${requestId}] BODY TYPE AND STRUCTURE ANALYSIS ===`);
     console.log(`Body type: ${typeof req.body}`);
@@ -426,12 +426,49 @@ router.post('/zapier/:configId/email', async (req, res) => {
             });
         }
 
+        console.log(`\n=== [${requestId}] FIELD DETECTION ANALYSIS ===`);
+        
+        // Try to detect subject and from fields with various naming patterns
+        let detectedSubject = emailData.subject 
+            || emailData.email_subject 
+            || emailData.Subject 
+            || emailData['Subject'] 
+            || (emailData.email && emailData.email.subject)
+            || (emailData.message && emailData.message.subject);
+            
+        let detectedFrom = emailData.from 
+            || emailData.email_from 
+            || emailData.From 
+            || emailData['From']
+            || emailData.sender
+            || (emailData.email && emailData.email.from)
+            || (emailData.message && emailData.message.from);
+
+        console.log(`Original subject: "${emailData.subject}" (${typeof emailData.subject})`);
+        console.log(`Original from: "${emailData.from}" (${typeof emailData.from})`);
+        console.log(`Detected subject: "${detectedSubject}" (${typeof detectedSubject})`);
+        console.log(`Detected from: "${detectedFrom}" (${typeof detectedFrom})`);
+
+        // Update emailData with detected values
+        if (detectedSubject && !emailData.subject) {
+            console.log(`[${requestId}] Using detected subject field`);
+            emailData.subject = detectedSubject;
+        }
+        if (detectedFrom && !emailData.from) {
+            console.log(`[${requestId}] Using detected from field`);
+            emailData.from = detectedFrom;
+        }
+
         if (!emailData.subject && !emailData.from) {
-            console.log(`[${requestId}] Missing required email data - subject:`, emailData.subject, 'from:', emailData.from);
+            console.log(`[${requestId}] Missing required email data after field detection`);
+            console.log(`[${requestId}] Available fields: ${Object.keys(emailData).join(', ')}`);
             return res.status(400).json({ 
                 success: false, 
                 message: 'Missing required email data (subject or from)', 
-                received_data: emailData
+                received_data: emailData,
+                available_fields: Object.keys(emailData),
+                detected_subject: detectedSubject,
+                detected_from: detectedFrom
             });
         }
 
