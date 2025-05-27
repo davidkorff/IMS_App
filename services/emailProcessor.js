@@ -234,11 +234,11 @@ class EmailProcessor {
 
     // Process a single email
     async processEmail(instanceConfig, fullConfig, email) {
+        // Extract control number outside try block so it's available in error handler
+        const controlNumber = this.extractControlNumber(email.subject, fullConfig.control_number_patterns);
+        
         try {
             console.log(`\nProcessing email: ${email.subject}`);
-            
-            // Extract control number
-            const controlNumber = this.extractControlNumber(email.subject, fullConfig.control_number_patterns);
             
             // Process ALL emails - control number is optional now
             if (!controlNumber) {
@@ -270,12 +270,11 @@ class EmailProcessor {
         } catch (error) {
             console.error(`Error processing email ${email.subject}:`, error);
             
-            // Log error - make sure controlNumber is available in scope
-            const emailControlNumber = controlNumber || this.extractControlNumber(email.subject, fullConfig?.control_number_patterns);
+            // Log error - controlNumber is now available in scope
             
             await emailConfigService.logEmailProcessing(
                 instanceConfig.instance_id,
-                { ...email, control_number: emailControlNumber },
+                { ...email, control_number: controlNumber },
                 'error',
                 error.message
             );
@@ -356,7 +355,7 @@ class EmailProcessor {
                     contentType: 'text/html'
                 };
 
-                const documentGuid = await this.fileDocumentToIMS(imsConfig, emailDocumentData, controlNumber);
+                const documentGuid = await this.fileDocumentToIMS(imsConfig, emailDocumentData, controlNumber, fullConfig.default_folder_id || 0);
                 if (documentGuid) {
                     filedDocuments.push({ type: 'email', guid: documentGuid, name: emailDocumentData.name });
                 }
@@ -373,7 +372,7 @@ class EmailProcessor {
                             contentType: attachment.contentType
                         };
 
-                        const documentGuid = await this.fileDocumentToIMS(imsConfig, attachmentData, controlNumber);
+                        const documentGuid = await this.fileDocumentToIMS(imsConfig, attachmentData, controlNumber, fullConfig.default_folder_id || 0);
                         if (documentGuid) {
                             filedDocuments.push({ type: 'attachment', guid: documentGuid, name: attachment.name });
                         }
@@ -411,7 +410,7 @@ class EmailProcessor {
     }
 
     // File a single document to IMS
-    async fileDocumentToIMS(imsConfig, documentData, controlNumber) {
+    async fileDocumentToIMS(imsConfig, documentData, controlNumber, folderId = 0) {
         try {
             console.log(`Filing document to IMS: ${documentData.name}`);
             console.log(`IMS URL: ${imsConfig.url}`);
@@ -453,7 +452,7 @@ class EmailProcessor {
                 documentData,
                 controlValidation.QuoteGuid,
                 userGuid,
-                { default_folder_id: fullConfig.default_folder_id || 0 }
+                { default_folder_id: folderId }
             );
             
             const result = {
