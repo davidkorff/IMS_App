@@ -8,14 +8,27 @@ class PlusAddressEmailService {
 
     // Parse plus address to extract subdomain and prefix
     parsePlusAddress(emailAddress) {
-        // Match patterns like: documents+origintest-docs@42consultingllc.com
-        const regex = new RegExp(`^documents\\+([^-]+)-([^@]+)@${this.domain.replace('.', '\\.')}$`, 'i');
+        // Match patterns like: documents+{suffix}@42consultingllc.com
+        const regex = new RegExp(`^documents\\+([^@]+)@${this.domain.replace('.', '\\.')}$`, 'i');
         const match = emailAddress.match(regex);
         
         if (match) {
+            const suffix = match[1];
+            
+            // For backward compatibility, check if suffix contains subdomain-prefix pattern
+            const legacyMatch = suffix.match(/^([^-]+)-(.+)$/);
+            if (legacyMatch) {
+                return {
+                    subdomain: legacyMatch[1].toLowerCase(),
+                    prefix: legacyMatch[2].toLowerCase(),
+                    suffix: suffix.toLowerCase(),
+                    isPlusAddress: true
+                };
+            }
+            
+            // New format: just the custom suffix
             return {
-                subdomain: match[1].toLowerCase(),
-                prefix: match[2].toLowerCase(),
+                suffix: suffix.toLowerCase(),
                 isPlusAddress: true
             };
         }
@@ -84,27 +97,62 @@ class PlusAddressEmailService {
             const parsed = this.parsePlusAddress(address);
             
             if (parsed.isPlusAddress) {
-                // Find instance by subdomain
-                const instance = await this.findInstanceBySubdomain(parsed.subdomain);
-                if (!instance) {
-                    console.log(`No instance found for subdomain: ${parsed.subdomain}`);
-                    continue;
+                // Handle new format with just suffix
+                if (parsed.suffix && !parsed.subdomain) {
+                    // Find config by exact email address
+                    const configResult = await pool.query(`
+                        SELECT ec.*, ii.* 
+                        FROM email_configurations ec
+                        JOIN ims_instances ii ON ec.instance_id = ii.instance_id
+                        WHERE ec.email_address = $1
+                    `, [address]);
+                    
+                    if (configResult.rows.length > 0) {
+                        const row = configResult.rows[0];
+                        return {
+                            instance: {
+                                instance_id: row.instance_id,
+                                name: row.name,
+                                url: row.url,
+                                email_subdomain: row.email_subdomain
+                            },
+                            config: {
+                                id: row.id,
+                                email_address: row.email_address,
+                                email_prefix: row.email_prefix,
+                                default_folder_id: row.default_folder_id,
+                                control_number_patterns: row.control_number_patterns
+                            },
+                            routingType: 'plus-address-custom',
+                            suffix: parsed.suffix
+                        };
+                    }
                 }
                 
-                // Find config by prefix
-                const config = await this.findConfigByPrefix(instance.instance_id, parsed.prefix);
-                if (!config) {
-                    console.log(`No config found for prefix: ${parsed.prefix} in instance ${instance.instance_id}`);
-                    continue;
+                // Handle legacy format with subdomain-prefix
+                if (parsed.subdomain && parsed.prefix) {
+                    // Find instance by subdomain
+                    const instance = await this.findInstanceBySubdomain(parsed.subdomain);
+                    if (!instance) {
+                        console.log(`No instance found for subdomain: ${parsed.subdomain}`);
+                        continue;
+                    }
+                    
+                    // Find config by prefix
+                    const config = await this.findConfigByPrefix(instance.instance_id, parsed.prefix);
+                    if (!config) {
+                        console.log(`No config found for prefix: ${parsed.prefix} in instance ${instance.instance_id}`);
+                        continue;
+                    }
+                    
+                    return {
+                        instance,
+                        config,
+                        routingType: 'plus-address-legacy',
+                        subdomain: parsed.subdomain,
+                        prefix: parsed.prefix
+                    };
                 }
-                
-                return {
-                    instance,
-                    config,
-                    routingType: 'plus-address',
-                    subdomain: parsed.subdomain,
-                    prefix: parsed.prefix
-                };
             }
         }
         

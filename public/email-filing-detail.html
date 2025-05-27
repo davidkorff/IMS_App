@@ -276,6 +276,19 @@
                         <form id="managed-settings-form" class="row justify-content-center">
                             <div class="col-md-6">
                                 <div class="mb-3">
+                                    <label class="form-label">Email Address Suffix</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">documents+</span>
+                                        <input type="text" class="form-control" id="email-suffix" 
+                                               placeholder="origintest-docs" 
+                                               pattern="[a-zA-Z0-9\-_]+"
+                                               required>
+                                        <span class="input-group-text">@42consultingllc.com</span>
+                                    </div>
+                                    <div class="form-text">Enter a unique identifier for this email configuration (letters, numbers, hyphens, and underscores only)</div>
+                                </div>
+                                
+                                <div class="mb-3">
                                     <label class="form-label">IMS Folder ID</label>
                                     <input type="number" class="form-control" id="managed-folder-id" 
                                            placeholder="0" value="0" min="0" max="999">
@@ -836,7 +849,14 @@
                                             <h6 class="card-title">${configType}</h6>
                                             <div class="row">
                                                 <div class="col-md-6">
-                                                    <p class="mb-1"><strong>Email Address:</strong> ${config.email_address}</p>
+                                                    <p class="mb-1">
+                                                        <strong>Email Address:</strong> ${config.email_address}
+                                                        ${config.config_type === 'managed' ? `
+                                                            <button class="btn btn-xs btn-link p-0 ms-2" onclick="editEmailAddress('${config.id}', '${config.email_address}')" title="Edit Email Address">
+                                                                <i class="fas fa-edit small"></i>
+                                                            </button>
+                                                        ` : ''}
+                                                    </p>
                                                     <p class="mb-1"><strong>Last Tested:</strong> ${lastTested}</p>
                                                 </div>
                                                 <div class="col-md-6">
@@ -920,6 +940,14 @@
             document.getElementById('managed-creating').classList.remove('hidden');
             
             const folderId = parseInt(document.getElementById('managed-folder-id').value) || 0;
+            const emailSuffix = document.getElementById('email-suffix').value.trim();
+            
+            if (!emailSuffix) {
+                alert('Please enter an email suffix');
+                document.getElementById('managed-creating').classList.add('hidden');
+                document.getElementById('managed-configure').classList.remove('hidden');
+                return;
+            }
             
             try {
                 const response = await fetch(`/api/email-filing/setup-managed/${instanceId}`, {
@@ -927,7 +955,10 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ default_folder_id: folderId })
+                    body: JSON.stringify({ 
+                        default_folder_id: folderId,
+                        email_suffix: emailSuffix 
+                    })
                 });
                 
                 const data = await response.json();
@@ -1569,6 +1600,50 @@
                 }
             } catch (error) {
                 alert('Error loading error details: ' + error.message);
+            }
+        }
+
+        // Edit email address
+        async function editEmailAddress(configId, currentEmail) {
+            // Extract the current suffix from the email
+            const match = currentEmail.match(/^documents\+([^@]+)@42consultingllc\.com$/);
+            const currentSuffix = match ? match[1] : '';
+            
+            const newSuffix = prompt('Enter new email suffix:\n(Will create: documents+[your-text]@42consultingllc.com)', currentSuffix);
+            
+            if (newSuffix && newSuffix !== currentSuffix) {
+                // Validate suffix format
+                if (!/^[a-zA-Z0-9\-_]+$/.test(newSuffix)) {
+                    alert('Invalid suffix format. Use only letters, numbers, hyphens, and underscores.');
+                    return;
+                }
+                
+                const newEmail = `documents+${newSuffix}@42consultingllc.com`;
+                
+                try {
+                    const response = await fetch(`/api/email-filing/config/${instanceId}/${configId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        },
+                        body: JSON.stringify({
+                            email_address: newEmail,
+                            email_prefix: newSuffix
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('Email address updated successfully!');
+                        await displayConfigDetails();
+                    } else {
+                        alert('Failed to update email address: ' + data.message);
+                    }
+                } catch (error) {
+                    alert('Error updating email address: ' + error.message);
+                }
             }
         }
 

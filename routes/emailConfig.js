@@ -124,33 +124,41 @@ router.get('/config/:instanceId', async (req, res) => {
 router.post('/setup-managed/:instanceId', async (req, res) => {
     try {
         const { instanceId } = req.params;
-        const { email_prefix, default_folder_id = 0 } = req.body;
+        const { email_suffix, default_folder_id = 0 } = req.body;
         
-        // Validate email prefix
-        if (!email_prefix) {
+        // For backward compatibility, check for email_prefix too
+        const suffix = email_suffix || req.body.email_prefix;
+        
+        // Validate email suffix
+        if (!suffix) {
             return res.status(400).json({
                 success: false,
-                message: 'Email prefix is required'
+                message: 'Email suffix is required'
             });
         }
         
         const PlusAddressEmailService = require('../services/plusAddressEmailService');
         const plusAddressEmailService = new PlusAddressEmailService();
         
-        // Validate prefix
-        if (!plusAddressEmailService.validatePrefix(email_prefix)) {
+        // Validate suffix format (alphanumeric, hyphens, underscores)
+        const suffixPattern = /^[a-zA-Z0-9\-_]+$/;
+        if (!suffixPattern.test(suffix)) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid email prefix format'
+                message: 'Invalid email suffix format. Use only letters, numbers, hyphens, and underscores.'
             });
         }
         
-        // Check if prefix already exists for this instance
-        const prefixAvailable = await plusAddressEmailService.isPrefixAvailable(instanceId, email_prefix);
-        if (!prefixAvailable) {
+        // Check if this exact suffix is already in use
+        const existingConfig = await pool.query(
+            'SELECT id FROM email_configurations WHERE email_address = $1',
+            [`documents+${suffix}@42consultingllc.com`]
+        );
+        
+        if (existingConfig.rows.length > 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Email prefix already in use for this instance'
+                message: 'This email suffix is already in use. Please choose a different one.'
             });
         }
         
@@ -169,20 +177,13 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
 
         const instance = instanceResult.rows[0];
         
-        if (!instance.email_subdomain) {
-            return res.status(400).json({
-                success: false,
-                message: 'Instance does not have a subdomain configured. Please contact support.'
-            });
-        }
+        // Generate full plus email address using the custom suffix
+        const fullEmailAddress = `documents+${suffix}@42consultingllc.com`;
         
-        // Generate full plus email address
-        const fullEmailAddress = plusAddressEmailService.generatePlusAddress(instance.email_subdomain, email_prefix);
-        
-        // Create plus address-based email configuration
+        // Create email configuration with custom suffix
         const config = await emailConfigService.createSubdomainEmailConfig(
             instanceId, 
-            email_prefix,
+            suffix,  // Store the suffix as the prefix
             fullEmailAddress,
             default_folder_id
         );
@@ -192,8 +193,7 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             message: 'Email configuration created successfully',
             email_address: fullEmailAddress,
             config_id: config.id,
-            prefix: email_prefix,
-            subdomain: instance.email_subdomain
+            email_suffix: suffix
         });
     } catch (error) {
         console.error('Error setting up managed email:', error);
