@@ -9,7 +9,7 @@ class GraphService {
         this.tenantId = process.env.GRAPH_TENANT_ID;
         this.redirectUri = process.env.GRAPH_REDIRECT_URI || 'https://ims-application.onrender.com/auth/graph/callback';
         this.webhookUrl = process.env.GRAPH_WEBHOOK_URL || 'https://ims-application.onrender.com/webhooks/graph/email';
-        this.emailAddress = 'david@42consultingllc.com';
+        this.emailAddress = 'documents@42consultingllc.com';
         
         this.accessToken = null;
         this.tokenExpiry = null;
@@ -229,17 +229,57 @@ class GraphService {
                 for (const attachment of message.attachments) {
                     console.log(`Processing attachment: ${attachment.name} (${attachment.size} bytes)`);
                     
-                    // Get attachment content as base64
-                    const attachmentData = await client
-                        .api(`/users/${this.emailAddress}/messages/${messageId}/attachments/${attachment.id}/$value`)
-                        .get();
+                    try {
+                        // Get attachment content as stream
+                        const attachmentStream = await client
+                            .api(`/users/${this.emailAddress}/messages/${messageId}/attachments/${attachment.id}/$value`)
+                            .get();
 
-                    processedAttachments.push({
-                        name: attachment.name,
-                        contentType: attachment.contentType,
-                        size: attachment.size,
-                        data: Buffer.from(attachmentData).toString('base64')
-                    });
+                        // Convert stream to buffer
+                        let attachmentBuffer;
+                        if (attachmentStream instanceof ReadableStream) {
+                            // Handle ReadableStream
+                            const reader = attachmentStream.getReader();
+                            const chunks = [];
+                            let done = false;
+                            
+                            while (!done) {
+                                const { value, done: streamDone } = await reader.read();
+                                done = streamDone;
+                                if (value) {
+                                    chunks.push(value);
+                                }
+                            }
+                            
+                            attachmentBuffer = Buffer.concat(chunks);
+                        } else if (Buffer.isBuffer(attachmentStream)) {
+                            // Already a buffer
+                            attachmentBuffer = attachmentStream;
+                        } else if (typeof attachmentStream === 'string') {
+                            // String data
+                            attachmentBuffer = Buffer.from(attachmentStream);
+                        } else {
+                            // Try to convert to buffer
+                            attachmentBuffer = Buffer.from(attachmentStream);
+                        }
+
+                        processedAttachments.push({
+                            name: attachment.name,
+                            contentType: attachment.contentType,
+                            size: attachment.size,
+                            data: attachmentBuffer.toString('base64')
+                        });
+                        
+                        console.log(`Successfully processed attachment: ${attachment.name}`);
+                    } catch (attachmentError) {
+                        console.error(`Error processing attachment ${attachment.name}:`, attachmentError);
+                        processedAttachments.push({
+                            name: attachment.name,
+                            contentType: attachment.contentType,
+                            size: attachment.size,
+                            error: `Failed to download: ${attachmentError.message}`
+                        });
+                    }
                 }
             }
 
