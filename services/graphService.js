@@ -73,6 +73,10 @@ class GraphService {
         });
 
         console.log('Token response:', response.data);
+        
+        if (!response.data.access_token) {
+            throw new Error('No access token in response: ' + JSON.stringify(response.data));
+        }
 
         this.accessToken = response.data.access_token;
         this.tokenExpiry = Date.now() + (response.data.expires_in * 1000);
@@ -132,9 +136,13 @@ class GraphService {
         try {
             console.log('=== TESTING GRAPH API CONNECTION ===');
             
+            await this.ensureToken();
+            console.log('✅ Access token obtained successfully');
+            
             const client = await this.getGraphClient();
             
             // Test basic API access
+            console.log(`Testing access to user: ${this.emailAddress}`);
             const user = await client.api(`/users/${this.emailAddress}`).get();
             console.log('✅ Successfully connected to Graph API');
             console.log('User info:', {
@@ -146,7 +154,23 @@ class GraphService {
             return { success: true, user };
         } catch (error) {
             console.error('❌ Graph API connection test failed:', error);
-            return { success: false, error: error.message };
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                responseData: error.response?.data
+            });
+            
+            return { 
+                success: false, 
+                error: error.message,
+                details: {
+                    code: error.code,
+                    status: error.response?.status,
+                    statusText: error.response?.statusText
+                }
+            };
         }
     }
 

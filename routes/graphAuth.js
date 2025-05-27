@@ -115,7 +115,8 @@ router.get('/test-connection', async (req, res) => {
             success: testResult.success,
             message: testResult.success ? 'Connection successful' : 'Connection failed',
             user_info: testResult.user || null,
-            error: testResult.error || null
+            error: testResult.error || null,
+            details: testResult.details || null
         });
     } catch (error) {
         console.error('Error testing connection:', error);
