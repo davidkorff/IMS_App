@@ -181,15 +181,32 @@ class EmailProcessor {
 
             const client = Client.initWithMiddleware({ authProvider });
             
-            // Get recent emails
+            // Get recent emails including CC/BCC
             const messages = await client
-                .api(`/users/${config.email_address}/mailFolders/inbox/messages`)
-                .top(20)
-                .select('id,subject,from,receivedDateTime,hasAttachments')
+                .api(`/users/${config.email_address}/messages`)
+                .top(40) // Get more to account for filtering
+                .select('id,subject,from,receivedDateTime,hasAttachments,toRecipients,ccRecipients')
                 .orderby('receivedDateTime desc')
                 .get();
 
-            return messages.value.map(msg => ({
+            // Filter emails where our address appears in TO or CC
+            const relevantEmails = messages.value.filter(msg => {
+                const targetEmail = config.email_address.toLowerCase();
+                
+                // Check TO recipients
+                const inTo = msg.toRecipients && msg.toRecipients.some(recipient => 
+                    recipient.emailAddress && recipient.emailAddress.address.toLowerCase() === targetEmail
+                );
+                
+                // Check CC recipients
+                const inCc = msg.ccRecipients && msg.ccRecipients.some(recipient => 
+                    recipient.emailAddress && recipient.emailAddress.address.toLowerCase() === targetEmail
+                );
+                
+                return inTo || inCc;
+            }).slice(0, 20); // Limit to 20 emails
+
+            return relevantEmails.map(msg => ({
                 id: msg.id,
                 subject: msg.subject,
                 from: msg.from ? msg.from.emailAddress.address : 'Unknown',

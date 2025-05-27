@@ -292,10 +292,11 @@
                         <div class="alert alert-info">
                             <h6><i class="fas fa-info-circle"></i> How to Use</h6>
                             <ul class="text-start mb-0">
-                                <li>Include the control number in the email subject</li>
+                                <li>Include the control number in the email subject (e.g., "ID:12345")</li>
                                 <li>Attach any documents you want filed to IMS</li>
-                                <li>Send to your dedicated email address</li>
-                                <li>Documents will automatically appear in IMS</li>
+                                <li>Send, CC, or BCC your dedicated email address</li>
+                                <li><strong>Works with TO, CC, and BCC:</strong> Your email will be processed regardless of recipient type</li>
+                                <li>Documents will automatically appear in IMS within 5 minutes</li>
                             </ul>
                         </div>
 
@@ -643,7 +644,8 @@
                     document.getElementById('instance-name').textContent = instanceData.instance.name;
                     updateEmailStatus(instanceData.instance.email_status || 'not_configured');
                     
-                    if (instanceData.instance.email_status === 'active') {
+                    // Load email config for any configured status
+                    if (instanceData.instance.email_status !== 'not_configured') {
                         await loadEmailConfig();
                     }
                 }
@@ -673,6 +675,8 @@
             } else {
                 document.getElementById('not-configured-view').classList.add('hidden');
                 document.getElementById('configured-view').classList.remove('hidden');
+                // Load configurations when showing the configured view
+                loadEmailConfig();
             }
         }
 
@@ -686,8 +690,10 @@
         // Display pattern configurations section
         async function displayPatternConfigs() {
             try {
+                console.log('Loading pattern configurations for instance:', instanceId);
                 const response = await fetch(`/api/email-filing/config/${instanceId}/all`);
                 const data = await response.json();
+                console.log('Pattern configs response:', data);
                 
                 const patternConfigsDiv = document.getElementById('pattern-configs');
                 
