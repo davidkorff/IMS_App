@@ -43,6 +43,36 @@ class EmailConfigService {
         }
     }
 
+    // Initialize email configurations table with timestamp column
+    async initializeSchema() {
+        try {
+            // Add last_processed_timestamp column if it doesn't exist
+            await pool.query(`
+                ALTER TABLE email_configurations 
+                ADD COLUMN IF NOT EXISTS last_processed_timestamp TIMESTAMP WITH TIME ZONE 
+                DEFAULT '2024-01-01T00:00:00Z'
+            `);
+            console.log('✅ Email configurations schema updated with timestamp tracking');
+        } catch (error) {
+            console.error('Error updating email configurations schema:', error);
+        }
+    }
+
+    // Update last processed timestamp for an instance
+    async updateLastProcessedTimestamp(instanceId, timestamp = null) {
+        try {
+            const processedAt = timestamp || new Date().toISOString();
+            await pool.query(`
+                UPDATE email_configurations 
+                SET last_processed_timestamp = $1 
+                WHERE instance_id = $2
+            `, [processedAt, instanceId]);
+            console.log(`Updated last processed timestamp for instance ${instanceId}: ${processedAt}`);
+        } catch (error) {
+            console.error('Error updating last processed timestamp:', error);
+        }
+    }
+
     // Get email configuration for an instance
     async getEmailConfig(instanceId) {
         try {

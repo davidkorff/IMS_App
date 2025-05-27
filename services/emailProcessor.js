@@ -112,49 +112,45 @@ class EmailProcessor {
         }
     }
 
-    // Get unprocessed emails from mailbox
+    // Get unprocessed emails from mailbox (only emails newer than last processed timestamp)
     async getUnprocessedEmails(config) {
         try {
             let emails = [];
+            
+            // Get the last processed timestamp for this instance
+            const lastProcessed = config.last_processed_timestamp || '2024-01-01T00:00:00Z';
+            console.log(`Getting emails newer than: ${lastProcessed}`);
 
             if (config.config_type === 'managed') {
                 // Use our main Graph service for managed emails
                 const originalEmail = graphService.emailAddress;
                 graphService.emailAddress = config.email_address;
                 
-                emails = await graphService.getRecentEmails(20); // Check last 20 emails
+                emails = await graphService.getEmailsSinceTimestamp(lastProcessed);
                 
                 graphService.emailAddress = originalEmail;
             } else if (config.config_type === 'client_hosted') {
                 // Use client's Graph credentials
-                emails = await this.getEmailsWithClientCredentials(config);
+                emails = await this.getEmailsWithClientCredentialsSinceTimestamp(config, lastProcessed);
             }
 
-            // Filter out emails we've already processed
-            console.log('Checking which emails are unprocessed...');
-            const unprocessed = [];
-            for (const email of emails) {
-                console.log(`Email: "${email.subject}" (ID: ${email.id.substring(0, 20)}...)`);
-                const alreadyProcessed = await this.isEmailAlreadyProcessed(email.id);
-                console.log(`  Already processed: ${alreadyProcessed}`);
-                if (!alreadyProcessed) {
-                    unprocessed.push(email);
-                    console.log(`  ✅ Added to unprocessed list`);
-                } else {
-                    console.log(`  ⏭️ Skipping (already processed)`);
-                }
+            console.log(`Found ${emails.length} new emails since last check`);
+            if (emails.length > 0) {
+                console.log('New emails:');
+                emails.forEach((email, index) => {
+                    console.log(`  ${index + 1}. "${email.subject}" from ${email.from} (${email.receivedDateTime})`);
+                });
             }
 
-            console.log(`Total unprocessed emails: ${unprocessed.length}`);
-            return unprocessed;
+            return emails;
         } catch (error) {
             console.error('Error getting unprocessed emails:', error);
             return [];
         }
     }
 
-    // Get emails using client credentials
-    async getEmailsWithClientCredentials(config) {
+    // Get emails using client credentials since timestamp
+    async getEmailsWithClientCredentialsSinceTimestamp(config, sinceTimestamp) {
         try {
             const { Client } = require('@microsoft/microsoft-graph-client');
             const axios = require('axios');
@@ -181,32 +177,19 @@ class EmailProcessor {
 
             const client = Client.initWithMiddleware({ authProvider });
             
-            // Get recent emails including CC/BCC
+            // Get ALL emails newer than timestamp (no TO/CC filtering)
             const messages = await client
                 .api(`/users/${config.email_address}/messages`)
-                .top(40) // Get more to account for filtering
-                .select('id,subject,from,receivedDateTime,hasAttachments,toRecipients,ccRecipients')
+                .filter(`receivedDateTime gt ${sinceTimestamp}`)
+                .top(100) // Get up to 100 new emails
+                .select('id,subject,from,receivedDateTime,hasAttachments')
                 .orderby('receivedDateTime desc')
                 .get();
 
-            // Filter emails where our address appears in TO or CC
-            const relevantEmails = messages.value.filter(msg => {
-                const targetEmail = config.email_address.toLowerCase();
-                
-                // Check TO recipients
-                const inTo = msg.toRecipients && msg.toRecipients.some(recipient => 
-                    recipient.emailAddress && recipient.emailAddress.address.toLowerCase() === targetEmail
-                );
-                
-                // Check CC recipients
-                const inCc = msg.ccRecipients && msg.ccRecipients.some(recipient => 
-                    recipient.emailAddress && recipient.emailAddress.address.toLowerCase() === targetEmail
-                );
-                
-                return inTo || inCc;
-            }).slice(0, 20); // Limit to 20 emails
+            console.log(`Retrieved ${messages.value.length} emails newer than ${sinceTimestamp}`);
 
-            return relevantEmails.map(msg => ({
+            // Return ALL emails (no filtering by TO/CC)
+            return messages.value.map(msg => ({
                 id: msg.id,
                 subject: msg.subject,
                 from: msg.from ? msg.from.emailAddress.address : 'Unknown',
@@ -241,15 +224,10 @@ class EmailProcessor {
             // Extract control number
             const controlNumber = this.extractControlNumber(email.subject, fullConfig.control_number_patterns);
             
+            // Process ALL emails - control number is optional now
             if (!controlNumber) {
-                console.log('No control number found, skipping email');
-                await emailConfigService.logEmailProcessing(
-                    instanceConfig.instance_id,
-                    { ...email, control_number: null },
-                    'skipped',
-                    'No control number found in subject'
-                );
-                return;
+                console.log('No control number found - filing email without IMS association');
+                // We'll still process the email but won't file it to IMS
             }
 
             console.log(`Found control number: ${controlNumber}`);
@@ -402,6 +380,13 @@ class EmailProcessor {
             filedDocuments.forEach(doc => {
                 console.log(`   ${doc.type}: ${doc.name} (GUID: ${doc.guid})`);
             });
+            
+            // Update last processed timestamp for this instance
+            const emailConfigService = require('./emailConfigService');
+            await emailConfigService.updateLastProcessedTimestamp(
+                instanceConfig.instance_id, 
+                email.receivedDateTime
+            );
 
         } catch (error) {
             console.error('Error filing email to IMS:', error);
