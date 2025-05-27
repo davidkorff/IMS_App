@@ -260,13 +260,36 @@
         <div id="managed-setup" class="hidden">
             <div class="wizard-steps">
                 <div class="step active">Choose Option</div>
+                <div class="step">Configure Settings</div>
                 <div class="step">Create Email</div>
                 <div class="step">Complete</div>
             </div>
 
             <div class="card">
-                <div class="card-body text-center">
-                    <div id="managed-creating">
+                <div class="card-body">
+                    <div id="managed-configure">
+                        <h5 class="card-title text-center mb-4">Email Filing Settings</h5>
+                        <p class="text-muted text-center">Configure where your documents will be filed in IMS</p>
+                        
+                        <form id="managed-settings-form" class="row justify-content-center">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">IMS Folder ID</label>
+                                    <input type="number" class="form-control" id="managed-folder-id" 
+                                           placeholder="0" value="0" min="0" max="999">
+                                    <div class="form-text">Documents will be filed to this folder in IMS. Default is 0 (root folder).</div>
+                                </div>
+                                
+                                <div class="text-center">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-arrow-right"></i> Create Email Address
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div id="managed-creating" class="text-center hidden">
                         <div class="loading-spinner">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
@@ -833,13 +856,30 @@
         });
 
         // Start managed email setup
-        async function startManagedSetup() {
+        function startManagedSetup() {
             document.getElementById('not-configured-view').classList.add('hidden');
             document.getElementById('managed-setup').classList.remove('hidden');
+            // Show the configuration form first
+            document.getElementById('managed-configure').classList.remove('hidden');
+        }
+
+        // Managed settings form submission
+        document.getElementById('managed-settings-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Hide form and show loading
+            document.getElementById('managed-configure').classList.add('hidden');
+            document.getElementById('managed-creating').classList.remove('hidden');
+            
+            const folderId = parseInt(document.getElementById('managed-folder-id').value) || 0;
             
             try {
                 const response = await fetch(`/api/email-filing/setup-managed/${instanceId}`, {
-                    method: 'POST'
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ default_folder_id: folderId })
                 });
                 
                 const data = await response.json();
@@ -862,11 +902,11 @@
             } catch (error) {
                 alert('Error setting up managed email: ' + error.message);
                 console.error('Managed setup error:', error);
-                // Go back to main view on error
-                document.getElementById('managed-setup').classList.add('hidden');
-                document.getElementById('not-configured-view').classList.remove('hidden');
+                // Show form again on error
+                document.getElementById('managed-creating').classList.add('hidden');
+                document.getElementById('managed-configure').classList.remove('hidden');
             }
-        }
+        });
 
         // Start client-hosted setup
         function startClientSetup() {

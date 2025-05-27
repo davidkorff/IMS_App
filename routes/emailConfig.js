@@ -124,6 +124,7 @@ router.get('/config/:instanceId', async (req, res) => {
 router.post('/setup-managed/:instanceId', async (req, res) => {
     try {
         const { instanceId } = req.params;
+        const { default_folder_id = 0 } = req.body;
         
         // Check if managed configuration already exists
         const existingResult = await pool.query(`
@@ -158,7 +159,7 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
         const instanceName = instanceResult.rows[0].name;
         
         // Create managed email configuration
-        const config = await emailConfigService.createManagedEmailConfig(instanceId, instanceName);
+        const config = await emailConfigService.createManagedEmailConfig(instanceId, instanceName, default_folder_id);
         
         res.json({
             success: true,

@@ -120,7 +120,7 @@ class EmailConfigService {
     }
 
     // Create managed email configuration
-    async createManagedEmailConfig(instanceId, instanceName) {
+    async createManagedEmailConfig(instanceId, instanceName, defaultFolderId = 0) {
         try {
             // Generate unique email address
             const emailAddress = `documents-${instanceName.toLowerCase().replace(/[^a-z0-9]/g, '')}@42consultingllc.com`;
@@ -131,7 +131,7 @@ class EmailConfigService {
                 (instance_id, config_type, email_address, auto_extract_control_numbers, include_attachments, control_number_patterns, default_folder_id)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
                 RETURNING *
-            `, [instanceId, 'managed', emailAddress, true, true, defaultPatterns, 0]);
+            `, [instanceId, 'managed', emailAddress, true, true, defaultPatterns, defaultFolderId]);
 
             // Update instance status
             await pool.query(`
