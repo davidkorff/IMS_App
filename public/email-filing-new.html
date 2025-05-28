@@ -918,6 +918,13 @@
                 
                 const data = await response.json();
                 
+                console.log('Setup managed response:', data);
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${data.message || 'Setup failed'}`);
+                }
+                
                 if (data.success) {
                     document.getElementById('managed-creating').classList.add('hidden');
                     document.getElementById('managed-success').classList.remove('hidden');

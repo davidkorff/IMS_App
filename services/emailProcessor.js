@@ -160,7 +160,12 @@ class EmailProcessor {
 
             return emails;
         } catch (error) {
-            console.error('Error getting unprocessed emails:', error);
+            if (error.code === 'ErrorInvalidUser') {
+                console.log(`⚠️  Email address '${config.email_address}' is not yet set up in email system. Skipping processing.`);
+                console.log(`   To fix this, set up email forwarding for ${config.email_address} to your actual inbox.`);
+            } else {
+                console.error('Error getting unprocessed emails:', error);
+            }
             return [];
         }
     }

@@ -126,15 +126,16 @@ app.listen(PORT, async () => {
         console.error('❌ Failed to initialize email configuration schema:', error.message);
     }
     
-    // Start email processing automatically
+    // Start catch-all email processing automatically  
     try {
-        const emailProcessor = require('./services/emailProcessor');
+        const catchAllEmailProcessor = require('./services/catchAllEmailProcessor');
         const intervalMinutes = 5; // Check every 5 minutes
         
-        console.log('Starting automatic email processing...');
-        emailProcessor.startProcessing(intervalMinutes);
-        console.log(`✅ Email monitoring started - checking every ${intervalMinutes} minutes`);
+        console.log('Starting automatic catch-all email processing...');
+        catchAllEmailProcessor.startProcessing(intervalMinutes);
+        console.log(`✅ Catch-all email monitoring started - checking every ${intervalMinutes} minutes`);
+        console.log(`📨 Processing emails from catch-all inbox: documents@42consultingllc.com`);
     } catch (error) {
-        console.error('❌ Failed to start email processing:', error.message);
+        console.error('❌ Failed to start catch-all email processing:', error.message);
     }
 }); 

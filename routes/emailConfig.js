@@ -160,16 +160,32 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             console.log(`Warning: User choosing common prefix: ${suffix}`);
         }
         
-        // Check if this exact suffix is already in use
+        // Check if this instance already has any email configuration
+        const existingInstanceConfig = await pool.query(
+            'SELECT id, email_address, email_prefix FROM email_configurations WHERE instance_id = $1',
+            [instanceId]
+        );
+        
+        if (existingInstanceConfig.rows.length > 0) {
+            const existing = existingInstanceConfig.rows[0];
+            return res.status(200).json({
+                success: true,
+                already_configured: true,
+                email_address: existing.email_address,
+                message: `Email filing is already configured for this instance with address: ${existing.email_address}`
+            });
+        }
+        
+        // Check if this exact suffix is already in use by other instances
         const existingConfig = await pool.query(
-            'SELECT id FROM email_configurations WHERE email_address = $1',
+            'SELECT id, instance_id FROM email_configurations WHERE email_address = $1',
             [`documents+${suffix}@42consultingllc.com`]
         );
         
         if (existingConfig.rows.length > 0) {
             return res.status(400).json({
                 success: false,
-                message: 'This email suffix is already in use. Please choose a different one.'
+                message: 'This email suffix is already in use by another instance. Please choose a different one.'
             });
         }
         
