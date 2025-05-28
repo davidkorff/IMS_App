@@ -160,19 +160,19 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             console.log(`Warning: User choosing common prefix: ${suffix}`);
         }
         
-        // Check if this instance already has any email configuration
-        const existingInstanceConfig = await pool.query(
-            'SELECT id, email_address, email_prefix FROM email_configurations WHERE instance_id = $1',
-            [instanceId]
+        // Check if this specific email prefix is already configured for this instance
+        const existingPrefixConfig = await pool.query(
+            'SELECT id, email_address FROM email_configurations WHERE instance_id = $1 AND email_prefix = $2',
+            [instanceId, suffix]
         );
         
-        if (existingInstanceConfig.rows.length > 0) {
-            const existing = existingInstanceConfig.rows[0];
+        if (existingPrefixConfig.rows.length > 0) {
+            const existing = existingPrefixConfig.rows[0];
             return res.status(200).json({
                 success: true,
                 already_configured: true,
                 email_address: existing.email_address,
-                message: `Email filing is already configured for this instance with address: ${existing.email_address}`
+                message: `Email prefix '${suffix}' is already configured for this instance with address: ${existing.email_address}`
             });
         }
         
@@ -226,19 +226,6 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: `This email configuration already exists. Please choose a different prefix.`
-            });
-        }
-        
-        // Check if this email configuration already exists
-        const existingPrefixConfig = await pool.query(
-            'SELECT id FROM email_configurations WHERE instance_id = $1 AND email_prefix = $2',
-            [instanceId, suffix]
-        );
-        
-        if (existingPrefixConfig.rows.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'This email prefix is already configured for this instance'
             });
         }
         
