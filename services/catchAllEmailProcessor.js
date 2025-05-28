@@ -201,6 +201,50 @@ class CatchAllEmailProcessor {
         return true;
     }
 
+    /**
+     * Extract original recipient from email headers (for forwarded emails)
+     */
+    extractOriginalRecipient(email) {
+        // Check various header fields that might contain the original recipient
+        const headers = email.internetMessageHeaders || [];
+        
+        console.log(`DEBUG - Checking ${headers.length} email headers`);
+        
+        for (const header of headers) {
+            const name = header.name.toLowerCase();
+            const value = header.value.toLowerCase();
+            
+            // Check common headers that contain original recipient info
+            if (name === 'x-original-to' || 
+                name === 'delivered-to' || 
+                name === 'envelope-to' ||
+                name === 'x-envelope-to' ||
+                name === 'x-forwarded-to' ||
+                name === 'x-forwarded-for' ||
+                name === 'received-for') {
+                
+                console.log(`DEBUG - Found ${name}: ${value}`);
+                
+                // Extract @42ims.com address from header value
+                const match = value.match(/([a-z0-9._-]+-[a-z0-9-]+@42ims\.com)/);
+                if (match) {
+                    return match[1];
+                }
+            }
+            
+            // Also check the To header content
+            if (name === 'to') {
+                console.log(`DEBUG - Found to header: ${value}`);
+                const match = value.match(/([a-z0-9._-]+-[a-z0-9-]+@42ims\.com)/);
+                if (match) {
+                    return match[1];
+                }
+            }
+        }
+        
+        console.log('DEBUG - No original recipient found in headers');
+        return null;
+    }
 
     /**
      * Parse recipient from email TO field
@@ -209,7 +253,22 @@ class CatchAllEmailProcessor {
         // Debug: Log all recipients
         console.log(`DEBUG - Parsing recipients for email: ${email.subject}`);
         
-        // Check TO recipients
+        // First try to get the original recipient from email headers
+        const originalRecipient = this.extractOriginalRecipient(email);
+        if (originalRecipient) {
+            console.log(`DEBUG - Found original recipient in headers: ${originalRecipient}`);
+            const match = originalRecipient.match(/^([a-z0-9._-]+)-([a-z0-9-]+)@42ims\.com$/);
+            if (match) {
+                console.log(`DEBUG - Original recipient matches pattern -> prefix: ${match[1]}, uniqueId: ${match[2]}`);
+                return {
+                    email: originalRecipient,
+                    prefix: match[1],
+                    uniqueId: match[2]
+                };
+            }
+        }
+        
+        // Check TO recipients as fallback
         if (!email.toRecipients || email.toRecipients.length === 0) {
             console.log('DEBUG - No toRecipients found');
             return null;
@@ -239,12 +298,18 @@ class CatchAllEmailProcessor {
 
         // Check CC as fallback
         if (email.ccRecipients) {
+            console.log(`DEBUG - Found ${email.ccRecipients.length} CC recipients:`);
+            email.ccRecipients.forEach((r, i) => {
+                console.log(`  CC ${i + 1}. ${r.emailAddress.address}`);
+            });
+            
             for (const recipient of email.ccRecipients) {
                 const address = recipient.emailAddress.address.toLowerCase();
                 
                 // Match format: prefix-uniqueid@42ims.com
                 const match = address.match(/^([a-z0-9._-]+)-([a-z0-9-]+)@42ims\.com$/);
                 if (match) {
+                    console.log(`DEBUG - Found matching CC address: ${address}`);
                     return {
                         email: address,
                         prefix: match[1],
@@ -255,6 +320,31 @@ class CatchAllEmailProcessor {
             }
         }
 
+        // Check BCC as fallback (rarely available but worth trying)
+        if (email.bccRecipients) {
+            console.log(`DEBUG - Found ${email.bccRecipients.length} BCC recipients:`);
+            email.bccRecipients.forEach((r, i) => {
+                console.log(`  BCC ${i + 1}. ${r.emailAddress.address}`);
+            });
+            
+            for (const recipient of email.bccRecipients) {
+                const address = recipient.emailAddress.address.toLowerCase();
+                
+                // Match format: prefix-uniqueid@42ims.com
+                const match = address.match(/^([a-z0-9._-]+)-([a-z0-9-]+)@42ims\.com$/);
+                if (match) {
+                    console.log(`DEBUG - Found matching BCC address: ${address}`);
+                    return {
+                        email: address,
+                        prefix: match[1],
+                        uniqueId: match[2],
+                        fromBCC: true
+                    };
+                }
+            }
+        }
+
+        console.log('DEBUG - No valid recipients found in TO, CC, or BCC');
         return null;
     }
 
