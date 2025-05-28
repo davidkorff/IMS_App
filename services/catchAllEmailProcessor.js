@@ -205,6 +205,10 @@ class CatchAllEmailProcessor {
      * Extract original recipient from email headers (for forwarded emails)
      */
     extractOriginalRecipient(email) {
+        // Debug: Log the entire email object structure to see what fields exist
+        console.log('DEBUG - Email object keys:', Object.keys(email));
+        console.log('DEBUG - Email object:', JSON.stringify(email, null, 2));
+        
         // Check various header fields that might contain the original recipient
         const headers = email.internetMessageHeaders || [];
         
