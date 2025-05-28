@@ -243,7 +243,7 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             email_address: fullEmailAddress,
             config_id: config.id,
             email_prefix: suffix,
-            subdomain: subdomain
+            subdomain: uniqueIdentifier
         });
     } catch (error) {
         console.error('Error setting up managed email:', error);
