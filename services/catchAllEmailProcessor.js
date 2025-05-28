@@ -254,7 +254,10 @@ class CatchAllEmailProcessor {
         console.log(`DEBUG - Parsing recipients for email: ${email.subject}`);
         
         // First try to get the original recipient from email headers
+        console.log('DEBUG - Attempting to extract original recipient from headers...');
         const originalRecipient = this.extractOriginalRecipient(email);
+        console.log(`DEBUG - Header extraction result: ${originalRecipient || 'null'}`);
+        
         if (originalRecipient) {
             console.log(`DEBUG - Found original recipient in headers: ${originalRecipient}`);
             const match = originalRecipient.match(/^([a-z0-9._-]+)-([a-z0-9-]+)@42ims\.com$/);
@@ -265,6 +268,8 @@ class CatchAllEmailProcessor {
                     prefix: match[1],
                     uniqueId: match[2]
                 };
+            } else {
+                console.log(`DEBUG - Original recipient ${originalRecipient} does not match expected pattern`);
             }
         }
         
