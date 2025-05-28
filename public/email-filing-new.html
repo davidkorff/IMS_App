@@ -654,6 +654,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/global-auth.js"></script>
     <script>
         let instanceId = null;
         let selectedOption = null;
@@ -909,10 +910,6 @@
             try {
                 const response = await fetch(`/api/email-filing/setup-managed/${instanceId}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
                     body: JSON.stringify({ 
                         email_prefix: emailPrefix,
                         default_folder_id: folderId 
@@ -1566,34 +1563,30 @@
             const prefix = this.value.toLowerCase();
             if (prefix && instanceId) {
                 try {
-                    const response = await fetch(`/api/instances/${instanceId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
-                        }
-                    });
+                    const response = await fetch(`/api/instances/${instanceId}`);
                     const data = await response.json();
-                    if (data.success && data.instance.email_subdomain) {
+                    
+                    console.log('Instance data for email preview:', data);
+                    
+                    if (data.success && data.instance && data.instance.email_subdomain) {
                         document.getElementById('managed-email-preview').innerHTML = 
                             `Your email address will be: <strong>${prefix}-${data.instance.email_subdomain}@42ims.com</strong>`;
                     } else {
+                        console.log('Instance missing email_subdomain:', data.instance);
                         document.getElementById('managed-email-preview').textContent = 
                             'This instance needs a subdomain configured. Please contact support.';
                     }
                 } catch (error) {
                     console.error('Error loading subdomain:', error);
+                    document.getElementById('managed-email-preview').textContent = 
+                        'Error loading email preview. Please refresh the page.';
                 }
             }
         });
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', () => {
-            // Check authentication
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = '/index.html';
-                return;
-            }
-            
+            // Auth check is handled by global-auth.js
             loadPageData();
             checkMonitoringStatus();
         });
