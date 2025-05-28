@@ -205,7 +205,7 @@ class GraphService {
                 .api(`/users/${mailboxEmail}/messages`)
                 .filter(`receivedDateTime gt ${sinceTimestamp}`)
                 .top(100) // Get up to 100 new emails
-                .select('id,subject,from,receivedDateTime,hasAttachments,toRecipients,ccRecipients')
+                .select('id,subject,from,receivedDateTime,hasAttachments,toRecipients,ccRecipients,bccRecipients,internetMessageHeaders')
                 .orderby('receivedDateTime desc')
                 .get();
 
