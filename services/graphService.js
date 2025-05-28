@@ -230,13 +230,17 @@ class GraphService {
                 console.log(`Filtered to ${filteredMessages.length} emails sent to ${targetEmailAddress}`);
             }
             
-            // Return filtered emails
+            // Return filtered emails with ALL fields intact
             return filteredMessages.map(msg => ({
                 id: msg.id,
                 subject: msg.subject,
                 from: msg.from ? msg.from.emailAddress.address : 'Unknown',
                 receivedDateTime: msg.receivedDateTime,
-                hasAttachments: msg.hasAttachments
+                hasAttachments: msg.hasAttachments,
+                toRecipients: msg.toRecipients,
+                ccRecipients: msg.ccRecipients,
+                bccRecipients: msg.bccRecipients,
+                internetMessageHeaders: msg.internetMessageHeaders
             }));
         } catch (error) {
             console.error('Error getting emails since timestamp:', error);
