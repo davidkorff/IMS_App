@@ -17,10 +17,9 @@ SET email_status = 'active'
 WHERE instance_id = 3 AND name = 'ISCTest';
 
 -- Step 3: Update the existing email configuration to new format
--- Change from 'documents+origintest@42consultingllc.com' to 'origintest-origintest@42ims.com'
+-- Change from 'documents+origintest@42consultingllc.com' to 'docs-origintest@42ims.com'
 UPDATE email_configurations 
-SET email_address = 'docs-origintest@42ims.com',
-    email_system_type = 'unique_identifier'
+SET email_address = 'docs-origintest@42ims.com'
 WHERE id = 1 AND instance_id = 1;
 
 -- Step 4: Add unique constraint on email_address (if not exists)

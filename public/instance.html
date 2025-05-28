@@ -380,17 +380,14 @@
         </div>
     </div>
 
+    <script src="/js/global-auth.js"></script>
     <script>
         let currentInstance = null;
 
         async function loadInstanceDetails() {
             const instanceId = window.location.pathname.split('/').pop();
             try {
-                const response = await fetch(`/api/instances/${instanceId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
+                const response = await fetch(`/api/instances/${instanceId}`);
 
                 if (!response.ok) {
                     throw new Error('Failed to load instance details');
@@ -449,10 +446,6 @@
 
                 const response = await fetch('/api/reports/submissions', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
                     body: JSON.stringify(reportData)
                 });
 
