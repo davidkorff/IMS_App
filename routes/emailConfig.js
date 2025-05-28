@@ -725,7 +725,9 @@ router.post('/process-emails/:instanceId', async (req, res) => {
         
         console.log(`Manual email processing triggered for instance ${instanceId}`);
         
-        const result = await emailProcessor.processInstanceNow(instanceId);
+        // Use catch-all processor for manual processing
+        const catchAllEmailProcessor = require('../services/catchAllEmailProcessor');
+        const result = await catchAllEmailProcessor.processAllEmails();
         
         res.json({
             success: result.success,

@@ -206,10 +206,19 @@ class CatchAllEmailProcessor {
      * Parse recipient from email TO field
      */
     async parseRecipient(email) {
+        // Debug: Log all recipients
+        console.log(`DEBUG - Parsing recipients for email: ${email.subject}`);
+        
         // Check TO recipients
         if (!email.toRecipients || email.toRecipients.length === 0) {
+            console.log('DEBUG - No toRecipients found');
             return null;
         }
+
+        console.log(`DEBUG - Found ${email.toRecipients.length} TO recipients:`);
+        email.toRecipients.forEach((r, i) => {
+            console.log(`  ${i + 1}. ${r.emailAddress.address}`);
+        });
 
         for (const recipient of email.toRecipients) {
             const address = recipient.emailAddress.address.toLowerCase();
@@ -217,11 +226,14 @@ class CatchAllEmailProcessor {
             // Match format: prefix-uniqueid@42ims.com
             const match = address.match(/^([a-z0-9._-]+)-([a-z0-9-]+)@42ims\.com$/);
             if (match) {
+                console.log(`DEBUG - Found matching address: ${address} -> prefix: ${match[1]}, uniqueId: ${match[2]}`);
                 return {
                     email: address,
                     prefix: match[1],
                     uniqueId: match[2]
                 };
+            } else {
+                console.log(`DEBUG - Address ${address} does not match pattern`);
             }
         }
 
