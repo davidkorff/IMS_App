@@ -325,7 +325,7 @@ class GraphService {
                     try {
                         // Get attachment content as stream
                         const attachmentStream = await client
-                            .api(`/users/${this.emailAddress}/messages/${messageId}/attachments/${attachment.id}/$value`)
+                            .api(`/users/${mailboxEmail}/messages/${messageId}/attachments/${attachment.id}/$value`)
                             .get();
 
                         // Convert stream to buffer

@@ -32,7 +32,31 @@ router.post('/', auth, async (req, res) => {
         if (!subdomain) {
             // Auto-generate from instance name
             subdomain = subdomainEmailService.generateSubdomain(name);
+        } else {
+            // Format user-provided subdomain
+            subdomain = subdomain
+                .toLowerCase()
+                .replace(/[^a-z0-9-]/g, '-')  // Replace invalid chars with hyphens
+                .replace(/-+/g, '-')           // Replace multiple hyphens with single
+                .replace(/^-+|-+$/g, '');      // Remove leading/trailing hyphens
+            
+            // Ensure it starts with a letter or number
+            if (!/^[a-z0-9]/.test(subdomain)) {
+                subdomain = 'inst-' + subdomain;
+            }
+            
+            // Ensure it ends with a letter or number
+            if (!/[a-z0-9]$/.test(subdomain)) {
+                subdomain = subdomain.replace(/-+$/, '');
+            }
+            
+            // Limit length
+            if (subdomain.length > 63) {
+                subdomain = subdomain.substring(0, 63);
+            }
         }
+        
+        console.log(`[${requestId}] Original subdomain: "${emailSubdomain}", formatted: "${subdomain}"`);
         
         // Check if subdomain is available
         const availability = await subdomainEmailService.isSubdomainAvailable(subdomain);

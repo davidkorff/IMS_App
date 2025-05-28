@@ -1574,7 +1574,7 @@
                     const data = await response.json();
                     if (data.success && data.instance.email_subdomain) {
                         document.getElementById('managed-email-preview').innerHTML = 
-                            `Your email address will be: <strong>${prefix}@${data.instance.email_subdomain}.42consultingllc.com</strong>`;
+                            `Your email address will be: <strong>${prefix}-${data.instance.email_subdomain}@42ims.com</strong>`;
                     } else {
                         document.getElementById('managed-email-preview').textContent = 
                             'This instance needs a subdomain configured. Please contact support.';

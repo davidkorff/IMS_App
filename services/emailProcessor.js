@@ -411,15 +411,58 @@ class EmailProcessor {
                 attachmentCount: message.attachments ? message.attachments.length : 0
             });
 
+            // Process attachments if any
+            const processedAttachments = [];
+            if (message.attachments && message.attachments.length > 0) {
+                for (const attachment of message.attachments) {
+                    console.log(`Processing attachment: ${attachment.name} (${attachment.size} bytes)`);
+                    
+                    try {
+                        // Get attachment content
+                        const attachmentStream = await client
+                            .api(`/users/${mailboxEmail}/messages/${messageId}/attachments/${attachment.id}/$value`)
+                            .get();
+
+                        // Convert to buffer
+                        let attachmentBuffer;
+                        if (Buffer.isBuffer(attachmentStream)) {
+                            attachmentBuffer = attachmentStream;
+                        } else if (typeof attachmentStream === 'string') {
+                            attachmentBuffer = Buffer.from(attachmentStream);
+                        } else {
+                            attachmentBuffer = Buffer.from(attachmentStream);
+                        }
+
+                        processedAttachments.push({
+                            name: attachment.name,
+                            contentType: attachment.contentType,
+                            size: attachment.size,
+                            data: attachmentBuffer.toString('base64')
+                        });
+                        
+                        console.log(`Successfully processed attachment: ${attachment.name}`);
+                    } catch (attachmentError) {
+                        console.error(`Error processing attachment ${attachment.name}:`, attachmentError);
+                        processedAttachments.push({
+                            name: attachment.name,
+                            contentType: attachment.contentType,
+                            size: attachment.size,
+                            error: `Failed to download: ${attachmentError.message}`
+                        });
+                    }
+                }
+            }
+
             // Format response similar to graphService
             return {
                 id: message.id,
                 subject: message.subject,
                 from: message.from ? message.from.emailAddress.address : 'Unknown',
-                body: message.body,
+                bodyContent: message.body ? message.body.content : '',
+                bodyContentType: message.body ? message.body.contentType : 'text',
                 receivedDateTime: message.receivedDateTime,
                 hasAttachments: message.hasAttachments,
-                attachments: message.attachments || []
+                attachments: processedAttachments
             };
         } catch (error) {
             console.error('Error getting full email with client credentials:', error);
@@ -577,6 +620,9 @@ class EmailProcessor {
     // Manual trigger for testing
     async processInstanceNow(instanceId) {
         try {
+            console.log(`Manual email processing triggered for instance ${instanceId}`);
+            
+            // Get instance configuration
             const result = await pool.query(`
                 SELECT 
                     ii.instance_id,
@@ -590,17 +636,20 @@ class EmailProcessor {
                 JOIN email_configurations ec ON ii.instance_id = ec.instance_id
                 WHERE ii.instance_id = $1
                   AND ii.email_status = 'active'
+                  AND ec.test_status = 'success'
             `, [instanceId]);
 
             if (result.rows.length === 0) {
                 throw new Error('No active email configuration found for this instance');
             }
 
-            await this.processInstanceEmails(result.rows[0]);
+            const config = result.rows[0];
+            await this.processInstanceEmails(config);
+            
             return { success: true, message: 'Email processing completed' };
         } catch (error) {
             console.error('Error in manual email processing:', error);
-            return { success: false, error: error.message };
+            throw error;
         }
     }
 }

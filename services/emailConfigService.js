@@ -141,7 +141,7 @@ class EmailConfigService {
                 'managed',
                 fullEmailAddress,
                 emailPrefix,
-                'subdomain',
+                'subdomain',  // Set system type to subdomain
                 true,
                 defaultPatterns,
                 true,

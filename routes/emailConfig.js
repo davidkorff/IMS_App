@@ -129,24 +129,35 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
         // For backward compatibility, check for email_prefix too
         const suffix = email_suffix || req.body.email_prefix;
         
-        // Validate email suffix
+        // Validate email prefix
         if (!suffix) {
             return res.status(400).json({
                 success: false,
-                message: 'Email suffix is required'
+                message: 'Email prefix is required'
             });
         }
         
-        const PlusAddressEmailService = require('../services/plusAddressEmailService');
-        const plusAddressEmailService = new PlusAddressEmailService();
-        
-        // Validate suffix format (alphanumeric, hyphens, underscores)
-        const suffixPattern = /^[a-zA-Z0-9\-_]+$/;
-        if (!suffixPattern.test(suffix)) {
+        // Validate prefix format (must be valid email local part)
+        const prefixPattern = /^[a-z0-9._-]+$/i;
+        if (!prefixPattern.test(suffix)) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid email suffix format. Use only letters, numbers, hyphens, and underscores.'
+                message: 'Invalid email prefix. Use only letters, numbers, dots, hyphens, and underscores.'
             });
+        }
+        
+        // Ensure prefix is not too long
+        if (suffix.length > 64) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email prefix must be 64 characters or less.'
+            });
+        }
+        
+        // Suggest avoiding common/generic prefixes
+        const commonPrefixes = ['admin', 'info', 'support', 'help', 'contact', 'sales', 'hello'];
+        if (commonPrefixes.includes(suffix.toLowerCase())) {
+            console.log(`Warning: User choosing common prefix: ${suffix}`);
         }
         
         // Check if this exact suffix is already in use
@@ -162,7 +173,7 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             });
         }
         
-        // Get instance details including subdomain
+        // Get instance details including unique identifier
         const instanceResult = await pool.query(
             'SELECT name, email_subdomain FROM ims_instances WHERE instance_id = $1',
             [instanceId]
@@ -177,13 +188,48 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
 
         const instance = instanceResult.rows[0];
         
-        // Generate full plus email address using the custom suffix
-        const fullEmailAddress = `documents+${suffix}@42consultingllc.com`;
+        // Check if instance has unique identifier
+        const uniqueIdentifier = instance.email_subdomain;
+        if (!uniqueIdentifier) {
+            return res.status(400).json({
+                success: false,
+                message: 'This instance needs a unique email identifier configured. Please set one in your instance settings.'
+            });
+        }
         
-        // Create email configuration with custom suffix
+        // Create email in format: prefix-uniqueidentifier@42ims.com
+        const fullEmailAddress = `${suffix}-${uniqueIdentifier}@42ims.com`;
+        
+        // Check if this email is already taken (shouldn't happen with unique identifiers, but just in case)
+        const emailTaken = await pool.query(
+            'SELECT id FROM email_configurations WHERE email_address = $1',
+            [fullEmailAddress]
+        );
+        
+        if (emailTaken.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `This email configuration already exists. Please choose a different prefix.`
+            });
+        }
+        
+        // Check if this email configuration already exists
+        const existingPrefixConfig = await pool.query(
+            'SELECT id FROM email_configurations WHERE instance_id = $1 AND email_prefix = $2',
+            [instanceId, suffix]
+        );
+        
+        if (existingPrefixConfig.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'This email prefix is already configured for this instance'
+            });
+        }
+        
+        // Create email configuration with subdomain format
         const config = await emailConfigService.createSubdomainEmailConfig(
             instanceId, 
-            suffix,  // Store the suffix as the prefix
+            suffix,  // This is the email prefix (e.g., "docs")
             fullEmailAddress,
             default_folder_id
         );
@@ -193,7 +239,8 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
             message: 'Email configuration created successfully',
             email_address: fullEmailAddress,
             config_id: config.id,
-            email_suffix: suffix
+            email_prefix: suffix,
+            subdomain: subdomain
         });
     } catch (error) {
         console.error('Error setting up managed email:', error);
