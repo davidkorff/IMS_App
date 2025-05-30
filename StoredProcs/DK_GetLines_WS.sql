@@ -1,10 +1,9 @@
 CREATE PROCEDURE [dbo].[DK_GetLines_WS]
-    @companyId UNIQUEIDENTIFIER
 AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Return all active lines for the given company
+    -- Return all active lines
     SELECT 
         cl.CompanyLineID,
         cl.CompanyLineGUID,
@@ -16,8 +15,7 @@ BEGIN
     INNER JOIN 
         Line l ON cl.LineID = l.LineID
     WHERE 
-        cl.CompanyLocationGUID = @companyId
-        AND cl.IsActive = 1
+        cl.IsActive = 1
     ORDER BY 
         l.LineName ASC;
 END

@@ -20,5 +20,6 @@
       "Bash(git rev-parse:*)"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": false
 }

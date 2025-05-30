@@ -1,10 +1,10 @@
 CREATE PROCEDURE [dbo].[DK_GetCompanyLineForms_WS]
-    @companyLineStateId UNIQUEIDENTIFIER
+    @LineID INT
 AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Return all active forms for the given company line state
+    -- Return all forms for the given line
     SELECT 
         f.FormID,
         f.FormGUID,
@@ -14,15 +14,16 @@ BEGIN
         f.FormTypeID,
         ft.FormTypeName,
         f.IsRequired,
-        f.IsActive
+        f.IsActive,
+        f.FormContent
     FROM 
         Form f
     INNER JOIN 
-        CompanyLineStateForm clsf ON f.FormID = clsf.FormID
-    INNER JOIN 
         FormType ft ON f.FormTypeID = ft.FormTypeID
+    LEFT JOIN 
+        CompanyLineForm clf ON f.FormID = clf.FormID
     WHERE 
-        clsf.CompanyLineStateGUID = @companyLineStateId
+        (@LineID IS NULL OR clf.LineID = @LineID)
         AND f.IsActive = 1
     ORDER BY 
         f.FormName ASC;

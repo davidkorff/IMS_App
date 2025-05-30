@@ -1,7 +1,6 @@
-USE [OriginTest]
 GO
 
-ALTER PROCEDURE [dbo].[DK_Submission_Search_WS]
+Create PROCEDURE [dbo].[DK_Submission_Search_WS]
     @CustomerName NVARCHAR(100) = NULL,
     @ControlNo NVARCHAR(50) = NULL
 AS

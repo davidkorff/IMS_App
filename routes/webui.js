@@ -693,6 +693,7 @@ router.post('/forms/all', auth, async (req, res) => {
 router.get('/forms/companies', auth, async (req, res) => {
     try {
         const { instanceId } = req.query;
+        console.log('Getting companies for instance:', instanceId);
         
         const instance = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
@@ -700,8 +701,14 @@ router.get('/forms/companies', auth, async (req, res) => {
         );
 
         if (instance.rows.length === 0) {
+            console.error('Instance not found:', instanceId);
             return res.status(404).json({ message: 'Instance not found' });
         }
+
+        console.log('Calling DK_GetCompanies_WS with instance:', {
+            url: instance.rows[0].url,
+            username: instance.rows[0].username
+        });
 
         // Call DataAccess service to get companies - no parameters needed
         const result = await dataAccess.executeProc({
@@ -712,16 +719,19 @@ router.get('/forms/companies', auth, async (req, res) => {
             parameters: {}  // Empty parameters object
         });
 
+        console.log('DK_GetCompanies_WS result:', result);
         res.json(result.Table || []);
     } catch (error) {
         console.error('Error getting companies:', error);
-        res.status(500).json({ message: 'Failed to get companies' });
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ message: 'Failed to get companies', error: error.message });
     }
 });
 
 router.get('/forms/lines', auth, async (req, res) => {
     try {
         const { instanceId } = req.query;
+        console.log('Getting lines for instance:', instanceId);
         
         const instance = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
@@ -729,8 +739,11 @@ router.get('/forms/lines', auth, async (req, res) => {
         );
 
         if (instance.rows.length === 0) {
+            console.error('Instance not found:', instanceId);
             return res.status(404).json({ message: 'Instance not found' });
         }
+
+        console.log('Calling DK_GetLines_WS');
 
         const result = await dataAccess.executeProc({
             url: instance.rows[0].url,
@@ -740,16 +753,19 @@ router.get('/forms/lines', auth, async (req, res) => {
             parameters: {}  // No parameters needed
         });
 
+        console.log('DK_GetLines_WS result:', result);
         res.json(result.Table || []);
     } catch (error) {
         console.error('Error getting lines:', error);
-        res.status(500).json({ message: 'Failed to get lines' });
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ message: 'Failed to get lines', error: error.message });
     }
 });
 
 router.get('/forms/states', auth, async (req, res) => {
     try {
         const { instanceId } = req.query;
+        console.log('Getting states for instance:', instanceId);
         
         const instance = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
@@ -757,8 +773,11 @@ router.get('/forms/states', auth, async (req, res) => {
         );
 
         if (instance.rows.length === 0) {
+            console.error('Instance not found:', instanceId);
             return res.status(404).json({ message: 'Instance not found' });
         }
+
+        console.log('Calling DK_GetStates_WS');
 
         const result = await dataAccess.executeProc({
             url: instance.rows[0].url,
@@ -768,10 +787,12 @@ router.get('/forms/states', auth, async (req, res) => {
             parameters: {}  // No parameters needed
         });
 
+        console.log('DK_GetStates_WS result:', result);
         res.json(result.Table || []);
     } catch (error) {
         console.error('Error getting states:', error);
-        res.status(500).json({ message: 'Failed to get states' });
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ message: 'Failed to get states', error: error.message });
     }
 });
 
