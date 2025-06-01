@@ -1,6 +1,11 @@
 GO
+/****** Object:  StoredProcedure [dbo].[DK_Submission_Search_WS]    Script Date: 5/31/2025 11:53:45 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
-Create PROCEDURE [dbo].[DK_Submission_Search_WS]
+CREATE OR ALTER PROCEDURE [dbo].[DK_Submission_Search_WS]
     @CustomerName NVARCHAR(100) = NULL,
     @ControlNo NVARCHAR(50) = NULL
 AS

@@ -1,4 +1,10 @@
-CREATE PROCEDURE [dbo].[DK_GetCompanies_WS]
+GO
+/****** Object:  StoredProcedure [dbo].[DK_GetCompanies_WS]    Script Date: 5/31/2025 11:51:55 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE OR ALTER   PROCEDURE [dbo].[DK_GetCompanies_WS]
 AS
 BEGIN
     SET NOCOUNT ON;

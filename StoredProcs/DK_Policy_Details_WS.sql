@@ -1,4 +1,10 @@
-CREATE PROCEDURE [dbo].[DK_Policy_Details_WS]
+GO
+/****** Object:  StoredProcedure [dbo].[DK_Policy_Details_WS]    Script Date: 6/1/2025 12:06:05 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE OR ALTER PROCEDURE [dbo].[DK_Policy_Details_WS]
     @controlno VARCHAR(50)
 AS
 BEGIN

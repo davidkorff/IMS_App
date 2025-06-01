@@ -1,0 +1,64 @@
+GO
+/****** Object:  StoredProcedure [dbo].[DK_GetCompanyLineFormsWithContent_WS]    Script Date: 5/31/2025 11:52:12 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+  CREATE OR ALTER PROCEDURE [dbo].[DK_GetCompanyLineFormsWithContent_WS]
+      @LineID INT
+  AS
+  BEGIN
+      SET NOCOUNT ON;
+
+      -- Use a CTE to first get the distinct form IDs, then join to get content
+      WITH DistinctForms AS (
+          SELECT DISTINCT
+              fcw.PolicyFormID,
+              fcw.Company_FCW_ID,
+              fcw.Mandatory,
+              fcw.Disabled,
+              fcw.FormOrder
+          FROM
+              tblCompanyFormsConditionsWarranties fcw
+          WHERE
+              fcw.CompanyLineID = @LineID
+              AND fcw.Disabled IS NULL
+              AND fcw.PolicyFormID IS NOT NULL
+      )
+      SELECT
+          df.PolicyFormID AS FormID,
+          df.Company_FCW_ID AS CompanyFormID,
+          NEWID() AS FormGUID,
+          COALESCE(pf.FormName, 'Policy Form') AS FormName,
+          COALESCE(pf.FormNumber, 'N/A') AS FormNumber,
+          COALESCE(pf.FormName, 'Policy Form') AS Description,
+          1 AS FormTypeID,
+          'Policy Form' AS FormTypeName,
+          CAST(df.Mandatory AS BIT) AS IsRequired,
+          CASE WHEN df.Disabled IS NULL THEN 1 ELSE 0 END AS IsActive,
+          df.FormOrder AS DocumentOrder,
+          -- Include the actual form content
+          CASE
+              WHEN pf.PDF IS NOT NULL AND DATALENGTH(pf.PDF) > 0
+                  THEN CAST(pf.PDF AS VARBINARY(MAX))
+              WHEN pf.TemplateID IS NOT NULL
+                  THEN dt.Template
+              ELSE NULL
+          END AS FormContent,
+          -- Flag to indicate if content exists
+          CASE
+              WHEN (pf.PDF IS NOT NULL AND DATALENGTH(pf.PDF) > 0) OR
+                   (pf.TemplateID IS NOT NULL AND dt.Template IS NOT NULL)
+                  THEN 1
+              ELSE 0
+          END AS HasContent
+      FROM
+          DistinctForms df
+      LEFT JOIN
+          tblPolicyForms pf ON df.PolicyFormID = pf.FormID
+      LEFT JOIN
+          tblDocumentTemplates dt ON pf.TemplateID = dt.TemplateID
+      ORDER BY
+          df.FormOrder, COALESCE(pf.FormName, 'Policy Form') ASC;
+  END

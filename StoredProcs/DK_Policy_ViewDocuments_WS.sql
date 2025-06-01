@@ -1,4 +1,10 @@
-CREATE PROCEDURE [dbo].[DK_Policy_ViewDocuments_WS]
+GO
+/****** Object:  StoredProcedure [dbo].[DK_Policy_ViewDocuments_WS]    Script Date: 5/31/2025 11:53:36 PM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE OR ALTER PROCEDURE [dbo].[DK_Policy_ViewDocuments_WS]
     @documentguid UNIQUEIDENTIFIER
 AS
 BEGIN
