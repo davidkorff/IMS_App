@@ -11,8 +11,13 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Return valid company/line/state combinations
+    -- Return forms based on company/line/state combinations
     SELECT DISTINCT
+        f.FormsConditionsWarrantiesID AS FormID,
+        f.FormGUID,
+        f.FormTitle AS FormName,
+        f.FormNumber,
+        f.FormTitle AS Description,
         cl.CompanyLineID,
         cl.CompanyLineGUID,
         cl.CompanyLocationGUID,
@@ -21,8 +26,9 @@ BEGIN
         l.LineName,
         cl.StateID,
         s.State AS StateName,
-        cl.CompanyLine AS Description,
-        CAST(1 AS BIT) AS HasForms -- Placeholder to indicate forms are available
+        f.FormTypeID,
+        ft.FormTypeName,
+        f.Active AS IsActive
     FROM 
         tblCompanyLines cl
     INNER JOIN 
@@ -31,6 +37,10 @@ BEGIN
         lstLines l ON cl.LineGUID = l.LineGUID
     INNER JOIN 
         lstStates s ON cl.StateID = s.StateID
+    INNER JOIN
+        tblCompanyFormsConditionsWarranties f ON f.CompanyLineID = cl.CompanyLineID
+    LEFT JOIN
+        lstFormTypes ft ON f.FormTypeID = ft.FormTypeID
     WHERE 
         cl.StatusID = 1  -- Active
         AND cl.Hidden = 0
@@ -38,9 +48,10 @@ BEGIN
         AND cloc.Hidden = 0
         AND l.Inactive = 0
         AND s.IsUsState = 1
+        AND f.Active = 1
         AND (@CompanyLocationGUID IS NULL OR cl.CompanyLocationGUID = @CompanyLocationGUID)
         AND (@LineGUID IS NULL OR cl.LineGUID = @LineGUID)
         AND (@StateID IS NULL OR cl.StateID = @StateID)
     ORDER BY 
-        cloc.LocationName, l.LineName, s.State;
+        cloc.LocationName, l.LineName, s.State, f.FormTitle;
 END

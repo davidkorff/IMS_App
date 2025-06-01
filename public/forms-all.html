@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>All Forms</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -382,6 +383,145 @@
             console.log('Form data as object:', formDataObj);
         }
 
+        // Download all forms as a ZIP file
+        async function downloadAllForms() {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            try {
+                // Show loading state
+                button.innerHTML = '⏳ Loading all forms...';
+                button.disabled = true;
+                
+                // Get parameters from URL
+                const pathParts = window.location.pathname.split('/');
+                const instanceId = pathParts[2];
+                const urlParams = new URLSearchParams(window.location.search);
+                const companyLineId = urlParams.get('companyLineId');
+                
+                console.log('[Download All] Fetching all forms with content in single request');
+                const apiUrl = `/api/webui/forms/all-with-content?instanceId=${instanceId}&companyLineId=${companyLineId}`;
+                console.log('[Download All] API URL:', apiUrl);
+                
+                // Fetch all forms with content in a single API call
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                console.log('[Download All] Response status:', response.status);
+                console.log('[Download All] Response headers:', response.headers);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('[Download All] Error response:', errorText);
+                    throw new Error(`Failed to fetch forms: ${response.status} - ${errorText}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.Table || result.Table.length === 0) {
+                    alert('No forms found to download');
+                    return;
+                }
+                
+                console.log(`[Download All] Received ${result.Table.length} forms`);
+                
+                // Create a new ZIP file
+                const zip = new JSZip();
+                let successCount = 0;
+                let errorCount = 0;
+                
+                // Update button
+                button.innerHTML = '⏳ Creating ZIP file...';
+                
+                // Process each form
+                result.Table.forEach((form, index) => {
+                    if (form.FormContent && form.HasContent) {
+                        try {
+                            console.log(`[Download All] Processing form ${index + 1}/${result.Table.length}: ${form.FormName}`);
+                            
+                            // Decode base64
+                            const byteCharacters = atob(form.FormContent);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let j = 0; j < byteCharacters.length; j++) {
+                                byteNumbers[j] = byteCharacters.charCodeAt(j);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            
+                            // Detect file type
+                            let fileExtension = '.pdf';
+                            if (byteNumbers[0] === 80 && byteNumbers[1] === 75) {
+                                fileExtension = '.docx';
+                            } else if (byteNumbers[0] === 208 && byteNumbers[1] === 207) {
+                                fileExtension = '.doc';
+                            }
+                            
+                            // Create filename
+                            let fileName = `${form.FormName} - ${form.FormNumber}${fileExtension}`;
+                            // Sanitize filename for zip
+                            fileName = fileName.replace(/[<>:"/\\|?*]/g, '_');
+                            
+                            // Add to zip
+                            zip.file(fileName, byteArray);
+                            successCount++;
+                            console.log(`[Download All] Added to zip: ${fileName}`);
+                        } catch (error) {
+                            console.error(`[Download All] Error processing form ${form.FormID}:`, error);
+                            errorCount++;
+                        }
+                    } else {
+                        console.log(`[Download All] Skipping form ${form.FormID} - no content`);
+                    }
+                });
+                
+                // Generate the zip file
+                button.innerHTML = '⏳ Generating ZIP file...';
+                console.log(`[Download All] Creating zip with ${successCount} files`);
+                
+                const zipBlob = await zip.generateAsync({
+                    type: "blob",
+                    compression: "DEFLATE",
+                    compressionOptions: { level: 6 }
+                });
+                
+                // Create download link
+                const downloadUrl = window.URL.createObjectURL(zipBlob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                
+                // Create filename with current date
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                link.download = `Forms_${dateStr}.zip`;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                // Show results
+                let message = `Downloaded ${successCount} forms`;
+                if (errorCount > 0) {
+                    message += ` (${errorCount} errors)`;
+                }
+                console.log(`[Download All] Complete: ${message}`);
+                
+                if (errorCount > 0) {
+                    alert(message);
+                }
+                
+            } catch (error) {
+                console.error('[Download All] Error:', error);
+                alert('Failed to create ZIP file: ' + error.message);
+            } finally {
+                // Restore button
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const pathParts = window.location.pathname.split('/');
@@ -421,6 +561,11 @@
             }
 
             let html = `
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-primary" onclick="downloadAllForms()" style="padding: 10px 20px; font-size: 16px;">
+                        📥 Download All Forms as ZIP
+                    </button>
+                </div>
                 <table class="lines-table">
                     <thead>
                         <tr>
@@ -442,7 +587,7 @@
                             <td>${result.FormNumber || 'N/A'}</td>
                             <td>${result.DocumentOrder || 'N/A'}</td>
                             <td>
-                                <button class="btn btn-primary" onclick="viewTemplate('${result.TemplateID}')">
+                                <button class="btn btn-primary" onclick="viewTemplate('${result.FormID}')">
                                     View Template
                                 </button>
                             </td>
@@ -457,19 +602,148 @@
 
         // Add function to view template
         async function viewTemplate(templateId) {
+            console.log('[ViewTemplate] Starting download for templateId:', templateId);
+            
+            // Get the button element that was clicked
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            // Find the row to get form details
+            const row = button.closest('tr');
+            const formName = row.cells[0].textContent;
+            const formNumber = row.cells[1].textContent;
+            console.log('[ViewTemplate] Form details:', { formName, formNumber, templateId });
+            
             try {
-                // Find the template data from the results
-                const template = window.formsResults.Table.find(t => t.TemplateID === parseInt(templateId));
-                console.log('Template Data:', {
-                    templateId,
-                    template
-                });
                 
-                // For now, just show an alert that we found the template
-                alert(`Template ${templateId} selected`);
+                // Get instance ID from URL path
+                const pathParts = window.location.pathname.split('/');
+                const instanceId = pathParts[2];
+                console.log('[ViewTemplate] Instance ID:', instanceId);
+                
+                // Show loading indicator
+                button.textContent = 'Downloading...';
+                button.disabled = true;
+
+                // Make API call to download template
+                console.log('[ViewTemplate] Sending request with:', { instanceId, templateId });
+                const response = await fetch(`/api/webui/template/download`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({
+                        instanceId: instanceId,
+                        templateId: templateId
+                    })
+                });
+
+                console.log('[ViewTemplate] Response status:', response.status);
+                const result = await response.json();
+                console.log('[ViewTemplate] Response data:', {
+                    success: result.success,
+                    fileName: result.fileName,
+                    hasDocumentData: !!result.documentData,
+                    documentDataLength: result.documentData?.length || 0,
+                    message: result.message
+                });
+
+                if (result.success && result.documentData) {
+                    console.log('[ViewTemplate] Converting base64 to blob...');
+                    console.log('[ViewTemplate] Base64 data preview (first 100 chars):', result.documentData.substring(0, 100));
+                    console.log('[ViewTemplate] Base64 data length:', result.documentData.length);
+                    
+                    // Check if the data looks like valid base64
+                    const base64Pattern = /^[A-Za-z0-9+/]*={0,2}$/;
+                    const isValidBase64 = base64Pattern.test(result.documentData.replace(/\s/g, ''));
+                    console.log('[ViewTemplate] Is valid base64 pattern:', isValidBase64);
+                    
+                    let blob;
+                    let fileType = 'application/pdf';
+                    let fileExtension = '.pdf';
+                    
+                    try {
+                        // Convert base64 to blob and trigger download
+                        const byteCharacters = atob(result.documentData);
+                        console.log('[ViewTemplate] Decoded byte characters length:', byteCharacters.length);
+                        console.log('[ViewTemplate] First 10 bytes (as char codes):', 
+                            Array.from(byteCharacters.slice(0, 10)).map(c => c.charCodeAt(0)));
+                        
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) {
+                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        }
+                        const byteArray = new Uint8Array(byteNumbers);
+                        
+                        // Check file signature
+                        const fileHeader = String.fromCharCode(...byteNumbers.slice(0, 4));
+                        console.log('[ViewTemplate] File header:', fileHeader);
+                        console.log('[ViewTemplate] File header bytes:', byteNumbers.slice(0, 10));
+                        
+                        // Detect file type based on magic bytes
+                        if (byteNumbers[0] === 80 && byteNumbers[1] === 75) {
+                            // PK = ZIP file (could be DOCX, XLSX, etc.)
+                            console.warn('[ViewTemplate] File is a ZIP archive, not a PDF!');
+                            fileType = 'application/zip';
+                            fileExtension = '.zip';
+                            
+                            // Check if it might be a DOCX file
+                            if (result.fileName && result.fileName.toLowerCase().includes('.pdf')) {
+                                // It claims to be PDF but it's actually a ZIP, might be DOCX
+                                console.warn('[ViewTemplate] File claims to be PDF but is actually ZIP format - might be DOCX');
+                                fileType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                                fileExtension = '.docx';
+                            }
+                        } else if (byteNumbers[0] === 37 && byteNumbers[1] === 80 && byteNumbers[2] === 68 && byteNumbers[3] === 70) {
+                            // %PDF = PDF file
+                            console.log('[ViewTemplate] File is a valid PDF');
+                        } else if (byteNumbers[0] === 208 && byteNumbers[1] === 207) {
+                            // Old MS Office format
+                            console.warn('[ViewTemplate] File is old MS Office format (.doc)');
+                            fileType = 'application/msword';
+                            fileExtension = '.doc';
+                        }
+                        
+                        blob = new Blob([byteArray], { type: fileType });
+                        console.log('[ViewTemplate] Blob created, size:', blob.size, 'type:', fileType);
+                        
+                    } catch (decodeError) {
+                        console.error('[ViewTemplate] Base64 decode error:', decodeError);
+                        throw new Error('Failed to decode base64 data: ' + decodeError.message);
+                    }
+
+                    // Update filename with correct extension
+                    let fileName = result.fileName || `template_${templateId}${fileExtension}`;
+                    if (fileExtension !== '.pdf' && fileName.endsWith('.pdf')) {
+                        // Replace .pdf with correct extension
+                        fileName = fileName.replace(/\.pdf$/i, fileExtension);
+                        console.log('[ViewTemplate] Updated filename to:', fileName);
+                    }
+
+                    // Create download link and trigger download
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+                    link.download = fileName;
+                    console.log('[ViewTemplate] Downloading file:', link.download);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(downloadUrl);
+
+                } else {
+                    console.error('[ViewTemplate] Download failed:', result);
+                    alert(result.message || 'Failed to download template');
+                }
+
             } catch (error) {
-                console.error('Error viewing template:', error);
-                alert('Failed to load template');
+                console.error('[ViewTemplate] Error:', error);
+                alert('Failed to download template: ' + error.message);
+            } finally {
+                // Restore button state
+                button.textContent = originalText;
+                button.disabled = false;
             }
         }
     </script>

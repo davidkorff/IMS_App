@@ -109,6 +109,11 @@ app.get('/instance/:id/billing', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'billing.html'));
 });
 
+// Add route for forms page
+app.get('/instance/:id/forms', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'forms.html'));
+});
+
 // Add graph testing page
 app.get('/graph-test', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'graph-test.html'));

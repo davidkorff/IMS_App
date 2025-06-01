@@ -3,17 +3,15 @@ AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Return all active states
+    -- Return all US states
     SELECT DISTINCT
         s.StateID,
-        s.StateCode,
-        s.StateName
+        s.StateID AS StateCode,  -- StateID is the code (AL, AK, etc.)
+        s.State AS StateName
     FROM 
-        CompanyLineState cls
-    INNER JOIN 
-        State s ON cls.StateID = s.StateID
+        lstStates s
     WHERE 
-        cls.IsActive = 1
+        s.IsUsState = 1  -- Only US states
     ORDER BY 
-        s.StateName ASC;
+        s.State ASC;
 END

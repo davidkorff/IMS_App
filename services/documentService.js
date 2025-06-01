@@ -90,6 +90,13 @@ class DocumentService {
         });
     }
 
+    async createPolicyTemplateDocument(url, token, templateId, quoteGuid = null) {
+        return this._executeDocumentMethod(url, token, 'CreatePolicyTemplateDocument', {
+            TemplateID: templateId,
+            QuoteGuid: quoteGuid || ''
+        });
+    }
+
     async getFolderList(url, token, parentFolderId = 0) {
         const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 

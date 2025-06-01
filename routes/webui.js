@@ -688,6 +688,75 @@ router.post('/forms/all', auth, async (req, res) => {
     }
 });
 
+// Add endpoint to get all forms with content for bulk download
+router.get('/forms/all-with-content', auth, async (req, res) => {
+    try {
+        const { instanceId, companyLineId } = req.query;
+        
+        console.log('[Forms All With Content] Request received:', { 
+            instanceId, 
+            companyLineId,
+            userId: req.user?.user_id,
+            headers: req.headers
+        });
+        
+        if (!instanceId || !companyLineId) {
+            console.error('[Forms All With Content] Missing parameters');
+            return res.status(400).json({ 
+                message: 'Missing required parameters',
+                received: { instanceId, companyLineId }
+            });
+        }
+        
+        // Get instance details
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            console.error('[Forms All With Content] Instance not found:', { instanceId, userId: req.user.user_id });
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+
+        console.log('[Forms All With Content] Instance found:', instance.rows[0].name);
+        console.log('[Forms All With Content] Calling stored procedure DK_GetCompanyLineFormsWithContent_WS with LineID:', companyLineId);
+
+        // Call the new stored procedure that includes content
+        const result = await dataAccess.executeProc({
+            url: instance.rows[0].url,
+            username: instance.rows[0].username,
+            password: instance.rows[0].password,
+            procedure: 'DK_GetCompanyLineFormsWithContent_WS',
+            parameters: {
+                LineID: parseInt(companyLineId)
+            }
+        });
+
+        console.log('[Forms All With Content] Result:', {
+            hasTable: !!result?.Table,
+            rowCount: result?.Table?.length || 0,
+            firstRowHasContent: result?.Table?.[0]?.HasContent,
+            sampleRow: result?.Table?.[0] ? {
+                FormID: result.Table[0].FormID,
+                FormName: result.Table[0].FormName,
+                HasContent: result.Table[0].HasContent,
+                FormContentLength: result.Table[0].FormContent?.length || 0
+            } : null
+        });
+
+        res.json(result);
+    } catch (error) {
+        console.error('[Forms All With Content] Error:', error);
+        console.error('[Forms All With Content] Stack:', error.stack);
+        res.status(500).json({ 
+            message: 'Failed to get forms with content', 
+            error: error.message,
+            details: error.toString()
+        });
+    }
+});
+
 // Add these new routes for company/line/state form filtering
 
 router.get('/forms/companies', auth, async (req, res) => {
@@ -838,6 +907,120 @@ router.get('/forms/filtered', auth, async (req, res) => {
     } catch (error) {
         console.error('Error getting filtered results:', error);
         res.status(500).json({ message: 'Failed to get filtered results', error: error.message });
+    }
+});
+
+// Template download route
+router.post('/template/download', auth, async (req, res) => {
+    try {
+        const { instanceId, templateId } = req.body;
+        
+        console.log('[Template Download] Request received:', { instanceId, templateId, userId: req.user?.user_id });
+        
+        // Get instance details
+        const instance = await pool.query(
+            'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
+            [instanceId, req.user.user_id]
+        );
+
+        if (instance.rows.length === 0) {
+            console.error('[Template Download] Instance not found:', { instanceId, userId: req.user.user_id });
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+
+        console.log('[Template Download] Instance found:', instance.rows[0].name);
+
+        // Get IMS authentication token
+        const token = await authService.getToken(
+            instance.rows[0].url,
+            instance.rows[0].username,
+            instance.rows[0].password
+        );
+
+        console.log('[Template Download] Got IMS token, calling DK_GetFormContent_WS with FormID:', templateId);
+
+        // Try to get template content using form content approach since templates might be stored as forms
+        const result = await dataAccess.executeProc({
+            url: instance.rows[0].url,
+            username: instance.rows[0].username,
+            password: instance.rows[0].password,
+            procedure: 'DK_GetFormContent_WS',
+            parameters: {
+                FormID: templateId
+            }
+        });
+
+        console.log('[Template Download] Stored procedure result:', {
+            hasTable: !!result?.Table,
+            rowCount: result?.Table?.length || 0,
+            firstRow: result?.Table?.[0] ? {
+                FormID: result.Table[0].FormID,
+                FormName: result.Table[0].FormName,
+                FormNumber: result.Table[0].FormNumber,
+                hasFormContent: !!result.Table[0].FormContent,
+                formContentLength: result.Table[0].FormContent?.length || 0,
+                formContentPreview: result.Table[0].FormContent ? result.Table[0].FormContent.substring(0, 100) : null,
+                formContentType: typeof result.Table[0].FormContent
+            } : null
+        });
+        
+        // Additional check for binary data
+        if (result?.Table?.[0]?.FormContent) {
+            const content = result.Table[0].FormContent;
+            console.log('[Template Download] FormContent type check:', {
+                isString: typeof content === 'string',
+                isBuffer: Buffer.isBuffer(content),
+                constructor: content.constructor.name,
+                firstBytes: content.slice ? content.slice(0, 20) : 'Cannot slice'
+            });
+        }
+
+        // Check if we got a successful result with form content (templates are stored as forms)
+        const formData = result?.Table?.[0];
+        if (formData && formData.FormContent) {
+            
+            // Create filename in format: FormName - FormNumber
+            let fileName = 'template.pdf';
+            if (formData.FormName && formData.FormNumber) {
+                fileName = `${formData.FormName} - ${formData.FormNumber}.pdf`;
+            } else if (formData.FormName) {
+                fileName = `${formData.FormName}.pdf`;
+            } else {
+                fileName = `template_${templateId}.pdf`;
+            }
+            
+            console.log('[Template Download] Sending success response with fileName:', fileName);
+            
+            // Return the base64 document data for frontend processing
+            res.json({
+                success: true,
+                documentData: formData.FormContent,
+                fileName: fileName,
+                mimeType: 'application/pdf'
+            });
+        } else {
+            console.error('[Template Download] No form content found:', {
+                formData: formData,
+                hasFormContent: !!formData?.FormContent
+            });
+            
+            // If no form content, return error
+            res.status(404).json({ 
+                success: false, 
+                message: 'Template not found or no content available',
+                result: result
+            });
+        }
+
+    } catch (error) {
+        console.error('[Template Download] Error:', error);
+        console.error('[Template Download] Stack:', error.stack);
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to download template', 
+            error: error.message,
+            stack: error.stack
+        });
     }
 });
 

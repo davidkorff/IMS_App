@@ -4,17 +4,16 @@ BEGIN
     SET NOCOUNT ON;
     
     -- Return all active company locations
-    SELECT 
+    SELECT DISTINCT
         cl.CompanyLocationGUID,
         cl.LocationName,
-        c.CompanyName,
-        cl.IsActive
+        cl.Name AS CompanyName,
+        CASE WHEN cl.StatusID = 1 THEN 1 ELSE 0 END AS IsActive
     FROM 
-        CompanyLocation cl
-    INNER JOIN 
-        Company c ON cl.CompanyID = c.CompanyID
+        tblCompanyLocations cl
     WHERE 
-        cl.IsActive = 1
+        cl.StatusID = 1  -- Assuming 1 = Active
+        AND cl.Hidden = 0
     ORDER BY 
         cl.LocationName ASC;
 END

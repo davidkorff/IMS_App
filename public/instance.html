@@ -226,6 +226,36 @@
             gap: 10px;
             margin-top: 20px;
         }
+        
+        .tile-coming-soon {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .tile-coming-soon:hover {
+            transform: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tile-coming-soon .tile-icon {
+            background: #95a5a6;
+        }
+        
+        .tile-coming-soon .tile-action {
+            color: #95a5a6;
+        }
+        
+        .coming-soon-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f39c12;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
 
         #reports {
             margin-top: 15px;
@@ -265,7 +295,8 @@
         </div>
 
         <div class="grid">
-            <button class="tile" onclick="openIMSWeb()">
+            <button class="tile tile-coming-soon" onclick="showComingSoon()">
+                <span class="coming-soon-badge">Coming Soon</span>
                 <div class="tile-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M18 10h-4V6"></path>
@@ -275,10 +306,11 @@
                 </div>
                 <h3>IMS Web</h3>
                 <p>Access the IMS Web interface directly</p>
-                <span class="tile-action">Open IMS →</span>
+                <span class="tile-action">Coming Soon</span>
             </button>
 
-            <button class="tile" onclick="configureAIM()">
+            <button class="tile tile-coming-soon" onclick="showComingSoon()">
+                <span class="coming-soon-badge">Coming Soon</span>
                 <div class="tile-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
@@ -286,10 +318,11 @@
                 </div>
                 <h3>AIM Integration</h3>
                 <p>Configure and manage AIM integration settings</p>
-                <span class="tile-action">Configure →</span>
+                <span class="tile-action">Coming Soon</span>
             </button>
 
-            <button class="tile" onclick="createCronJob()">
+            <button class="tile tile-coming-soon" onclick="showComingSoon()">
+                <span class="coming-soon-badge">Coming Soon</span>
                 <div class="tile-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
@@ -297,10 +330,11 @@
                 </div>
                 <h3>Cron Jobs</h3>
                 <p>Schedule and manage automated tasks</p>
-                <span class="tile-action">Create Job →</span>
+                <span class="tile-action">Coming Soon</span>
             </button>
 
-            <button class="tile" onclick="viewReporting()">
+            <button class="tile tile-coming-soon" onclick="showComingSoon()">
+                <span class="coming-soon-badge">Coming Soon</span>
                 <div class="tile-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -312,7 +346,7 @@
                 </div>
                 <h3>Reports</h3>
                 <p>Generate and view custom reports</p>
-                <span class="tile-action">View Reports →</span>
+                <span class="tile-action">Coming Soon</span>
             </button>
 
             <button class="tile" onclick="window.location.href = window.location.href + '/forms'">
@@ -330,7 +364,8 @@
                 <span class="tile-action">View Forms →</span>
             </button>
 
-            <button class="tile" onclick="window.location.href = window.location.href + '/newsubmission'">
+            <button class="tile tile-coming-soon" onclick="showComingSoon()">
+                <span class="coming-soon-badge">Coming Soon</span>
                 <div class="tile-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 5v14M5 12h14"></path>
@@ -338,7 +373,7 @@
                 </div>
                 <h3>Create Submission</h3>
                 <p>Create a new insurance submission</p>
-                <span class="tile-action">Create →</span>
+                <span class="tile-action">Coming Soon</span>
             </button>
 
             <button class="tile" onclick="window.location.href = window.location.href + '/email-filing'">
@@ -412,6 +447,8 @@
             `;
         }
 
+        // COMING SOON - These functions are disabled but retained for future use
+        /*
         function configureAIM() {
             // TODO: Implement AIM configuration
             alert('AIM configuration coming soon');
@@ -421,6 +458,7 @@
             // TODO: Implement cron job creation
             alert('Cron job creation coming soon');
         }
+        */
 
         function createReport() {
             document.getElementById('reportModal').style.display = 'block';
@@ -510,12 +548,21 @@
             localStorage.removeItem('token');
             window.location.href = '/index.html';
         }
+        
+        function showComingSoon() {
+            alert('This feature is coming soon!');
+        }
 
+        // COMING SOON - Disabled but retained for future use
+        /*
         function viewReporting() {
             const instanceId = window.location.pathname.split('/').pop();
             window.location.href = `/instance/${instanceId}/reporting`;
         }
+        */
 
+        // COMING SOON - Disabled but retained for future use
+        /*
         function openIMSWeb() {
             const instanceId = currentInstance.instance_id;
             if (instanceId) {
@@ -525,6 +572,7 @@
                 alert('Error: Instance ID not found');
             }
         }
+        */
 
         // Check authentication and load instance details
         document.addEventListener('DOMContentLoaded', function() {

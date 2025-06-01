@@ -295,8 +295,10 @@
                     throw new Error('Failed to load instance details');
                 }
 
-                currentInstance = await response.json();
-                await loadFolders(0); // Load root folder
+                const data = await response.json();
+                currentInstance = data.instance || data; // Handle both formats
+                console.log('Loaded instance:', currentInstance);
+                // Don't call loadFolders, that's not used in forms page
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to load instance details');
@@ -358,8 +360,8 @@
         }
 
         async function loadLines() {
-            const container = document.getElementById('linesContainer');
-            container.innerHTML = '<div class="loading"></div>';
+            // This function is not used in the forms page
+            return;
 
             try {
                 console.log('Fetching lines for instance:', currentInstance.instance_id);
@@ -504,7 +506,7 @@
                     
                     lines.forEach(line => {
                         const option = document.createElement('option');
-                        option.value = line.LineGUID;
+                        option.value = line.CompanyLineGUID;
                         option.textContent = line.LineName;
                         this.appendChild(option);
                     });
@@ -535,8 +537,8 @@
                     
                     states.forEach(state => {
                         const option = document.createElement('option');
-                        option.value = state.StateID.toString();
-                        option.textContent = state.State;
+                        option.value = state.StateID;
+                        option.textContent = state.StateName;
                         this.appendChild(option);
                     });
 
@@ -559,8 +561,13 @@
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/index.html';
+                return;
+            }
             await loadInstanceDetails();
-            await loadLines();
+            // Don't load lines automatically, forms page uses dropdowns
         });
 
         async function loadFilteredResults() {
@@ -578,7 +585,7 @@
 
                 const response = await fetch(`/api/webui/forms/filtered?instanceId=${currentInstance.instance_id}&companyLocationGuid=${companyLocationGuid}&lineGuid=${lineGuid}&stateId=${stateId}`, {
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
                     }
                 });
 
@@ -618,9 +625,9 @@
             results.Table.forEach(result => {
                 html += `
                     <tr>
-                        <td>${result.LocationName || 'N/A'}</td>
+                        <td>${result.CompanyName || 'N/A'}</td>
                         <td>${result.LineName || 'N/A'}</td>
-                        <td>${result.State || 'N/A'}</td>
+                        <td>${result.StateName || 'N/A'}</td>
                         <td>
                             <button class="btn btn-primary" onclick="viewForms('${result.CompanyLineID}')">
                                 View Forms

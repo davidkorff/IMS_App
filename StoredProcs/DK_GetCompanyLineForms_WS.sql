@@ -1,30 +1,36 @@
+-- Drop existing procedure if it exists
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DK_GetCompanyLineForms_WS]') AND type in (N'P', N'PC'))
+    DROP PROCEDURE [dbo].[DK_GetCompanyLineForms_WS]
+GO
+
 CREATE PROCEDURE [dbo].[DK_GetCompanyLineForms_WS]
     @LineID INT
 AS
 BEGIN
     SET NOCOUNT ON;
     
-    -- Return all forms for the given line
-    SELECT 
-        f.FormID,
-        f.FormGUID,
-        f.FormName,
-        f.FormNumber,
-        f.Description,
-        f.FormTypeID,
-        ft.FormTypeName,
-        f.IsRequired,
-        f.IsActive,
-        f.FormContent
+    -- Return all forms for the given company line
+    SELECT DISTINCT
+        fcw.PolicyFormID AS FormID,  -- This is what we need for DK_GetFormContent_WS
+        fcw.Company_FCW_ID AS CompanyFormID,
+        NEWID() AS FormGUID,
+        COALESCE(pf.FormName, 'Policy Form') AS FormName,
+        COALESCE(pf.FormNumber, 'N/A') AS FormNumber,
+        COALESCE(pf.FormName, 'Policy Form') AS Description,
+        1 AS FormTypeID,
+        'Policy Form' AS FormTypeName,
+        CAST(fcw.Mandatory AS BIT) AS IsRequired,
+        CASE WHEN fcw.Disabled IS NULL THEN 1 ELSE 0 END AS IsActive,
+        '' AS FormContent,
+        fcw.DocumentOrder
     FROM 
-        Form f
-    INNER JOIN 
-        FormType ft ON f.FormTypeID = ft.FormTypeID
+        tblCompanyFormsConditionsWarranties fcw
     LEFT JOIN 
-        CompanyLineForm clf ON f.FormID = clf.FormID
+        tblPolicyForms pf ON fcw.PolicyFormID = pf.FormID
     WHERE 
-        (@LineID IS NULL OR clf.LineID = @LineID)
-        AND f.IsActive = 1
+        fcw.CompanyLineID = @LineID
+        AND fcw.Disabled IS NULL
+        AND fcw.PolicyFormID IS NOT NULL
     ORDER BY 
-        f.FormName ASC;
+        fcw.DocumentOrder, COALESCE(pf.FormName, 'Policy Form') ASC;
 END
