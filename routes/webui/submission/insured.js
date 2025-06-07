@@ -42,7 +42,16 @@ router.post('/', auth, async (req, res) => {
         const result = await insuredService.addInsuredWithLocation(
             baseUrl,
             token,
-            { insuredName }
+            {
+                insuredName: req.body.insuredName,
+                businessType: req.body.businessType,
+                address1: req.body.address1,
+                city: req.body.city,
+                state: req.body.state,
+                zip: req.body.zip,
+                deliveryMethod: req.body.deliveryMethod,
+                email: req.body.email
+            }
         );
 
         res.json({

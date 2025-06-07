@@ -170,6 +170,69 @@
             text-align: center;
             padding: 2rem;
         }
+
+        .setup-guide {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .credential-input {
+            position: relative;
+        }
+
+        .credential-input input {
+            padding-left: 2.5rem;
+        }
+
+        .credential-input .input-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+
+        .test-result-card {
+            border-left: 4px solid var(--success-color);
+            background: rgba(46, 204, 113, 0.05);
+        }
+
+        .test-error-card {
+            border-left: 4px solid var(--danger-color);
+            background: rgba(231, 76, 60, 0.05);
+        }
+
+        .accordion-button:not(.collapsed) {
+            background-color: rgba(52, 152, 219, 0.1);
+            color: var(--primary-color);
+        }
+
+        .wizard-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .permission-requirement {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .security-note {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
     </style>
 </head>
 <body>
@@ -230,19 +293,23 @@
                         <div class="col-md-6">
                             <div class="setup-option" data-option="client-hosted">
                                 <div class="icon">
-                                    <i class="fas fa-building"></i>
+                                    <i class="fas fa-shield-alt"></i>
                                 </div>
-                                <h4>Use Your Own Email</h4>
-                                <p class="text-muted">Connect your existing Office 365 email system</p>
+                                <h4>Use Your Own Email Service</h4>
+                                <p class="text-muted">Connect your existing Office 365 system with complete control</p>
                                 
                                 <ul class="feature-list">
-                                    <li><i class="fas fa-check"></i> Your data stays in your environment</li>
-                                    <li><i class="fas fa-check"></i> Use any email address you own</li>
-                                    <li><i class="fas fa-check"></i> Maximum security & compliance</li>
-                                    <li><i class="fas fa-check"></i> Requires Office 365 admin access</li>
+                                    <li><i class="fas fa-check"></i> <strong>Your data stays secure</strong> in your Microsoft 365</li>
+                                    <li><i class="fas fa-check"></i> <strong>Use any email address</strong> you own and control</li>
+                                    <li><i class="fas fa-check"></i> <strong>Enterprise-grade security</strong> with your Azure AD</li>
+                                    <li><i class="fas fa-check"></i> <strong>Full compliance</strong> with your organization's policies</li>
+                                    <li><i class="fas fa-check"></i> <strong>Step-by-step setup guide</strong> included</li>
                                 </ul>
                                 
-                                <div class="pricing">Contact 42consulting for pricing</div>
+                                <div class="pricing">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Requires Office 365 admin rights
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -279,6 +346,19 @@
                                            placeholder="e.g., docs, forms, quotes" required
                                            pattern="^[a-z0-9]([a-z0-9._-]{0,62}[a-z0-9])?$">
                                     <div class="form-text" id="managed-email-preview">Enter a prefix to see your email address</div>
+                                </div>
+                                
+                                <div class="mb-3" id="subdomain-format-option" style="display: none;">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="request-subdomain-format">
+                                        <label class="form-check-label" for="request-subdomain-format">
+                                            <strong>Use subdomain format instead</strong> (requires admin approval)
+                                        </label>
+                                    </div>
+                                    <div class="form-text">
+                                        <span id="subdomain-format-preview"></span>
+                                        <br><small class="text-muted">Note: This format requires individual admin approval and Cloudflare route setup. Leave unchecked for immediate availability.</small>
+                                    </div>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -343,64 +423,407 @@
         <div id="client-setup" class="hidden">
             <div class="wizard-steps">
                 <div class="step completed">Choose Option</div>
-                <div class="step active">Azure Setup</div>
-                <div class="step">Test Connection</div>
-                <div class="step">Complete</div>
+                <div class="step active" id="azure-step">Azure Setup</div>
+                <div class="step" id="test-step">Test Connection</div>
+                <div class="step" id="complete-step">Complete</div>
             </div>
 
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Connect Your Office 365 Email</h5>
-                    <p class="text-muted">Follow these steps to connect your email system:</p>
-
-                    <!-- Step-by-step Azure setup guide -->
-                    <div class="azure-step">
-                        <h6><i class="fas fa-1"></i> Azure App Registration</h6>
-                        <p>Create an Azure app registration to allow secure access to your email.</p>
-                        <a href="https://portal.azure.com" target="_blank" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-external-link-alt"></i> Open Azure Portal
-                        </a>
+            <!-- Azure Setup Instructions -->
+            <div id="azure-instructions">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-cloud"></i> Azure App Registration Setup</h5>
                     </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> What You'll Need</h6>
+                            <ul class="mb-0">
+                                <li><strong>Azure AD Admin Rights:</strong> You need to be an admin in your Azure Active Directory</li>
+                                <li><strong>Office 365 Email:</strong> A mailbox in your Microsoft 365 tenant</li>
+                                <li><strong>5-10 minutes:</strong> This setup process is straightforward but thorough</li>
+                            </ul>
+                        </div>
 
-                    <!-- Credential input form -->
-                    <form id="client-credentials-form">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Application (Client) ID</label>
-                                    <input type="text" class="form-control" id="client-id" required>
+                        <div class="accordion" id="setupAccordion">
+                            <!-- Step 1: Open Azure Portal -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading1">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                        <i class="fas fa-external-link-alt me-2"></i> Step 1: Open Azure Portal
+                                    </button>
+                                </h2>
+                                <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#setupAccordion">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>Open <a href="https://portal.azure.com" target="_blank" class="btn btn-sm btn-primary ms-2">Azure Portal <i class="fas fa-external-link-alt"></i></a></li>
+                                            <li>Sign in with your Office 365 admin account</li>
+                                            <li>Navigate to <strong>Azure Active Directory</strong> (search for it in the top search bar)</li>
+                                            <li>In the left menu, click <strong>App registrations</strong></li>
+                                        </ol>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Directory (Tenant) ID</label>
-                                    <input type="text" class="form-control" id="tenant-id" required>
+
+                            <!-- Step 2: Create App Registration -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading2">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                        <i class="fas fa-plus me-2"></i> Step 2: Create New App Registration
+                                    </button>
+                                </h2>
+                                <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#setupAccordion">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>Click <strong>+ New registration</strong></li>
+                                            <li>Fill in the form:
+                                                <ul>
+                                                    <li><strong>Name:</strong> IMS Email Filing Service</li>
+                                                    <li><strong>Supported account types:</strong> Accounts in this organizational directory only</li>
+                                                    <li><strong>Redirect URI:</strong> Leave blank for now</li>
+                                                </ul>
+                                            </li>
+                                            <li>Click <strong>Register</strong></li>
+                                            <li>📋 <strong>Copy the Application (client) ID</strong> - you'll need this later</li>
+                                            <li>📋 <strong>Copy the Directory (tenant) ID</strong> - you'll need this later</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 3: API Permissions -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading3">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                        <i class="fas fa-key me-2"></i> Step 3: Configure API Permissions
+                                    </button>
+                                </h2>
+                                <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#setupAccordion">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>In your app registration, click <strong>API permissions</strong> in the left menu</li>
+                                            <li>Click <strong>+ Add a permission</strong></li>
+                                            <li>Select <strong>Microsoft Graph</strong></li>
+                                            <li>Choose <strong>Application permissions</strong> (not Delegated)</li>
+                                            <li>Add these permissions:
+                                                <div class="alert alert-warning mt-2">
+                                                    <strong>Required Permissions:</strong>
+                                                    <ul class="mb-0">
+                                                        <li><code>Mail.Read</code> - Read mail in all mailboxes</li>
+                                                        <li><code>User.Read.All</code> - Read all users' profiles</li>
+                                                    </ul>
+                                                </div>
+                                            </li>
+                                            <li>Click <strong>Add permissions</strong></li>
+                                            <li>⚠️ <strong>IMPORTANT:</strong> Click <strong>Grant admin consent for [Your Organization]</strong></li>
+                                            <li>Click <strong>Yes</strong> to confirm admin consent</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 4: Client Secret -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading4">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
+                                        <i class="fas fa-lock me-2"></i> Step 4: Create Client Secret
+                                    </button>
+                                </h2>
+                                <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#setupAccordion">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>Click <strong>Certificates & secrets</strong> in the left menu</li>
+                                            <li>Under <strong>Client secrets</strong>, click <strong>+ New client secret</strong></li>
+                                            <li>Fill in:
+                                                <ul>
+                                                    <li><strong>Description:</strong> IMS Email Filing</li>
+                                                    <li><strong>Expires:</strong> 24 months (recommended)</li>
+                                                </ul>
+                                            </li>
+                                            <li>Click <strong>Add</strong></li>
+                                            <li>📋 <strong>Copy the Value (secret)</strong> immediately - you cannot see it again!</li>
+                                        </ol>
+                                        <div class="alert alert-danger">
+                                            <i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> Copy the client secret value immediately. You cannot retrieve it later!
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 5: Summary -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading5">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse5">
+                                        <i class="fas fa-check-circle me-2"></i> Step 5: Information Summary
+                                    </button>
+                                </h2>
+                                <div id="collapse5" class="accordion-collapse collapse" data-bs-parent="#setupAccordion">
+                                    <div class="accordion-body">
+                                        <p>You should now have these three pieces of information:</p>
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <div class="card">
+                                                    <div class="card-body text-center">
+                                                        <i class="fas fa-id-card fa-2x text-primary mb-2"></i>
+                                                        <h6>Application (Client) ID</h6>
+                                                        <small class="text-muted">From Step 2</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="card">
+                                                    <div class="card-body text-center">
+                                                        <i class="fas fa-building fa-2x text-success mb-2"></i>
+                                                        <h6>Directory (Tenant) ID</h6>
+                                                        <small class="text-muted">From Step 2</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="card">
+                                                    <div class="card-body text-center">
+                                                        <i class="fas fa-key fa-2x text-warning mb-2"></i>
+                                                        <h6>Client Secret</h6>
+                                                        <small class="text-muted">From Step 4</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3 text-center">
+                                            <button class="btn btn-success btn-lg" onclick="showCredentialsForm()">
+                                                <i class="fas fa-arrow-right"></i> I Have All Three - Continue Setup
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Client Secret</label>
-                            <input type="password" class="form-control" id="client-secret" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Email Address to Monitor</label>
-                            <input type="email" class="form-control" id="email-address" 
-                                   placeholder="documents@yourcompany.com" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Credentials Form -->
+            <div id="credentials-form" class="hidden">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-plug"></i> Connect Your Email System</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Enter the information from your Azure app registration:</p>
+
+                        <form id="client-credentials-form">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-id-card me-1"></i> Application (Client) ID
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="client-id" required
+                                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                                        <div class="form-text">Found in your app registration overview page</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-building me-1"></i> Directory (Tenant) ID
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <input type="text" class="form-control" id="tenant-id" required
+                                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                                        <div class="form-text">Found in your app registration overview page</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-key me-1"></i> Client Secret
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="password" class="form-control" id="client-secret" required
+                                       placeholder="The secret value you copied (not the ID)">
+                                <div class="form-text">The secret <strong>value</strong> from Certificates & secrets</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-envelope me-1"></i> Email Address to Monitor
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="email" class="form-control" id="email-address" required
+                                       placeholder="documents@yourcompany.com">
+                                <div class="form-text">The mailbox we'll monitor for emails to file to IMS</div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-folder me-1"></i> IMS Folder ID
+                                        </label>
+                                        <input type="number" class="form-control" id="folder-id" 
+                                               placeholder="3" value="3" min="0" max="999">
+                                        <div class="form-text">Documents will be filed to this folder in IMS</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3 mt-4">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="include-attachments" checked>
+                                            <label class="form-check-label" for="include-attachments">
+                                                Include email attachments
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="auto-extract" checked>
+                                            <label class="form-check-label" for="auto-extract">
+                                                Auto-extract control numbers
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" onclick="showAzureInstructions()">
+                                    <i class="fas fa-arrow-left"></i> Back to Instructions
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-plug"></i> Test Connection & Save
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Testing Result -->
+            <div id="testing-result" class="hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-vial"></i> Connection Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="test-loading" class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Testing...</span>
+                            </div>
+                            <h5 class="mt-3">Testing Your Configuration...</h5>
+                            <p class="text-muted">This may take a few moments</p>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">IMS Folder ID</label>
-                            <input type="number" class="form-control" id="folder-id" 
-                                   placeholder="0" value="0" min="0" max="999">
-                            <div class="form-text">Documents will be filed to this folder in IMS. Default is 0 (root folder).</div>
+                        <div id="test-success" class="hidden">
+                            <div class="alert alert-success">
+                                <h4><i class="fas fa-check-circle"></i> Success!</h4>
+                                <p class="mb-0">Your email system is connected and working properly.</p>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Configuration Summary:</h6>
+                                    <ul id="config-summary" class="list-unstyled">
+                                        <!-- Will be populated by JavaScript -->
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Next Steps:</h6>
+                                    <ul>
+                                        <li>Send emails with control numbers (e.g., "ID:12345") to your monitored address</li>
+                                        <li>Include any attachments you want filed to IMS</li>
+                                        <li>Documents will appear in IMS within 5 minutes</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 text-center">
+                                <button class="btn btn-success btn-lg" onclick="window.location.href = `/instance/${instanceId}/email-filing`">
+                                    <i class="fas fa-check"></i> Complete Setup
+                                </button>
+                            </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-plug"></i> Test Connection
-                        </button>
-                    </form>
+                        <div id="test-error" class="hidden">
+                            <div class="alert alert-danger">
+                                <h4><i class="fas fa-exclamation-triangle"></i> Connection Failed</h4>
+                                <p id="error-message"><!-- Error details will be shown here --></p>
+                                <div id="error-details" class="mt-3 small"><!-- Additional details will be shown here --></div>
+                            </div>
+
+                            <!-- Specific troubleshooting based on error code -->
+                            <div id="specific-troubleshooting" class="hidden">
+                                <!-- Content will be populated by JavaScript based on error code -->
+                            </div>
+
+                            <div class="accordion" id="troubleshootingAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#troubleshooting">
+                                            <i class="fas fa-wrench me-2"></i> Complete Troubleshooting Guide
+                                        </button>
+                                    </h2>
+                                    <div id="troubleshooting" class="accordion-collapse collapse">
+                                        <div class="accordion-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <h6><i class="fas fa-exclamation-triangle text-danger"></i> Authentication Issues</h6>
+                                                    <ul class="small">
+                                                        <li><strong>Invalid Client Credentials:</strong> Double-check your Client ID and Secret from Azure</li>
+                                                        <li><strong>Invalid Tenant ID:</strong> Verify the Directory (Tenant) ID is correct</li>
+                                                        <li><strong>Admin Consent Missing:</strong> Ensure admin consent was granted for the permissions</li>
+                                                        <li><strong>Wrong Permissions:</strong> Verify Mail.Read and User.Read.All are added as Application permissions</li>
+                                                    </ul>
+                                                    
+                                                    <h6 class="mt-3"><i class="fas fa-user text-warning"></i> User Access Issues</h6>
+                                                    <ul class="small">
+                                                        <li><strong>Email Not Found:</strong> Make sure the email address exists in your Microsoft 365 tenant</li>
+                                                        <li><strong>Access Denied:</strong> Verify the app has permission to access the mailbox</li>
+                                                        <li><strong>Spelling Error:</strong> Check that the email address is spelled correctly</li>
+                                                    </ul>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <h6><i class="fas fa-cog text-info"></i> Configuration Issues</h6>
+                                                    <ul class="small">
+                                                        <li><strong>App Not Configured:</strong> Ensure all Azure setup steps were completed</li>
+                                                        <li><strong>Wrong App Type:</strong> Make sure you created an app registration (not a managed identity)</li>
+                                                        <li><strong>Expired Secret:</strong> Check if your client secret has expired</li>
+                                                        <li><strong>Wrong Tenant:</strong> Ensure you're configuring the app in the correct Azure AD tenant</li>
+                                                    </ul>
+                                                    
+                                                    <h6 class="mt-3"><i class="fas fa-network-wired text-success"></i> Network Issues</h6>
+                                                    <ul class="small">
+                                                        <li><strong>Firewall Blocking:</strong> Ensure access to login.microsoftonline.com and graph.microsoft.com</li>
+                                                        <li><strong>Timeout:</strong> Check your network connection and try again</li>
+                                                        <li><strong>Rate Limiting:</strong> Wait a few minutes before trying again</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="alert alert-info mt-3">
+                                                <h6><i class="fas fa-lightbulb"></i> Quick Verification Steps</h6>
+                                                <ol class="mb-0 small">
+                                                    <li>Go to your Azure app registration and verify the Client ID matches what you entered</li>
+                                                    <li>Check that the Directory (Tenant) ID matches your Azure AD tenant</li>
+                                                    <li>Verify your client secret is valid and hasn't expired</li>
+                                                    <li>Ensure both Mail.Read and User.Read.All permissions are granted with admin consent</li>
+                                                    <li>Confirm the email address exists in your Microsoft 365 tenant</li>
+                                                </ol>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 text-center">
+                                <button class="btn btn-outline-primary" onclick="showCredentialsForm()">
+                                    <i class="fas fa-edit"></i> Edit Configuration
+                                </button>
+                                <button class="btn btn-outline-secondary ms-2" onclick="showAzureInstructions()">
+                                    <i class="fas fa-book"></i> Review Setup Instructions
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -679,15 +1102,19 @@
             const configType = urlParams.get('type');
             
             if (configType === 'managed' || configType === 'client-hosted') {
-                // Auto-select the option and proceed
-                selectedOption = configType;
-                document.querySelector(`[data-option="${configType}"]`).classList.add('selected');
-                document.getElementById('continue-setup').disabled = false;
+                // Hide the selection page immediately
+                document.getElementById('not-configured-view').classList.add('hidden');
                 
-                // Auto-proceed to setup after a short delay
-                setTimeout(() => {
-                    document.getElementById('continue-setup').click();
-                }, 500);
+                // Auto-select the option and proceed directly to setup
+                selectedOption = configType;
+                
+                // Start the appropriate setup immediately
+                if (configType === 'managed') {
+                    startManagedSetup();
+                } else {
+                    startClientSetup();
+                }
+                return;
             }
 
             try {
@@ -906,13 +1333,15 @@
             
             const emailPrefix = document.getElementById('managed-email-prefix').value.toLowerCase();
             const folderId = parseInt(document.getElementById('managed-folder-id').value) || 0;
+            const requestSubdomain = document.getElementById('request-subdomain-format').checked;
             
             try {
                 const response = await fetch(`/api/email-filing/setup-managed/${instanceId}`, {
                     method: 'POST',
                     body: JSON.stringify({ 
                         email_prefix: emailPrefix,
-                        default_folder_id: folderId 
+                        default_folder_id: folderId,
+                        request_subdomain_format: requestSubdomain
                     })
                 });
                 
@@ -955,40 +1384,242 @@
             document.getElementById('client-setup').classList.remove('hidden');
         }
 
+        // Show Azure instructions
+        function showAzureInstructions() {
+            document.getElementById('azure-instructions').classList.remove('hidden');
+            document.getElementById('credentials-form').classList.add('hidden');
+            document.getElementById('testing-result').classList.add('hidden');
+            
+            // Update wizard steps
+            document.getElementById('azure-step').classList.add('active');
+            document.getElementById('test-step').classList.remove('active');
+            document.getElementById('complete-step').classList.remove('active');
+        }
+
+        // Show credentials form
+        function showCredentialsForm() {
+            document.getElementById('azure-instructions').classList.add('hidden');
+            document.getElementById('credentials-form').classList.remove('hidden');
+            document.getElementById('testing-result').classList.add('hidden');
+            
+            // Update wizard steps
+            document.getElementById('azure-step').classList.remove('active');
+            document.getElementById('azure-step').classList.add('completed');
+            document.getElementById('test-step').classList.add('active');
+        }
+
+        // Show testing results
+        function showTestingResults() {
+            document.getElementById('azure-instructions').classList.add('hidden');
+            document.getElementById('credentials-form').classList.add('hidden');
+            document.getElementById('testing-result').classList.remove('hidden');
+            
+            // Update wizard steps
+            document.getElementById('test-step').classList.remove('active');
+            document.getElementById('test-step').classList.add('completed');
+            document.getElementById('complete-step').classList.add('active');
+        }
+
         // Client credentials form submission
         document.getElementById('client-credentials-form').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            // Show testing screen
+            showTestingResults();
+            document.getElementById('test-loading').classList.remove('hidden');
+            document.getElementById('test-success').classList.add('hidden');
+            document.getElementById('test-error').classList.add('hidden');
             
             const formData = {
                 client_id: document.getElementById('client-id').value,
                 tenant_id: document.getElementById('tenant-id').value,
                 client_secret: document.getElementById('client-secret').value,
                 email_address: document.getElementById('email-address').value,
-                default_folder_id: parseInt(document.getElementById('folder-id').value) || 0
+                default_folder_id: parseInt(document.getElementById('folder-id').value) || 3,
+                auto_extract_control_numbers: document.getElementById('auto-extract').checked,
+                include_attachments: document.getElementById('include-attachments').checked
             };
             
             try {
-                const response = await fetch(`/api/email-filing/setup-client-hosted/${instanceId}`, {
+                const response = await fetch(`/api/email-config/setup-client-hosted/${instanceId}`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
                     body: JSON.stringify(formData)
                 });
                 
                 const data = await response.json();
                 
+                // Hide loading
+                document.getElementById('test-loading').classList.add('hidden');
+                
                 if (data.success) {
-                    alert('Configuration saved and tested successfully!');
-                    window.location.reload();
+                    // Show success
+                    document.getElementById('test-success').classList.remove('hidden');
+                    
+                    // Populate config summary
+                    const summary = document.getElementById('config-summary');
+                    summary.innerHTML = `
+                        <li><i class="fas fa-envelope text-primary me-2"></i><strong>Email Address:</strong> ${formData.email_address}</li>
+                        <li><i class="fas fa-folder text-success me-2"></i><strong>IMS Folder:</strong> ${formData.default_folder_id}</li>
+                        <li><i class="fas fa-cog text-info me-2"></i><strong>Auto Extract:</strong> ${formData.auto_extract_control_numbers ? 'Yes' : 'No'}</li>
+                        <li><i class="fas fa-paperclip text-warning me-2"></i><strong>Attachments:</strong> ${formData.include_attachments ? 'Yes' : 'No'}</li>
+                    `;
                 } else {
-                    alert('Configuration failed: ' + data.message);
+                    // Show error
+                    document.getElementById('test-error').classList.remove('hidden');
+                    document.getElementById('error-message').textContent = data.message || 'Unknown error occurred';
+                    
+                    // Show additional details if available
+                    let errorDetails = '';
+                    let errorCode = null;
+                    
+                    if (data.test_result) {
+                        if (data.test_result.details) {
+                            errorDetails += `<strong>Details:</strong> ${data.test_result.details}`;
+                        }
+                        if (data.test_result.code) {
+                            errorCode = data.test_result.code;
+                        }
+                    }
+                    
+                    if (errorDetails) {
+                        document.getElementById('error-details').innerHTML = errorDetails;
+                        document.getElementById('error-details').classList.remove('hidden');
+                    }
+                    
+                    // Show specific troubleshooting based on error code
+                    showSpecificTroubleshooting(errorCode, data.test_result);
                 }
             } catch (error) {
-                alert('Error saving configuration: ' + error.message);
                 console.error('Client setup error:', error);
+                
+                // Hide loading and show error
+                document.getElementById('test-loading').classList.add('hidden');
+                document.getElementById('test-error').classList.remove('hidden');
+                document.getElementById('error-message').textContent = 'Network error: ' + error.message;
             }
         });
+
+        // Show specific troubleshooting based on error code
+        function showSpecificTroubleshooting(errorCode, testResult) {
+            const troubleshootingDiv = document.getElementById('specific-troubleshooting');
+            let content = '';
+            
+            switch (errorCode) {
+                case 'INVALID_CLIENT_CREDENTIALS':
+                    content = `
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-key"></i> Client Credentials Issue</h6>
+                            <p><strong>Action Required:</strong> Your Application ID or Client Secret is incorrect.</p>
+                            <ol>
+                                <li>Go to your Azure app registration in the Azure Portal</li>
+                                <li>Verify the <strong>Application (client) ID</strong> on the Overview page matches what you entered</li>
+                                <li>Go to <strong>Certificates & secrets</strong> and create a new client secret if needed</li>
+                                <li>Copy the new secret <strong>value</strong> (not the ID) and update your configuration</li>
+                            </ol>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'INVALID_TENANT_ID':
+                case 'INVALID_REQUEST':
+                    content = `
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-building"></i> Tenant ID Issue</h6>
+                            <p><strong>Action Required:</strong> Your Directory (Tenant) ID is incorrect.</p>
+                            <ol>
+                                <li>Go to your Azure app registration in the Azure Portal</li>
+                                <li>Check the <strong>Directory (tenant) ID</strong> on the Overview page</li>
+                                <li>Make sure it matches exactly what you entered (including dashes)</li>
+                                <li>The format should be: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</li>
+                            </ol>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'UNAUTHORIZED':
+                case 'INSUFFICIENT_PERMISSIONS':
+                    content = `
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-shield-alt"></i> Permission Issue</h6>
+                            <p><strong>Action Required:</strong> Your app doesn't have the required permissions or admin consent is missing.</p>
+                            <ol>
+                                <li>Go to your Azure app registration → <strong>API permissions</strong></li>
+                                <li>Ensure these permissions are added as <strong>Application permissions</strong>:
+                                    <ul>
+                                        <li>Microsoft Graph → Mail.Read</li>
+                                        <li>Microsoft Graph → User.Read.All</li>
+                                    </ul>
+                                </li>
+                                <li><strong>IMPORTANT:</strong> Click <strong>"Grant admin consent for [Your Organization]"</strong></li>
+                                <li>Ensure the status shows "Granted for [Your Organization]" with green checkmarks</li>
+                            </ol>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'USER_NOT_FOUND':
+                    content = `
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-user-times"></i> Email Address Not Found</h6>
+                            <p><strong>Action Required:</strong> The email address doesn't exist in your Microsoft 365 tenant.</p>
+                            <ol>
+                                <li>Check that the email address is spelled correctly</li>
+                                <li>Verify the email address exists in your Microsoft 365 admin center</li>
+                                <li>Make sure you're using the correct Azure AD tenant (not a personal Microsoft account)</li>
+                                <li>If using an alias, try using the primary email address instead</li>
+                            </ol>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'EMAIL_ACCESS_DENIED':
+                    content = `
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-envelope-open"></i> Email Access Issue</h6>
+                            <p><strong>Action Required:</strong> Your app can access the user but cannot read emails.</p>
+                            <ol>
+                                <li>Verify <strong>Mail.Read</strong> permission is added as an <strong>Application permission</strong> (not Delegated)</li>
+                                <li>Ensure admin consent was granted for Mail.Read</li>
+                                <li>Check if the mailbox has any access restrictions</li>
+                                <li>Wait a few minutes after granting permissions, then try again</li>
+                            </ol>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'RATE_LIMITED':
+                    content = `
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-clock"></i> Rate Limited</h6>
+                            <p><strong>Action Required:</strong> Too many requests to Microsoft Graph API.</p>
+                            <p>Please wait 2-3 minutes and try the connection test again. This is a temporary limitation from Microsoft.</p>
+                        </div>
+                    `;
+                    break;
+                    
+                default:
+                    if (errorCode) {
+                        content = `
+                            <div class="alert alert-secondary">
+                                <h6><i class="fas fa-question-circle"></i> Error Code: ${errorCode}</h6>
+                                <p>Please refer to the complete troubleshooting guide below for assistance with this specific error.</p>
+                            </div>
+                        `;
+                    }
+                    break;
+            }
+            
+            if (content) {
+                troubleshootingDiv.innerHTML = content;
+                troubleshootingDiv.classList.remove('hidden');
+            } else {
+                troubleshootingDiv.classList.add('hidden');
+            }
+        }
 
         // Process emails now
         document.getElementById('process-emails')?.addEventListener('click', async function() {
@@ -1575,13 +2206,27 @@
                     
                     console.log('Instance data for email preview:', data);
                     
-                    if (data.success && data.instance && data.instance.email_subdomain) {
+                    if (data.success && data.instance && data.instance.custom_domain) {
+                        const hyphenEmail = `${prefix}-${data.instance.custom_domain}@42ims.com`;
+                        const subdomainEmail = `${prefix}@${data.instance.custom_domain}.42ims.com`;
+                        
+                        // Show default format (hyphen)
                         document.getElementById('managed-email-preview').innerHTML = 
-                            `Your email address will be: <strong>${prefix}-${data.instance.email_subdomain}@42ims.com</strong>`;
+                            `Your email address will be: <strong>${hyphenEmail}</strong> <small class="text-success">(Standard Format)</small>`;
+                        
+                        // Show subdomain option if CNAME is approved
+                        if (data.instance.is_custom_domain_approved) {
+                            document.getElementById('subdomain-format-option').style.display = 'block';
+                            document.getElementById('subdomain-format-preview').innerHTML = 
+                                `Or choose: <strong>${subdomainEmail}</strong> <small class="text-warning">(Requires Admin Approval)</small>`;
+                        } else {
+                            document.getElementById('subdomain-format-option').style.display = 'none';
+                        }
                     } else {
-                        console.log('Instance missing email_subdomain:', data.instance);
+                        console.log('Instance missing custom_domain:', data.instance);
                         document.getElementById('managed-email-preview').textContent = 
-                            'This instance needs a subdomain configured. Please contact support.';
+                            'This instance needs an email domain identifier configured. Please contact support.';
+                        document.getElementById('subdomain-format-option').style.display = 'none';
                     }
                 } catch (error) {
                     console.error('Error loading subdomain:', error);

@@ -124,7 +124,7 @@ router.get('/config/:instanceId', async (req, res) => {
 router.post('/setup-managed/:instanceId', async (req, res) => {
     try {
         const { instanceId } = req.params;
-        const { email_suffix, default_folder_id = 0 } = req.body;
+        const { email_suffix, default_folder_id = 0, request_subdomain_format = false } = req.body;
         
         // For backward compatibility, check for email_prefix too
         const suffix = email_suffix || req.body.email_prefix;
@@ -191,7 +191,7 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
         
         // Get instance details including unique identifier
         const instanceResult = await pool.query(
-            'SELECT name, email_subdomain FROM ims_instances WHERE instance_id = $1',
+            'SELECT name, custom_domain, is_custom_domain_approved FROM ims_instances WHERE instance_id = $1',
             [instanceId]
         );
         
@@ -204,19 +204,22 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
 
         const instance = instanceResult.rows[0];
         
-        // Check if instance has unique identifier
-        const uniqueIdentifier = instance.email_subdomain;
-        if (!uniqueIdentifier) {
+        // Check if instance has custom domain configured
+        if (!instance.custom_domain) {
             return res.status(400).json({
                 success: false,
-                message: 'This instance needs a unique email identifier configured. Please set one in your instance settings.'
+                message: 'This instance needs an email domain identifier configured. Please set one in your instance settings.'
             });
         }
         
-        // Create email in format: prefix-uniqueidentifier@42ims.com
-        const fullEmailAddress = `${suffix}-${uniqueIdentifier}@42ims.com`;
+        // Email generation logic:
+        // 1. Always create hyphen format (prefix-domain@42ims.com) - this always works
+        // 2. If CNAME approved AND user requests subdomain format, create pending subdomain email
         
-        // Check if this email is already taken (shouldn't happen with unique identifiers, but just in case)
+        // Always use hyphen format for the actual working email
+        const fullEmailAddress = `${suffix}-${instance.custom_domain}@42ims.com`;
+        
+        // Check if this email is already taken
         const emailTaken = await pool.query(
             'SELECT id FROM email_configurations WHERE email_address = $1',
             [fullEmailAddress]
@@ -228,22 +231,86 @@ router.post('/setup-managed/:instanceId', async (req, res) => {
                 message: `This email configuration already exists. Please choose a different prefix.`
             });
         }
+
+        // Additional validation for CNAME emails: ensure prefix+customDomain combination is unique
+        if (instance.custom_domain) {
+            const cnameConflict = await pool.query(`
+                SELECT ec.id, i.name as instance_name 
+                FROM email_configurations ec
+                JOIN ims_instances i ON ec.instance_id = i.instance_id
+                WHERE ec.email_prefix = $1 AND i.custom_domain = $2 AND ec.instance_id != $3
+            `, [suffix, instance.custom_domain, instanceId]);
+            
+            if (cnameConflict.rows.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: `The email prefix "${suffix}" is already in use with the custom domain "${instance.custom_domain}" in instance "${cnameConflict.rows[0].instance_name}". Please choose a different prefix.`
+                });
+            }
+        }
         
-        // Create email configuration with subdomain format
-        const config = await emailConfigService.createSubdomainEmailConfig(
-            instanceId, 
-            suffix,  // This is the email prefix (e.g., "docs")
-            fullEmailAddress,
-            default_folder_id
-        );
+        let config;
+        let actualEmailAddress;
+        let isSubdomainFormat = false;
+
+        // Decision: Create subdomain format if requested AND CNAME approved, otherwise hyphen format
+        if (request_subdomain_format && instance.is_custom_domain_approved) {
+            // User wants subdomain format and CNAME is approved
+            actualEmailAddress = `${suffix}@${instance.custom_domain}.42ims.com`;
+            isSubdomainFormat = true;
+            
+            // Check if subdomain email already exists
+            const subdomainExists = await pool.query(
+                'SELECT id FROM email_configurations WHERE email_address = $1',
+                [actualEmailAddress]
+            );
+            
+            if (subdomainExists.rows.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Subdomain email ${actualEmailAddress} already exists.`
+                });
+            }
+            
+            // Create subdomain email config (pending approval)
+            config = await emailConfigService.createSubdomainEmailConfig(
+                instanceId,
+                suffix,
+                actualEmailAddress,
+                default_folder_id
+            );
+            
+            // Set to unapproved by default (requires admin approval)
+            await pool.query(
+                'UPDATE email_configurations SET is_email_approved = FALSE WHERE id = $1',
+                [config.id]
+            );
+        } else {
+            // Use hyphen format (always works immediately)
+            actualEmailAddress = fullEmailAddress; // This is the hyphen format
+            
+            config = await emailConfigService.createSubdomainEmailConfig(
+                instanceId, 
+                suffix,
+                actualEmailAddress,
+                default_folder_id
+            );
+            
+            // Hyphen format is always approved
+            await pool.query(
+                'UPDATE email_configurations SET is_email_approved = TRUE WHERE id = $1',
+                [config.id]
+            );
+        }
         
         res.json({
             success: true,
             message: 'Email configuration created successfully',
-            email_address: fullEmailAddress,
+            email_address: actualEmailAddress,
             config_id: config.id,
             email_prefix: suffix,
-            subdomain: uniqueIdentifier
+            format: isSubdomainFormat ? 'subdomain' : 'hyphen',
+            pending_approval: isSubdomainFormat
         });
     } catch (error) {
         console.error('Error setting up managed email:', error);
@@ -741,6 +808,137 @@ router.post('/process-emails/:instanceId', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to process emails',
+            error: error.message
+        });
+    }
+});
+
+// Migrate configuration between managed and client-hosted
+router.post('/migrate/:instanceId/:configId', async (req, res) => {
+    try {
+        const { instanceId, configId } = req.params;
+        const { target_type, ...migrationData } = req.body;
+        
+        if (!target_type || (target_type !== 'managed' && target_type !== 'client_hosted')) {
+            return res.status(400).json({
+                success: false,
+                message: 'target_type must be either "managed" or "client_hosted"'
+            });
+        }
+        
+        // Get existing configuration
+        const existingResult = await pool.query(`
+            SELECT * FROM email_configurations 
+            WHERE instance_id = $1 AND id = $2
+        `, [instanceId, configId]);
+        
+        if (existingResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Configuration not found'
+            });
+        }
+        
+        const existingConfig = existingResult.rows[0];
+        
+        if (existingConfig.config_type === target_type) {
+            return res.status(400).json({
+                success: false,
+                message: `Configuration is already of type "${target_type}"`
+            });
+        }
+        
+        let newConfig;
+        
+        if (target_type === 'managed') {
+            // Migrating from client-hosted to managed
+            const instanceResult = await pool.query(
+                'SELECT name, custom_domain, is_custom_domain_approved FROM ims_instances WHERE instance_id = $1',
+                [instanceId]
+            );
+            
+            if (instanceResult.rows.length === 0 || !instanceResult.rows[0].custom_domain) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Instance needs an email domain identifier configured for managed email'
+                });
+            }
+            
+            const { email_prefix = 'docs' } = migrationData;
+            const instance = instanceResult.rows[0];
+            // Create email address based on approval status
+            let newEmailAddress;
+            if (instance.is_custom_domain_approved) {
+                // CNAME format: prefix@cname.42ims.com
+                newEmailAddress = `${email_prefix}@${instance.custom_domain}.42ims.com`;
+            } else {
+                // Standard format: prefix-identifier@42ims.com
+                newEmailAddress = `${email_prefix}-${instance.custom_domain}@42ims.com`;
+            }
+            
+            newConfig = await emailConfigService.createSubdomainEmailConfig(
+                instanceId,
+                email_prefix,
+                newEmailAddress,
+                existingConfig.default_folder_id || 0
+            );
+            
+        } else {
+            // Migrating from managed to client-hosted
+            const {
+                client_id,
+                client_secret,
+                tenant_id,
+                email_address
+            } = migrationData;
+            
+            if (!client_id || !client_secret || !tenant_id || !email_address) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Missing required fields: client_id, client_secret, tenant_id, email_address'
+                });
+            }
+            
+            newConfig = await emailConfigService.createClientHostedEmailConfig(instanceId, {
+                email_address,
+                graph_client_id: client_id,
+                graph_client_secret: client_secret,
+                graph_tenant_id: tenant_id,
+                auto_extract_control_numbers: existingConfig.auto_extract_control_numbers,
+                include_attachments: existingConfig.include_attachments,
+                default_folder_id: existingConfig.default_folder_id
+            });
+        }
+        
+        // Test the new configuration
+        const testResult = await emailConfigService.testSpecificEmailConfig(instanceId, newConfig.id);
+        
+        if (testResult.success) {
+            // Delete the old configuration
+            await pool.query('DELETE FROM email_configurations WHERE id = $1', [configId]);
+            
+            res.json({
+                success: true,
+                message: `Successfully migrated from ${existingConfig.config_type} to ${target_type}`,
+                new_config_id: newConfig.id,
+                test_result: testResult
+            });
+        } else {
+            // Delete the new config since it failed testing
+            await pool.query('DELETE FROM email_configurations WHERE id = $1', [newConfig.id]);
+            
+            res.status(400).json({
+                success: false,
+                message: 'Migration failed - new configuration test failed',
+                test_result: testResult
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error migrating email config:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to migrate email configuration',
             error: error.message
         });
     }

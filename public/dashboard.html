@@ -203,13 +203,17 @@
                            placeholder="e.g., kL8TLc555qOmG69ZBvMFkA== (from database)">
                 </div>
                 <div class="form-group">
-                    <label for="emailSubdomain">Email Subdomain (Optional)</label>
-                    <input type="text" id="emailSubdomain" 
-                           placeholder="e.g., companytest" 
+                    <label for="customDomain">Email Domain Identifier (Required)</label>
+                    <input type="text" id="customDomain" 
+                           placeholder="e.g., isc" 
                            pattern="^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
-                           title="Lowercase letters, numbers, and hyphens only">
-                    <small class="form-text">Leave blank to auto-generate from instance name. This will be used for email addresses like docs@<strong>subdomain</strong>.42consultingllc.com</small>
-                    <div id="subdomain-preview" style="margin-top: 5px; color: #666;"></div>
+                           title="Lowercase letters, numbers, and hyphens only."
+                           required>
+                    <small class="form-text">This identifier will be used for email addresses:<br>
+                    • <strong>Immediately available:</strong> docs-<strong>identifier</strong>@42ims.com<br>
+                    • <strong>After admin approval:</strong> docs@<strong>identifier</strong>.42ims.com<br>
+                    <em style="color: #e74c3c;">Note: CNAME format requires admin approval and Cloudflare configuration.</em></small>
+                    <div id="custom-domain-preview" style="margin-top: 5px; color: #666;"></div>
                 </div>
                 <div class="modal-buttons">
                     <button type="button" class="btn" onclick="closeModal()">Cancel</button>
@@ -265,20 +269,30 @@
         function createInstanceCard(instance) {
             const card = document.createElement('div');
             card.className = 'card instance-card';
+            const cnameStatus = instance.is_custom_domain_approved 
+                ? '<span class="badge" style="background: #2ecc71; color: white; margin-left: 10px;">CNAME Approved ✓</span>' 
+                : '<span class="badge" style="background: #f1c40f; color: white; margin-left: 10px;">CNAME Pending</span>';
+            
             card.innerHTML = `
                 <h3>${instance.name}</h3>
                 <span class="status-badge status-active">Active</span>
                 <p>URL: ${instance.url}</p>
                 <div>
+                    <h4>Email Configuration</h4>
+                    <p>Domain Identifier: <strong>${instance.custom_domain || 'Not configured'}</strong> ${instance.custom_domain ? cnameStatus : ''}</p>
+                    ${instance.custom_domain ? 
+                        `<p style="font-size: 0.9em; color: #666;">
+                            Available formats:<br>
+                            • Always: <code>docs-${instance.custom_domain}@42ims.com</code><br>
+                            ${instance.is_custom_domain_approved ? 
+                                `• Approved: <code>docs@${instance.custom_domain}.42ims.com</code>` : 
+                                `• Pending approval: <code style="opacity: 0.5;">docs@${instance.custom_domain}.42ims.com</code>`}
+                        </p>` : ''}
+                </div>
+                <div>
                     <h4>Credentials</h4>
                     <p>Username: ${instance.username}</p>
                     <p>Password: ********</p>
-                </div>
-                <div>
-                    <h4>Integrations</h4>
-                    <ul>
-                        <li>No integrations configured</li>
-                    </ul>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 15px;">
                     <button class="btn btn-primary" onclick="manageInstance('${instance.instance_id}')">Manage</button>
@@ -333,7 +347,7 @@
                     url: document.getElementById('instanceUrl').value,
                     userName: document.getElementById('userName').value,
                     password: document.getElementById('password').value,
-                    emailSubdomain: document.getElementById('emailSubdomain').value || null
+                    customDomain: document.getElementById('customDomain').value
                 };
 
                 console.log('Instance data:', instanceData);

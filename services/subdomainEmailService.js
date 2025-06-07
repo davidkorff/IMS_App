@@ -8,19 +8,49 @@ class SubdomainEmailService {
 
     // Parse email address to extract subdomain and prefix
     parseEmailAddress(emailAddress) {
-        // Match patterns like: docs@origintest.42consultingllc.com
-        const regex = new RegExp(`^([^@]+)@([^.]+)\\.${this.baseDomain.replace('.', '\\.')}$`, 'i');
-        const match = emailAddress.match(regex);
+        // Pattern 1: CNAME-based emails like docs@cname.42ims.com
+        const cnameRegex = /^([^@]+)@([^.]+)\.42ims\.com$/i;
+        const cnameMatch = emailAddress.match(cnameRegex);
         
-        if (match) {
+        if (cnameMatch) {
             return {
-                prefix: match[1].toLowerCase(),
-                subdomain: match[2].toLowerCase(),
-                isSubdomainEmail: true
+                prefix: cnameMatch[1].toLowerCase(),
+                customDomain: cnameMatch[2].toLowerCase(),
+                isSubdomainEmail: true,
+                isCustomDomain: true,
+                emailType: 'cname'
             };
         }
         
-        // Not a subdomain email
+        // Pattern 2: Standard subdomain emails like docs@subdomain.42consultingllc.com
+        const subdomainRegex = new RegExp(`^([^@]+)@([^.]+)\\.${this.baseDomain.replace('.', '\\.')}$`, 'i');
+        const subdomainMatch = emailAddress.match(subdomainRegex);
+        
+        if (subdomainMatch) {
+            return {
+                prefix: subdomainMatch[1].toLowerCase(),
+                subdomain: subdomainMatch[2].toLowerCase(),
+                isSubdomainEmail: true,
+                isCustomDomain: false,
+                emailType: 'subdomain'
+            };
+        }
+        
+        // Pattern 3: Legacy hyphenated emails like docs-subdomain@42ims.com
+        const legacyRegex = /^([^-@]+)-([^@]+)@42ims\.com$/i;
+        const legacyMatch = emailAddress.match(legacyRegex);
+        
+        if (legacyMatch) {
+            return {
+                prefix: legacyMatch[1].toLowerCase(),
+                subdomain: legacyMatch[2].toLowerCase(),
+                isSubdomainEmail: true,
+                isCustomDomain: false,
+                emailType: 'legacy'
+            };
+        }
+        
+        // Not a recognized subdomain email
         return {
             isSubdomainEmail: false,
             originalEmail: emailAddress
@@ -43,6 +73,21 @@ class SubdomainEmailService {
             return result.rows[0] || null;
         } catch (error) {
             console.error('Error finding instance by subdomain:', error);
+            return null;
+        }
+    }
+
+    // Find instance by custom domain (CNAME)
+    async findInstanceByCustomDomain(customDomain) {
+        try {
+            const result = await pool.query(
+                'SELECT * FROM ims_instances WHERE custom_domain = $1',
+                [customDomain.toLowerCase()]
+            );
+            
+            return result.rows[0] || null;
+        } catch (error) {
+            console.error('Error finding instance by custom domain:', error);
             return null;
         }
     }
@@ -73,11 +118,24 @@ class SubdomainEmailService {
             return await this.routeLegacyEmail(toAddress);
         }
         
-        // Find instance by subdomain
-        const instance = await this.findInstanceBySubdomain(parsed.subdomain);
-        if (!instance) {
-            console.log(`No instance found for subdomain: ${parsed.subdomain}`);
-            return null;
+        // Find instance based on email type
+        let instance = null;
+        let routingType = parsed.emailType;
+        
+        if (parsed.isCustomDomain) {
+            // CNAME-based email: docs@cname.42ims.com
+            instance = await this.findInstanceByCustomDomain(parsed.customDomain);
+            if (!instance) {
+                console.log(`No instance found for custom domain: ${parsed.customDomain}`);
+                return null;
+            }
+        } else {
+            // Subdomain-based email: docs@subdomain.42consultingllc.com or docs-subdomain@42ims.com
+            instance = await this.findInstanceBySubdomain(parsed.subdomain);
+            if (!instance) {
+                console.log(`No instance found for subdomain: ${parsed.subdomain}`);
+                return null;
+            }
         }
         
         // Find config by prefix
@@ -90,9 +148,11 @@ class SubdomainEmailService {
         return {
             instance,
             config,
-            routingType: 'subdomain',
+            routingType,
             subdomain: parsed.subdomain,
-            prefix: parsed.prefix
+            customDomain: parsed.customDomain,
+            prefix: parsed.prefix,
+            emailType: parsed.emailType
         };
     }
 

@@ -257,6 +257,22 @@
             font-weight: 600;
         }
 
+        .development-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .tile-development {
+            position: relative;
+        }
+
         #reports {
             margin-top: 15px;
         }
@@ -333,8 +349,7 @@
                 <span class="tile-action">Coming Soon</span>
             </button>
 
-            <button class="tile tile-coming-soon" onclick="showComingSoon()">
-                <span class="coming-soon-badge">Coming Soon</span>
+            <button class="tile" onclick="window.location.href = window.location.href + '/reporting'">
                 <div class="tile-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -346,7 +361,7 @@
                 </div>
                 <h3>Reports</h3>
                 <p>Generate and view custom reports</p>
-                <span class="tile-action">Coming Soon</span>
+                <span class="tile-action">View Reports →</span>
             </button>
 
             <button class="tile" onclick="window.location.href = window.location.href + '/forms'">
@@ -364,8 +379,8 @@
                 <span class="tile-action">View Forms →</span>
             </button>
 
-            <button class="tile tile-coming-soon" onclick="showComingSoon()">
-                <span class="coming-soon-badge">Coming Soon</span>
+            <button class="tile tile-development" onclick="window.location.href = window.location.href + '/newsubmission'">
+                <span class="development-badge">Under Development</span>
                 <div class="tile-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 5v14M5 12h14"></path>
@@ -373,7 +388,7 @@
                 </div>
                 <h3>Create Submission</h3>
                 <p>Create a new insurance submission</p>
-                <span class="tile-action">Coming Soon</span>
+                <span class="tile-action">Create New →</span>
             </button>
 
             <button class="tile" onclick="window.location.href = window.location.href + '/email-filing'">

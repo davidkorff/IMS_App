@@ -10,9 +10,16 @@ router.post('/', auth, async (req, res) => {
     console.log(`[${requestId}] User:`, req.user);
     
     try {
-        const { name, url, userName, password, emailSubdomain } = req.body;
+        const { name, url, userName, password, customDomain } = req.body;
         const userId = req.user.user_id;
         console.log(`[${requestId}] Using userId for creation:`, userId);
+
+        // Validate customDomain is provided
+        if (!customDomain) {
+            return res.status(400).json({ 
+                message: 'Email domain identifier is required' 
+            });
+        }
 
         // Check if instance already exists for this user
         const existing = await pool.query(
@@ -25,50 +32,24 @@ router.post('/', auth, async (req, res) => {
             return res.status(400).json({ message: 'Instance with this name already exists' });
         }
 
-        // Generate or validate subdomain
-        const subdomainEmailService = require('../services/subdomainEmailService');
-        let subdomain = emailSubdomain;
-        
-        if (!subdomain) {
-            // Auto-generate from instance name
-            subdomain = subdomainEmailService.generateSubdomain(name);
-        } else {
-            // Format user-provided subdomain
-            subdomain = subdomain
-                .toLowerCase()
-                .replace(/[^a-z0-9-]/g, '-')  // Replace invalid chars with hyphens
-                .replace(/-+/g, '-')           // Replace multiple hyphens with single
-                .replace(/^-+|-+$/g, '');      // Remove leading/trailing hyphens
-            
-            // Ensure it starts with a letter or number
-            if (!/^[a-z0-9]/.test(subdomain)) {
-                subdomain = 'inst-' + subdomain;
-            }
-            
-            // Ensure it ends with a letter or number
-            if (!/[a-z0-9]$/.test(subdomain)) {
-                subdomain = subdomain.replace(/-+$/, '');
-            }
-            
-            // Limit length
-            if (subdomain.length > 63) {
-                subdomain = subdomain.substring(0, 63);
-            }
-        }
-        
-        console.log(`[${requestId}] Original subdomain: "${emailSubdomain}", formatted: "${subdomain}"`);
-        
-        // Check if subdomain is available
-        const availability = await subdomainEmailService.isSubdomainAvailable(subdomain);
-        if (!availability.available) {
+        // Check if custom domain is already in use
+        const domainInUse = await pool.query(
+            'SELECT * FROM ims_instances WHERE custom_domain = $1',
+            [customDomain.toLowerCase()]
+        );
+
+        if (domainInUse.rows.length > 0) {
             return res.status(400).json({ 
-                message: `Subdomain not available: ${availability.reason}` 
+                message: `Domain identifier "${customDomain}" is already in use` 
             });
         }
 
+        // For backward compatibility, also set email_subdomain to the same value
+        const subdomain = customDomain.toLowerCase();
+
         const newInstance = await pool.query(
-            'INSERT INTO ims_instances (user_id, name, url, username, password, email_subdomain) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-            [userId, name, url, userName, password, subdomain]
+            'INSERT INTO ims_instances (user_id, name, url, username, password, email_subdomain, custom_domain, is_custom_domain_approved) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [userId, name, url, userName, password, subdomain, customDomain, false]
         );
 
         console.log(`[${requestId}] Created instance:`, newInstance.rows[0]);

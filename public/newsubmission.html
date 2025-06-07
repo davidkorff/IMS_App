@@ -185,6 +185,21 @@
                     <input type="email" id="email">
                 </div>
 
+                <div class="form-group">
+                    <label for="producerSearch">Producer (Optional)</label>
+                    <input type="text" id="producerSearch" placeholder="Search for producer...">
+                    <div id="producerResults" style="display: none; border: 1px solid #ddd; max-height: 200px; overflow-y: auto; background: white; position: absolute; z-index: 1000; width: 100%;"></div>
+                    <input type="hidden" id="selectedProducerGuid">
+                    <div id="selectedProducer" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px; display: none;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label for="underwriterGuid">Underwriter (Optional)</label>
+                    <select id="underwriterGuid">
+                        <option value="">Select Underwriter (Optional)</option>
+                    </select>
+                </div>
+
                 <button type="submit" class="btn btn-primary">Create Submission</button>
             </form>
 
@@ -208,15 +223,12 @@
 
                 if (!response.ok) throw new Error('Failed to load instance details');
 
-                currentInstance = await response.json();
+                const data = await response.json();
+                currentInstance = data.instance || data; // Handle both formats
                 console.log('Instance loaded:', currentInstance);
 
-                // After instance is loaded, load the dropdowns
-                await Promise.all([
-                    loadCompanies(),
-                    loadLines(),
-                    loadStates()
-                ]);
+                // Set up lazy loading for dropdowns (same as Forms Library)
+                setupLazyLoading();
             } catch (error) {
                 console.error('Error loading instance:', error);
                 alert('Failed to load instance details');
@@ -232,90 +244,136 @@
             }
         });
 
-        async function loadCompanies() {
-            try {
-                const response = await fetch(`/api/webui/forms/companies?instanceId=${currentInstance.instance_id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        // Lazy loading setup (same as Forms Library)
+        let companiesLoaded = false;
+        let linesLoaded = false;
+        let statesLoaded = false;
+
+        function setupLazyLoading() {
+            // Companies lazy loading
+            document.getElementById('company').addEventListener('click', async function() {
+                if (!companiesLoaded) {
+                    try {
+                        const response = await fetch(`/api/webui/forms/companies?instanceId=${currentInstance.instance_id}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to load companies');
+                        }
+
+                        const companies = await response.json();
+                        this.innerHTML = '<option value="">Select Company</option>';
+                        
+                        companies.forEach(company => {
+                            const option = document.createElement('option');
+                            option.value = company.CompanyLocationGUID;
+                            option.textContent = company.LocationName;
+                            this.appendChild(option);
+                        });
+
+                        companiesLoaded = true;
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to load companies');
                     }
-                });
-
-                if (!response.ok) throw new Error('Failed to load companies');
-
-                const companies = await response.json(); // The response is already an array
-                console.log('Companies data:', companies);
-                
-                const select = document.getElementById('company');
-                select.innerHTML = '<option value="">Select Company</option>';
-                
-                companies.forEach(company => {
-                    const option = document.createElement('option');
-                    option.value = company.CompanyLocationGUID;
-                    option.textContent = company.LocationName;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to load companies');
-            }
-        }
-
-        async function loadLines() {
-            const instanceId = window.location.pathname.split('/')[2];
-            const response = await fetch(`/api/webui/forms/lines?instanceId=${instanceId}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
 
-            if (!response.ok) throw new Error('Failed to load lines');
+            // Lines lazy loading
+            document.getElementById('line').addEventListener('click', async function() {
+                if (!linesLoaded) {
+                    try {
+                        const response = await fetch(`/api/webui/forms/lines?instanceId=${currentInstance.instance_id}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
 
-            const data = await response.json();
-            console.log('Lines response:', data);
+                        if (!response.ok) {
+                            throw new Error('Failed to load lines');
+                        }
 
-            const lines = data.Table || data; // Handle both direct array and {Table: [...]} format
-            const select = document.getElementById('line');
-            
-            lines.forEach(line => {
-                const option = document.createElement('option');
-                option.value = line.LineGUID || line.lineguid;
-                option.textContent = line.LineName || line.linename;
-                select.appendChild(option);
-            });
-        }
+                        const lines = await response.json();
+                        this.innerHTML = '<option value="">Select Line</option>';
+                        
+                        lines.forEach(line => {
+                            const option = document.createElement('option');
+                            option.value = line.LineGUID || line.lineguid;
+                            option.textContent = line.LineName || line.linename;
+                            this.appendChild(option);
+                        });
 
-        async function loadStates() {
-            try {
-                const response = await fetch(`/api/webui/forms/states?instanceId=${currentInstance.instance_id}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        linesLoaded = true;
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to load lines');
                     }
-                });
+                }
+            });
 
-                if (!response.ok) throw new Error('Failed to load states');
+            // States lazy loading
+            document.getElementById('state').addEventListener('click', async function() {
+                if (!statesLoaded) {
+                    try {
+                        const response = await fetch(`/api/webui/forms/states?instanceId=${currentInstance.instance_id}`, {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            }
+                        });
 
-                const states = await response.json();
-                console.log('States data:', states);
-                
-                const select = document.getElementById('state');
-                select.innerHTML = '<option value="">Select State</option>';
-                
-                states.forEach(state => {
-                    const option = document.createElement('option');
-                    option.value = state.StateID;
-                    option.textContent = state.State;
-                    select.appendChild(option);
-                });
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to load states');
-            }
+                        if (!response.ok) {
+                            throw new Error('Failed to load states');
+                        }
+
+                        const states = await response.json();
+                        this.innerHTML = '<option value="">Select State</option>';
+                        
+                        states.forEach(state => {
+                            const option = document.createElement('option');
+                            option.value = state.StateID;
+                            option.textContent = state.StateName;
+                            this.appendChild(option);
+                        });
+
+                        statesLoaded = true;
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to load states');
+                    }
+                }
+            });
         }
 
         async function handleSubmit(event) {
             event.preventDefault();
             
+            const loadingDiv = document.getElementById('loading');
+            const submitButton = event.target.querySelector('button[type="submit"]');
+            
             try {
+                loadingDiv.style.display = 'block';
+                submitButton.disabled = true;
+
+                // Collect all form data
+                const formData = {
+                    instanceId: currentInstance.instance_id,
+                    insuredName: document.getElementById('insuredName').value,
+                    businessType: document.getElementById('businessType').value,
+                    address1: document.getElementById('address1').value,
+                    city: document.getElementById('city').value,
+                    state: document.getElementById('state').value,
+                    zip: document.getElementById('zip').value,
+                    deliveryMethod: document.getElementById('deliveryMethod').value,
+                    email: document.getElementById('email').value,
+                    producerContactGuid: document.getElementById('selectedProducerGuid').value,
+                    underwriterGuid: document.getElementById('underwriterGuid').value
+                };
+
+                console.log('Form data:', formData);
+
                 // 1. Clearance check
                 const clearanceRes = await fetch('/api/webui/submission/clearance', {
                     method: 'POST',
@@ -324,8 +382,8 @@
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
                     body: JSON.stringify({
-                        instanceId: currentInstance.instance_id,
-                        insuredName: document.getElementById('insuredName').value
+                        instanceId: formData.instanceId,
+                        insuredName: formData.insuredName
                     })
                 });
                 
@@ -338,10 +396,7 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
-                    body: JSON.stringify({
-                        instanceId: currentInstance.instance_id,
-                        insuredName: document.getElementById('insuredName').value
-                    })
+                    body: JSON.stringify(formData)
                 });
                 
                 if (!insuredRes.ok) throw new Error('Failed to create insured');
@@ -355,8 +410,10 @@
                         'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
                     body: JSON.stringify({
-                        instanceId: currentInstance.instance_id,
-                        insuredGuid: insuredGuid
+                        instanceId: formData.instanceId,
+                        insuredGuid: insuredGuid,
+                        producerContactGuid: formData.producerContactGuid,
+                        underwriterGuid: formData.underwriterGuid
                     })
                 });
                 
@@ -364,14 +421,88 @@
                 const { submissionGuid } = await submissionRes.json();
                 
                 // Handle success
-                console.log('Created submission:', submissionGuid);
-                // Maybe redirect to the submission page or show success message
+                alert('Submission created successfully! Submission GUID: ' + submissionGuid);
+                
+                // Clear form or redirect
+                document.getElementById('submissionForm').reset();
+                document.getElementById('selectedProducer').style.display = 'none';
+                document.getElementById('selectedProducerGuid').value = '';
                 
             } catch (error) {
                 console.error('Error:', error);
-                // Show error message to user
                 alert('Error: ' + error.message);
+            } finally {
+                loadingDiv.style.display = 'none';
+                submitButton.disabled = false;
             }
+        }
+
+        // Producer search functionality
+        let searchTimeout;
+        document.getElementById('producerSearch').addEventListener('input', function() {
+            const searchString = this.value.trim();
+            
+            clearTimeout(searchTimeout);
+            
+            if (searchString.length < 2) {
+                document.getElementById('producerResults').style.display = 'none';
+                return;
+            }
+            
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/api/webui/submission/producers/search?instanceId=${currentInstance.instance_id}&searchString=${encodeURIComponent(searchString)}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const producers = await response.json();
+                        displayProducerResults(producers);
+                    }
+                } catch (error) {
+                    console.error('Producer search error:', error);
+                }
+            }, 300);
+        });
+
+        function displayProducerResults(producers) {
+            const resultsDiv = document.getElementById('producerResults');
+            
+            if (!producers || producers.length === 0) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            resultsDiv.innerHTML = '';
+            
+            producers.forEach(producer => {
+                const item = document.createElement('div');
+                item.style.padding = '10px';
+                item.style.borderBottom = '1px solid #eee';
+                item.style.cursor = 'pointer';
+                item.innerHTML = `
+                    <strong>${producer.ProducerName}</strong><br>
+                    <small>${producer.LocationName} - ${producer.City}, ${producer.State}</small>
+                `;
+                
+                item.addEventListener('click', () => selectProducer(producer));
+                resultsDiv.appendChild(item);
+            });
+            
+            resultsDiv.style.display = 'block';
+        }
+
+        function selectProducer(producer) {
+            document.getElementById('selectedProducerGuid').value = producer.ProducerLocationGuid;
+            document.getElementById('producerSearch').value = producer.ProducerName;
+            document.getElementById('selectedProducer').innerHTML = `
+                <strong>Selected:</strong> ${producer.ProducerName}<br>
+                <small>${producer.LocationName} - ${producer.City}, ${producer.State}</small>
+            `;
+            document.getElementById('selectedProducer').style.display = 'block';
+            document.getElementById('producerResults').style.display = 'none';
         }
 
         // Add event listener for delivery method changes

@@ -5,7 +5,12 @@ class InsuredService {
     async addInsuredWithLocation(url, token, data) {
         console.log('InsuredService.addInsuredWithLocation called with:', {
             url,
-            insuredName: data.insuredName
+            insuredName: data.insuredName,
+            businessType: data.businessType,
+            address: data.address1,
+            city: data.city,
+            state: data.state,
+            zip: data.zip
         });
 
         const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
@@ -20,20 +25,21 @@ class InsuredService {
     <soap:Body>
         <AddInsuredWithLocation xmlns="http://tempuri.org/IMSWebServices/InsuredFunctions">
             <insured>
-                <BusinessTypeID>4</BusinessTypeID>
+                <BusinessTypeID>${data.businessType || 4}</BusinessTypeID>
                 <FirstName>${data.insuredName}</FirstName>
-                <LastName>Test</LastName>
+                <LastName></LastName>
                 <NameOnPolicy>${data.insuredName}</NameOnPolicy>
             </insured>
             <location>
                 <LocationName>Main Office</LocationName>
-                <Address1>123 Test St</Address1>
-                <City>Test City</City>
-                <State>NY</State>
-                <Zip>12345</Zip>
+                <Address1>${data.address1 || ''}</Address1>
+                <City>${data.city || ''}</City>
+                <State>${data.state || 'NY'}</State>
+                <Zip>${data.zip || ''}</Zip>
                 <ISOCountryCode>USA</ISOCountryCode>
-                <DeliveryMethodID>1</DeliveryMethodID>
+                <DeliveryMethodID>${data.deliveryMethod || 1}</DeliveryMethodID>
                 <LocationTypeID>1</LocationTypeID>
+                <Email>${data.email || ''}</Email>
             </location>
         </AddInsuredWithLocation>
     </soap:Body>

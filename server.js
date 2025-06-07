@@ -78,6 +78,10 @@ app.get('/instance/:id/webui/search', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webui-search.html'));
 });
 
+app.get('/instance/:id/newsubmission', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'newsubmission.html'));
+});
+
 app.get('/instance/:id/webui/policy/:controlNo', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webui-policy.html'));
 });

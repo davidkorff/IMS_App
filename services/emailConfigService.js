@@ -323,6 +323,35 @@ class EmailConfigService {
     // Test client-hosted email configuration  
     async testClientHostedConfig(config) {
         try {
+            console.log('=== TESTING CLIENT-HOSTED EMAIL CONFIG ===');
+            console.log('Email Address:', config.email_address);
+            console.log('Tenant ID:', config.graph_tenant_id ? `${config.graph_tenant_id.substring(0, 8)}...` : 'Missing');
+            console.log('Client ID:', config.graph_client_id ? `${config.graph_client_id.substring(0, 8)}...` : 'Missing');
+            console.log('Client Secret:', config.graph_client_secret ? 'Present' : 'Missing');
+
+            // Validate required fields
+            if (!config.graph_tenant_id) {
+                return { success: false, error: 'Directory (Tenant) ID is required', code: 'MISSING_TENANT_ID' };
+            }
+            if (!config.graph_client_id) {
+                return { success: false, error: 'Application (Client) ID is required', code: 'MISSING_CLIENT_ID' };
+            }
+            if (!config.graph_client_secret) {
+                return { success: false, error: 'Client Secret is required', code: 'MISSING_CLIENT_SECRET' };
+            }
+            if (!config.email_address) {
+                return { success: false, error: 'Email address is required', code: 'MISSING_EMAIL' };
+            }
+
+            // Validate GUID format for tenant and client IDs
+            const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (!guidRegex.test(config.graph_tenant_id)) {
+                return { success: false, error: 'Directory (Tenant) ID must be a valid GUID format', code: 'INVALID_TENANT_ID' };
+            }
+            if (!guidRegex.test(config.graph_client_id)) {
+                return { success: false, error: 'Application (Client) ID must be a valid GUID format', code: 'INVALID_CLIENT_ID' };
+            }
+
             // Create a temporary Graph service instance with client credentials
             const { Client } = require('@microsoft/microsoft-graph-client');
             const axios = require('axios');
@@ -336,10 +365,58 @@ class EmailConfigService {
             params.append('scope', 'https://graph.microsoft.com/.default');
             params.append('grant_type', 'client_credentials');
 
-            const tokenResponse = await axios.post(tokenUrl, params, {
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-            });
+            console.log('Attempting to get access token...');
+            let tokenResponse;
+            try {
+                tokenResponse = await axios.post(tokenUrl, params, {
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    timeout: 10000 // 10 second timeout
+                });
+            } catch (tokenError) {
+                console.error('Token request failed:', tokenError.response?.data || tokenError.message);
+                
+                if (tokenError.response?.status === 400) {
+                    const errorData = tokenError.response.data;
+                    if (errorData.error === 'invalid_client') {
+                        return { 
+                            success: false, 
+                            error: 'Invalid client credentials. Please check your Application (Client) ID and Client Secret.',
+                            code: 'INVALID_CLIENT_CREDENTIALS',
+                            details: errorData.error_description
+                        };
+                    } else if (errorData.error === 'invalid_request') {
+                        return { 
+                            success: false, 
+                            error: 'Invalid request. Please check your Directory (Tenant) ID.',
+                            code: 'INVALID_REQUEST',
+                            details: errorData.error_description
+                        };
+                    }
+                } else if (tokenError.response?.status === 401) {
+                    return { 
+                        success: false, 
+                        error: 'Unauthorized. Please verify your Azure app registration settings and ensure admin consent has been granted.',
+                        code: 'UNAUTHORIZED',
+                        details: 'Check that your app has the required permissions (Mail.Read, User.Read.All) and admin consent was granted.'
+                    };
+                }
+                
+                return { 
+                    success: false, 
+                    error: `Authentication failed: ${tokenError.message}`,
+                    code: 'AUTH_FAILED'
+                };
+            }
 
+            if (!tokenResponse.data.access_token) {
+                return { 
+                    success: false, 
+                    error: 'No access token received from Azure AD',
+                    code: 'NO_ACCESS_TOKEN'
+                };
+            }
+
+            console.log('✅ Access token obtained successfully');
             const accessToken = tokenResponse.data.access_token;
 
             // Test Graph API access
@@ -349,8 +426,69 @@ class EmailConfigService {
 
             const client = Client.initWithMiddleware({ authProvider });
             
-            // Try to access the specified mailbox
-            const user = await client.api(`/users/${config.email_address}`).get();
+            console.log(`Testing access to mailbox: ${config.email_address}`);
+            let user;
+            try {
+                // Try to access the specified mailbox
+                user = await client.api(`/users/${config.email_address}`).get();
+                console.log('✅ Mailbox access successful');
+            } catch (userError) {
+                console.error('Mailbox access failed:', userError.message);
+                
+                if (userError.code === 'Request_ResourceNotFound') {
+                    return { 
+                        success: false, 
+                        error: `Email address '${config.email_address}' was not found in your Azure AD tenant.`,
+                        code: 'USER_NOT_FOUND',
+                        details: 'Make sure the email address exists in your Microsoft 365 tenant and is spelled correctly.'
+                    };
+                } else if (userError.code === 'Forbidden') {
+                    return { 
+                        success: false, 
+                        error: 'Access denied. Your app may not have the required permissions.',
+                        code: 'INSUFFICIENT_PERMISSIONS',
+                        details: 'Ensure your app registration has Mail.Read and User.Read.All permissions with admin consent granted.'
+                    };
+                } else if (userError.code === 'TooManyRequests') {
+                    return { 
+                        success: false, 
+                        error: 'Too many requests. Please wait a moment and try again.',
+                        code: 'RATE_LIMITED'
+                    };
+                }
+                
+                return { 
+                    success: false, 
+                    error: `Failed to access mailbox: ${userError.message}`,
+                    code: 'MAILBOX_ACCESS_FAILED'
+                };
+            }
+
+            // Test basic email access
+            try {
+                console.log('Testing basic email access...');
+                const messages = await client
+                    .api(`/users/${config.email_address}/messages`)
+                    .top(1)
+                    .select('id,subject,receivedDateTime')
+                    .get();
+                
+                console.log(`✅ Email access successful. Found ${messages.value.length} message(s) in recent history.`);
+            } catch (emailError) {
+                console.error('Email access test failed:', emailError.message);
+                
+                if (emailError.code === 'Forbidden') {
+                    return { 
+                        success: false, 
+                        error: 'Cannot access emails. Your app may not have Mail.Read permission.',
+                        code: 'EMAIL_ACCESS_DENIED',
+                        details: 'Verify that Mail.Read permission is granted with admin consent in your Azure app registration.'
+                    };
+                }
+                
+                // Don't fail the entire test if email access fails - user info is sufficient
+                console.log('⚠️ Email access failed, but user info was retrieved successfully');
+            }
             
             return { 
                 success: true, 
@@ -358,10 +496,16 @@ class EmailConfigService {
                     displayName: user.displayName,
                     mail: user.mail,
                     userPrincipalName: user.userPrincipalName
-                }
+                },
+                message: 'Connection successful! Your Azure app registration is properly configured.'
             };
         } catch (error) {
-            return { success: false, error: error.message };
+            console.error('Unexpected error in testClientHostedConfig:', error);
+            return { 
+                success: false, 
+                error: `Unexpected error: ${error.message}`,
+                code: 'UNEXPECTED_ERROR'
+            };
         }
     }
 
