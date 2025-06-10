@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Builder - IMS Application</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../css/custom-routes.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#" id="backToRoutes">
+                <i class="fas fa-arrow-left me-2"></i>Custom Routes
+            </a>
+            <div class="navbar-nav ms-auto">
+                <button class="btn btn-info me-2" onclick="window.open('/instance/4/custom-routes/instructions', '_blank')">
+                    <i class="fas fa-book me-2"></i>View Instructions
+                </button>
+                <button class="btn btn-success me-2" id="saveRouteBtn">
+                    <i class="fas fa-save me-2"></i>Save Route
+                </button>
+                <button class="btn btn-outline-light me-2" id="previewRouteBtn">
+                    <i class="fas fa-eye me-2"></i>Preview
+                </button>
+                <a class="nav-link" href="#" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <!-- Route Configuration Header -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="routeName" class="form-label">Route Name *</label>
+                        <input type="text" class="form-control" id="routeName" placeholder="e.g., Workers Compensation Application">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="routeSlug" class="form-label">URL Slug *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">/form/</span>
+                            <input type="text" class="form-control" id="routeSlug" placeholder="workers-comp">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="routeStatus" class="form-label">Status</label>
+                        <select class="form-select" id="routeStatus">
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <label for="routeDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="routeDescription" rows="2" placeholder="Brief description of this intake route"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Builder Interface -->
+        <div class="row">
+            <!-- Field Types Palette -->
+            <div class="col-md-2">
+                <div class="field-types">
+                    <h6 class="mb-3">Field Types</h6>
+                    
+                    <div class="field-type-item" draggable="true" data-type="text">
+                        <i class="fas fa-font text-primary"></i>
+                        <span>Text Input</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="email">
+                        <i class="fas fa-envelope text-primary"></i>
+                        <span>Email</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="phone">
+                        <i class="fas fa-phone text-primary"></i>
+                        <span>Phone</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="number">
+                        <i class="fas fa-hashtag text-primary"></i>
+                        <span>Number</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="select">
+                        <i class="fas fa-list text-primary"></i>
+                        <span>Dropdown</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="radio">
+                        <i class="fas fa-dot-circle text-primary"></i>
+                        <span>Radio Group</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="checkbox">
+                        <i class="fas fa-check-square text-primary"></i>
+                        <span>Checkboxes</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="textarea">
+                        <i class="fas fa-align-left text-primary"></i>
+                        <span>Text Area</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="date">
+                        <i class="fas fa-calendar text-primary"></i>
+                        <span>Date</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="file">
+                        <i class="fas fa-upload text-primary"></i>
+                        <span>File Upload</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="address">
+                        <i class="fas fa-map-marker-alt text-primary"></i>
+                        <span>Address</span>
+                    </div>
+                    
+                    <div class="field-type-item" draggable="true" data-type="producer-lookup">
+                        <i class="fas fa-search text-success"></i>
+                        <span>Producer Lookup</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Builder -->
+            <div class="col-md-7">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Form Builder</h6>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary" id="addStepBtn">
+                                    <i class="fas fa-plus"></i> Add Step
+                                </button>
+                                <button class="btn btn-outline-secondary" id="previewFormBtn">
+                                    <i class="fas fa-eye"></i> Preview
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Step Navigation -->
+                        <div class="step-nav">
+                            <div class="step-indicator" id="stepIndicator">
+                                <div class="step-item active" data-step="1">
+                                    <div class="step-number">1</div>
+                                    <div class="step-label">Basic Info</div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button class="btn btn-sm btn-outline-secondary" id="prevStepBtn" disabled>
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </button>
+                                <span class="text-muted" id="stepCounter">Step 1 of 1</span>
+                                <button class="btn btn-sm btn-outline-secondary" id="nextStepBtn">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Field List -->
+                        <div class="field-list" id="fieldList">
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-mouse-pointer fa-2x mb-3"></i>
+                                <p>Drag field types from the left panel to build your form</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Properties Panel -->
+            <div class="col-md-3">
+                <div class="property-panel">
+                    <h6>Field Properties</h6>
+                    
+                    <div id="noFieldSelected" class="text-muted text-center py-4">
+                        <i class="fas fa-mouse-pointer fa-2x mb-3"></i>
+                        <p>Select a field to edit its properties</p>
+                    </div>
+
+                    <div id="fieldProperties" style="display: none;">
+                        <div class="property-group">
+                            <label for="fieldLabel" class="form-label">Label *</label>
+                            <input type="text" class="form-control form-control-sm" id="fieldLabel">
+                        </div>
+
+                        <div class="property-group">
+                            <label for="fieldName" class="form-label">Field Name *</label>
+                            <input type="text" class="form-control form-control-sm" id="fieldName">
+                            <small class="text-muted">Used for data storage</small>
+                        </div>
+
+                        <div class="property-group">
+                            <label for="fieldPlaceholder" class="form-label">Placeholder</label>
+                            <input type="text" class="form-control form-control-sm" id="fieldPlaceholder">
+                        </div>
+
+                        <div class="property-group">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="fieldRequired">
+                                <label class="form-check-label" for="fieldRequired">
+                                    Required field
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="property-group" id="optionsGroup" style="display: none;">
+                            <label class="form-label">Options</label>
+                            <div id="optionsList">
+                                <!-- Options will be added here -->
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addOptionBtn">
+                                <i class="fas fa-plus"></i> Add Option
+                            </button>
+                        </div>
+
+                        <div class="property-group">
+                            <label for="imsMapping" class="form-label">IMS Field Mapping</label>
+                            <select class="form-select form-select-sm" id="imsMapping">
+                                <option value="">Select mapping...</option>
+                                <option value="NameOnPolicy">Name on Policy</option>
+                                <option value="Address1">Address Line 1</option>
+                                <option value="Address2">Address Line 2</option>
+                                <option value="City">City</option>
+                                <option value="State">State</option>
+                                <option value="Zip">ZIP Code</option>
+                                <option value="Phone">Phone</option>
+                                <option value="Email">Email</option>
+                                <option value="FEIN">Federal EIN</option>
+                                <option value="SSN">Social Security Number</option>
+                            </select>
+                        </div>
+
+                        <div class="property-group">
+                            <label for="raterMapping" class="form-label">Rater Cell Mapping</label>
+                            <input type="text" class="form-control form-control-sm" id="raterMapping" placeholder="e.g., A1, B5">
+                        </div>
+
+                        <div class="property-group">
+                            <button type="button" class="btn btn-sm btn-outline-danger w-100" id="deleteFieldBtn">
+                                <i class="fas fa-trash"></i> Delete Field
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Tabs -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="configTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="form-tab" data-bs-toggle="tab" href="#form-config">Form Settings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="workflow-tab" data-bs-toggle="tab" href="#workflow-config">Workflow</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="ims-tab" data-bs-toggle="tab" href="#ims-config">IMS Integration</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="rater-tab" data-bs-toggle="tab" href="#rater-config">Rater Setup</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="configTabContent">
+                    <!-- Form Settings -->
+                    <div class="tab-pane fade show active" id="form-config">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Form Behavior</h6>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="saveProgress">
+                                    <label class="form-check-label" for="saveProgress">
+                                        Allow saving progress
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="showStepIndicator">
+                                    <label class="form-check-label" for="showStepIndicator">
+                                        Show step indicator
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="requireConfirmation">
+                                    <label class="form-check-label" for="requireConfirmation">
+                                        Require submission confirmation
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Submission Settings</h6>
+                                <div class="mb-3">
+                                    <label for="successMessage" class="form-label">Success Message</label>
+                                    <textarea class="form-control" id="successMessage" rows="3" placeholder="Thank you for your submission..."></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="redirectUrl" class="form-label">Redirect URL (optional)</label>
+                                    <input type="url" class="form-control" id="redirectUrl" placeholder="https://...">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Workflow Configuration -->
+                    <div class="tab-pane fade" id="workflow-config">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Processing Options</h6>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="autoProcess">
+                                    <label class="form-check-label" for="autoProcess">
+                                        Auto-process submissions
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="requireApproval">
+                                    <label class="form-check-label" for="requireApproval">
+                                        Require underwriter approval
+                                    </label>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="autoBind">
+                                    <label class="form-check-label" for="autoBind">
+                                        Auto-bind if criteria met
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Notifications</h6>
+                                <div class="mb-3">
+                                    <label for="notifyEmails" class="form-label">Notification Emails</label>
+                                    <textarea class="form-control" id="notifyEmails" rows="2" placeholder="email1@example.com, email2@example.com"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="defaultUnderwriter" class="form-label">Default Underwriter</label>
+                                    <select class="form-select" id="defaultUnderwriter">
+                                        <option value="">Select underwriter...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- IMS Integration -->
+                    <div class="tab-pane fade" id="ims-config">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Default Values</h6>
+                                <div class="mb-3">
+                                    <label for="defaultCompanyLine" class="form-label">Company/Line</label>
+                                    <select class="form-select" id="defaultCompanyLine">
+                                        <option value="">Select company/line...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="defaultProducer" class="form-label">Default Producer</label>
+                                    <select class="form-select" id="defaultProducer">
+                                        <option value="">Select producer...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="defaultBillingType" class="form-label">Billing Type</label>
+                                    <select class="form-select" id="defaultBillingType">
+                                        <option value="1">Direct Bill</option>
+                                        <option value="2">Agency Bill</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Policy Settings</h6>
+                                <div class="mb-3">
+                                    <label for="defaultPolicyType" class="form-label">Policy Type</label>
+                                    <select class="form-select" id="defaultPolicyType">
+                                        <option value="1">New Business</option>
+                                        <option value="2">Renewal</option>
+                                        <option value="3">Rewrite</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="defaultTermLength" class="form-label">Term Length (months)</label>
+                                    <select class="form-select" id="defaultTermLength">
+                                        <option value="12">12 months</option>
+                                        <option value="6">6 months</option>
+                                        <option value="3">3 months</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rater Configuration -->
+                    <div class="tab-pane fade" id="rater-config">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Rater Settings</h6>
+                                <div class="mb-3">
+                                    <label for="raterName" class="form-label">Rater Name</label>
+                                    <input type="text" class="form-control" id="raterName" placeholder="e.g., WorkersCompRater">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="raterFilePath" class="form-label">Rater File Path</label>
+                                    <input type="text" class="form-control" id="raterFilePath" placeholder="/path/to/rater.xlsx">
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="autoCalculate">
+                                    <label class="form-check-label" for="autoCalculate">
+                                        Auto-calculate premium
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Auto-Bind Conditions</h6>
+                                <div class="mb-3">
+                                    <label for="maxPremium" class="form-label">Maximum Premium for Auto-Bind</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="maxPremium" placeholder="5000">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="excludeClassCodes" class="form-label">Exclude Class Codes</label>
+                                    <input type="text" class="form-control" id="excludeClassCodes" placeholder="8810, 9014">
+                                    <small class="text-muted">Comma-separated list</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Field Template -->
+    <template id="formFieldTemplate">
+        <div class="form-field" draggable="true">
+            <div class="field-toolbar">
+                <button class="btn btn-sm btn-outline-primary edit-field">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger delete-field">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="field-content">
+                <label class="form-label field-label"></label>
+                <div class="field-input"></div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/auth-utils.js"></script>
+    <script src="../js/custom-routes-builder.js"></script>
+</body>
+</html>

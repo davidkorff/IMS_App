@@ -379,7 +379,7 @@
                 <span class="tile-action">View Forms →</span>
             </button>
 
-            <button class="tile tile-development" onclick="window.location.href = window.location.href + '/newsubmission'">
+            <button class="tile tile-development" onclick="handleDevelopmentTileClick(window.location.href + '/newsubmission')">
                 <span class="development-badge">Under Development</span>
                 <div class="tile-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -399,8 +399,34 @@
                     </svg>
                 </div>
                 <h3>Email Filing</h3>
-                <p>Configure automatic email filing to policies via Zapier</p>
+                <p>Configure automatic email filing into IMS policies</p>
                 <span class="tile-action">Configure →</span>
+            </button>
+
+            <button class="tile tile-development" onclick="handleDevelopmentTileClick(window.location.href + '/custom-routes')">
+                <span class="development-badge">Under Development</span>
+                <div class="tile-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                    </svg>
+                </div>
+                <h3>Custom Routes</h3>
+                <p>Build custom intake forms and manage submission workflows</p>
+                <span class="tile-action">Manage Routes →</span>
+            </button>
+
+            <button class="tile" onclick="window.location.href = window.location.href + '/webhooks'">
+                <div class="tile-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                </div>
+                <h3>Custom Webhooks</h3>
+                <p>Create custom webhook integrations with Python code</p>
+                <span class="tile-action">Manage Webhooks →</span>
             </button>
         </div>
     </div>
@@ -482,6 +508,15 @@
         function closeReportModal() {
             document.getElementById('reportModal').style.display = 'none';
             document.getElementById('reportForm').reset();
+        }
+
+        function handleDevelopmentTileClick(url) {
+            const password = prompt('This feature is under development. Please enter the password to continue:');
+            if (password === '12345') {
+                window.location.href = url;
+            } else if (password !== null) {
+                alert('Incorrect password');
+            }
         }
 
         async function runReport(event) {

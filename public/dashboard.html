@@ -212,7 +212,7 @@
                     <small class="form-text">This identifier will be used for email addresses:<br>
                     • <strong>Immediately available:</strong> docs-<strong>identifier</strong>@42ims.com<br>
                     • <strong>After admin approval:</strong> docs@<strong>identifier</strong>.42ims.com<br>
-                    <em style="color: #e74c3c;">Note: CNAME format requires admin approval and Cloudflare configuration.</em></small>
+                    <em style="color: #e74c3c;">Note: Subdomain format requires admin approval and Cloudflare configuration.</em></small>
                     <div id="custom-domain-preview" style="margin-top: 5px; color: #666;"></div>
                 </div>
                 <div class="modal-buttons">
@@ -269,9 +269,9 @@
         function createInstanceCard(instance) {
             const card = document.createElement('div');
             card.className = 'card instance-card';
-            const cnameStatus = instance.is_custom_domain_approved 
-                ? '<span class="badge" style="background: #2ecc71; color: white; margin-left: 10px;">CNAME Approved ✓</span>' 
-                : '<span class="badge" style="background: #f1c40f; color: white; margin-left: 10px;">CNAME Pending</span>';
+            const subdomainStatus = instance.is_custom_domain_approved 
+                ? '<span class="badge" style="background: #2ecc71; color: white; margin-left: 10px;">Subdomain Approved ✓</span>' 
+                : '<span class="badge" style="background: #f1c40f; color: white; margin-left: 10px;">Subdomain Pending</span>';
             
             card.innerHTML = `
                 <h3>${instance.name}</h3>
@@ -279,7 +279,7 @@
                 <p>URL: ${instance.url}</p>
                 <div>
                     <h4>Email Configuration</h4>
-                    <p>Domain Identifier: <strong>${instance.custom_domain || 'Not configured'}</strong> ${instance.custom_domain ? cnameStatus : ''}</p>
+                    <p>Domain Identifier: <strong>${instance.custom_domain || 'Not configured'}</strong> ${instance.custom_domain ? subdomainStatus : ''}</p>
                     ${instance.custom_domain ? 
                         `<p style="font-size: 0.9em; color: #666;">
                             Available formats:<br>

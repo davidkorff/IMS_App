@@ -20,6 +20,17 @@ app.use('/api/webhooks', require('./routes/webhooks'));
 app.use('/api/email-filing', require('./routes/emailConfig'));
 app.use('/api/billing', require('./routes/billing'));
 app.use('/api/migration', require('./routes/migration'));
+app.use('/api/custom-webhooks', require('./routes/customWebhooks'));
+
+console.log('Loading custom routes...');
+try {
+    const customRoutesRouter = require('./routes/customRoutes');
+    app.use('/api/custom-routes', customRoutesRouter);
+    console.log('✅ Custom routes loaded successfully');
+} catch (error) {
+    console.error('❌ Error loading custom routes:', error);
+}
+
 app.use('/auth/graph', require('./routes/graphAuth'));
 
 // Load webui routes with error handling
@@ -117,6 +128,11 @@ app.get('/instance/:id/billing', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'billing.html'));
 });
 
+// Custom webhooks route
+app.get('/instance/:id/webhooks', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webhooks.html'));
+});
+
 // Add route for forms page
 app.get('/instance/:id/forms', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'forms.html'));
@@ -125,6 +141,34 @@ app.get('/instance/:id/forms', (req, res) => {
 // Add graph testing page
 app.get('/graph-test', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'graph-test.html'));
+});
+
+// Custom Routes pages - specific routes first, then dynamic ones
+app.get('/instance/:id/custom-routes', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'custom-routes.html'));
+});
+
+// Instructions page - must come before :routeId route
+app.get('/instance/:id/custom-routes/instructions', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'custom-routes-instructions.html'));
+});
+
+app.get('/instance/:id/custom-routes/new', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'custom-routes-builder.html'));
+});
+
+app.get('/instance/:id/custom-routes/:routeId/submissions', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'custom-routes-submissions.html'));
+});
+
+// Dynamic route - must come last
+app.get('/instance/:id/custom-routes/:routeId', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'custom-routes-builder.html'));
+});
+
+// Public form routes (no authentication)
+app.get('/form/:slug', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'custom-routes-public-form.html'));
 });
 
 const PORT = process.env.PORT || 5000;
