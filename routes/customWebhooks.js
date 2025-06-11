@@ -239,13 +239,14 @@ router.delete('/:webhookId', authenticateToken, async (req, res) => {
 
 // Test webhook code
 router.post('/test', authenticateToken, async (req, res) => {
-    const { python_code, test_data } = req.body;
+    const { python_code, test_data, test_context } = req.body;
 
     try {
         const result = await executePythonCode(python_code, test_data, {
             headers: req.headers,
             instance_id: 'test',
-            user: req.user
+            user: req.user,
+            ...test_context
         });
 
         res.json(result);

@@ -22,6 +22,15 @@ app.use('/api/billing', require('./routes/billing'));
 app.use('/api/migration', require('./routes/migration'));
 app.use('/api/custom-webhooks', require('./routes/customWebhooks'));
 
+// Add system settings routes directly
+try {
+    console.log('Loading system settings routes directly...');
+    app.use('/api/system-settings', require('./routes/webui/systemSettings'));
+    console.log('✅ System settings routes loaded at /api/system-settings');
+} catch (error) {
+    console.error('❌ Error loading system settings routes:', error);
+}
+
 console.log('Loading custom routes...');
 try {
     const customRoutesRouter = require('./routes/customRoutes');
@@ -141,6 +150,11 @@ app.get('/instance/:id/forms', (req, res) => {
 // Add graph testing page
 app.get('/graph-test', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'graph-test.html'));
+});
+
+// Add system settings route
+app.get('/instance/:id/system-settings', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'system-settings.html'));
 });
 
 // Custom Routes pages - specific routes first, then dynamic ones

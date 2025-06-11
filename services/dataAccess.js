@@ -29,7 +29,16 @@ class DataAccessService {
             Object.entries(parameters).forEach(([key, value]) => {
                 const paramName = key.startsWith('@') ? key : `@${key}`;
                 formattedParams.push(`<string>${paramName}</string>`);
-                formattedParams.push(`<string>${value?.toString() ?? ''}</string>`);
+                
+                // Handle different parameter types properly
+                if (value === null || value === undefined) {
+                    formattedParams.push(`<string></string>`);
+                } else if (typeof value === 'boolean' || (typeof value === 'number' && (value === 0 || value === 1))) {
+                    // For boolean/bit values, pass as string but ensure proper format
+                    formattedParams.push(`<string>${value}</string>`);
+                } else {
+                    formattedParams.push(`<string>${value?.toString() ?? ''}</string>`);
+                }
             });
 
             const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>

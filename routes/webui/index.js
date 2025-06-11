@@ -34,6 +34,17 @@ try {
     console.error('Full error:', error);
 }
 
+// Import system settings router
+try {
+    console.log('Attempting to load system settings router...');
+    const systemSettingsRouter = require('./systemSettings');
+    console.log('System settings router loaded successfully');
+    router.use('/system', systemSettingsRouter);
+    console.log('System settings router mounted at /system');
+} catch (error) {
+    console.error('Error loading system settings router:', error.stack);
+}
+
 // ... other webui routes ...
 
 console.log('Loading main webui router - END');

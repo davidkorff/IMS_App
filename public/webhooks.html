@@ -656,21 +656,93 @@
 
                 <div id="testTab" class="tab-content">
                     <div class="test-panel">
-                        <h4>Test Your Webhook</h4>
-                        <div class="form-group">
-                            <label for="testPayload">Test Payload (JSON)</label>
-                            <textarea id="testPayload" class="json-editor" placeholder='{"name": "Test Company", "email": "test@example.com"}'>{
+                        <h4>Test Your Webhook Code</h4>
+                        
+                        <div class="tabs" style="margin-bottom: 20px;">
+                            <div class="tab active" onclick="switchTestMode('local')">Local Test (Fast)</div>
+                            <div class="tab" onclick="switchTestMode('webhook')">Full Webhook Test</div>
+                        </div>
+
+                        <div id="localTestMode">
+                            <p style="color: #666; margin-bottom: 15px;">
+                                🚀 <strong>Local Test:</strong> Run your Python code instantly with mock IMS functions for rapid development.
+                            </p>
+                            
+                            <div class="form-group">
+                                <label for="testPayload">Test Payload (JSON)</label>
+                                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="loadRecentPayloads()">📥 Load Recent Payloads</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="clearTestPayload()">🗑️ Clear</button>
+                                    <select id="recentPayloadSelect" style="flex: 1; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px;" onchange="selectRecentPayload()">
+                                        <option value="">Select from recent payloads...</option>
+                                    </select>
+                                </div>
+                                <textarea id="testPayload" class="json-editor" placeholder='{"name": "Test Company", "email": "test@example.com"}'>{
+  "name": "Test Company",
+  "email": "test@example.com",
+  "address": "123 Main St",
+  "city": "New York", 
+  "state": "NY",
+  "zip": "10001"
+}</textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="testContext">Test Context (Optional)</label>
+                                <textarea id="testContext" class="json-editor" placeholder='{"headers": {"user-agent": "TestClient"}, "ip": "127.0.0.1"}'>{
+  "headers": {
+    "content-type": "application/json",
+    "user-agent": "TestClient"
+  },
+  "ip": "127.0.0.1",
+  "instance_id": "test"
+}</textarea>
+                            </div>
+
+                            <button class="btn btn-primary" onclick="testWebhookLocal()">
+                                <span id="localTestLoadingIcon"></span>
+                                🧪 Run Local Test
+                            </button>
+                        </div>
+
+                        <div id="webhookTestMode" style="display: none;">
+                            <p style="color: #666; margin-bottom: 15px;">
+                                🌐 <strong>Full Webhook Test:</strong> Send actual HTTP request to your webhook endpoint (requires saving first).
+                            </p>
+                            
+                            <div class="form-group">
+                                <label for="webhookTestPayload">Test Payload (JSON)</label>
+                                <div style="display: flex; gap: 10px; margin-bottom: 5px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="loadRecentPayloadsForWebhook()">📥 Load Recent Payloads</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="clearWebhookTestPayload()">🗑️ Clear</button>
+                                    <select id="webhookRecentPayloadSelect" style="flex: 1; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px;" onchange="selectRecentPayloadForWebhook()">
+                                        <option value="">Select from recent payloads...</option>
+                                    </select>
+                                </div>
+                                <textarea id="webhookTestPayload" class="json-editor" placeholder='{"name": "Test Company", "email": "test@example.com"}'>{
   "name": "Test Company",
   "email": "test@example.com"
 }</textarea>
+                            </div>
+
+                            <button class="btn btn-primary" onclick="testWebhookFull()">
+                                <span id="webhookTestLoadingIcon"></span>
+                                🚀 Send Full Test Request
+                            </button>
                         </div>
-                        <button class="btn btn-primary" onclick="testWebhook()">
-                            <span id="testLoadingIcon"></span>
-                            Send Test Request
-                        </button>
+
                         <div id="testResults" style="margin-top: 20px; display: none;">
-                            <h5>Test Results</h5>
-                            <pre id="testOutput" style="background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto;"></pre>
+                            <h5 id="testResultsTitle">Test Results</h5>
+                            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                <span id="testStatusBadge" class="status-badge">Running...</span>
+                                <span id="testExecutionTime" style="font-size: 0.9em; color: #666;"></span>
+                            </div>
+                            <pre id="testOutput" style="background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 400px; overflow-y: auto;"></pre>
+                            
+                            <div id="testLogs" style="margin-top: 15px; display: none;">
+                                <h6>Console Output:</h6>
+                                <pre id="testConsoleOutput" style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 4px; font-size: 0.85em; max-height: 200px; overflow-y: auto;"></pre>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -725,6 +797,7 @@
         let templates = [];
         let imsFunctions = {};
         let currentWebhook = null;
+        let recentPayloads = [];
 
         // Initialize Monaco Editor
         require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
@@ -1328,12 +1401,31 @@ print(f"Result: {result}")`;
             }
         }
 
-        async function testWebhook() {
-            const loadingIcon = document.getElementById('testLoadingIcon');
+        function switchTestMode(mode) {
+            // Update tab appearance
+            document.querySelectorAll('#testTab .tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Show/hide test modes
+            document.getElementById('localTestMode').style.display = mode === 'local' ? 'block' : 'none';
+            document.getElementById('webhookTestMode').style.display = mode === 'webhook' ? 'block' : 'none';
+        }
+
+        async function testWebhookLocal() {
+            const loadingIcon = document.getElementById('localTestLoadingIcon');
+            const startTime = Date.now();
+            
             loadingIcon.className = 'loading';
+            document.getElementById('testResults').style.display = 'block';
+            document.getElementById('testResultsTitle').textContent = 'Local Test Results';
+            document.getElementById('testStatusBadge').textContent = 'Running...';
+            document.getElementById('testStatusBadge').className = 'status-badge';
             
             try {
                 const testData = JSON.parse(document.getElementById('testPayload').value);
+                const testContext = JSON.parse(document.getElementById('testContext').value);
                 const code = codeEditor ? codeEditor.getValue() : '';
                 
                 const response = await fetch('/api/custom-webhooks/test', {
@@ -1343,21 +1435,241 @@ print(f"Result: {result}")`;
                     },
                     body: JSON.stringify({
                         python_code: code,
-                        test_data: testData
+                        test_data: testData,
+                        test_context: testContext
                     })
                 });
 
                 const result = await response.json();
+                const executionTime = Date.now() - startTime;
                 
-                document.getElementById('testResults').style.display = 'block';
+                // Update status
+                if (response.ok) {
+                    document.getElementById('testStatusBadge').textContent = '✅ Success';
+                    document.getElementById('testStatusBadge').className = 'status-badge status-active';
+                } else {
+                    document.getElementById('testStatusBadge').textContent = '❌ Error';
+                    document.getElementById('testStatusBadge').className = 'status-badge';
+                    document.getElementById('testStatusBadge').style.background = 'var(--danger-color)';
+                }
+                
+                document.getElementById('testExecutionTime').textContent = `Executed in ${executionTime}ms`;
                 document.getElementById('testOutput').textContent = JSON.stringify(result, null, 2);
+                
+                // Show console logs if available
+                if (result.logs && result.logs.length > 0) {
+                    document.getElementById('testLogs').style.display = 'block';
+                    document.getElementById('testConsoleOutput').textContent = result.logs.join('\n');
+                } else {
+                    document.getElementById('testLogs').style.display = 'none';
+                }
+                
             } catch (err) {
                 console.error('Error testing webhook:', err);
-                document.getElementById('testResults').style.display = 'block';
+                const executionTime = Date.now() - startTime;
+                
+                document.getElementById('testStatusBadge').textContent = '❌ Error';
+                document.getElementById('testStatusBadge').className = 'status-badge';
+                document.getElementById('testStatusBadge').style.background = 'var(--danger-color)';
+                document.getElementById('testExecutionTime').textContent = `Failed after ${executionTime}ms`;
                 document.getElementById('testOutput').textContent = `Error: ${err.message}`;
+                document.getElementById('testLogs').style.display = 'none';
             } finally {
                 loadingIcon.className = '';
             }
+        }
+
+        async function testWebhookFull() {
+            // Check if webhook is saved
+            if (!currentWebhook) {
+                alert('Please save your webhook first before running a full test.');
+                return;
+            }
+            
+            const loadingIcon = document.getElementById('webhookTestLoadingIcon');
+            const startTime = Date.now();
+            
+            loadingIcon.className = 'loading';
+            document.getElementById('testResults').style.display = 'block';
+            document.getElementById('testResultsTitle').textContent = 'Full Webhook Test Results';
+            document.getElementById('testStatusBadge').textContent = 'Sending...';
+            document.getElementById('testStatusBadge').className = 'status-badge';
+            
+            try {
+                const testData = JSON.parse(document.getElementById('webhookTestPayload').value);
+                const instanceId = window.location.pathname.split('/')[2];
+                
+                // Get webhook details to construct URL
+                const webhook = webhooks.find(w => w.id === currentWebhook);
+                if (!webhook) {
+                    throw new Error('Webhook not found');
+                }
+                
+                const webhookUrl = `/api/custom-webhooks/${instanceId}/${webhook.endpoint_path}`;
+                const headers = { 'Content-Type': 'application/json' };
+                
+                // Add authentication if required
+                if (webhook.requires_auth) {
+                    switch (webhook.auth_type) {
+                        case 'bearer':
+                            headers['Authorization'] = `Bearer ${webhook.auth_token}`;
+                            break;
+                        case 'hmac':
+                            // For testing, we'll skip HMAC signature
+                            alert('HMAC testing requires signature calculation. Use Local Test mode for development.');
+                            return;
+                        case 'basic':
+                            const credentials = btoa(`${webhook.endpoint_path}:${webhook.auth_token}`);
+                            headers['Authorization'] = `Basic ${credentials}`;
+                            break;
+                    }
+                }
+                
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.json();
+                const executionTime = Date.now() - startTime;
+                
+                // Update status
+                if (response.ok) {
+                    document.getElementById('testStatusBadge').textContent = `✅ ${response.status}`;
+                    document.getElementById('testStatusBadge').className = 'status-badge status-active';
+                } else {
+                    document.getElementById('testStatusBadge').textContent = `❌ ${response.status}`;
+                    document.getElementById('testStatusBadge').className = 'status-badge';
+                    document.getElementById('testStatusBadge').style.background = 'var(--danger-color)';
+                }
+                
+                document.getElementById('testExecutionTime').textContent = `Response in ${executionTime}ms`;
+                document.getElementById('testOutput').textContent = JSON.stringify(result, null, 2);
+                document.getElementById('testLogs').style.display = 'none';
+                
+            } catch (err) {
+                console.error('Error testing webhook:', err);
+                const executionTime = Date.now() - startTime;
+                
+                document.getElementById('testStatusBadge').textContent = '❌ Error';
+                document.getElementById('testStatusBadge').className = 'status-badge';
+                document.getElementById('testStatusBadge').style.background = 'var(--danger-color)';
+                document.getElementById('testExecutionTime').textContent = `Failed after ${executionTime}ms`;
+                document.getElementById('testOutput').textContent = `Error: ${err.message}`;
+                document.getElementById('testLogs').style.display = 'none';
+            } finally {
+                loadingIcon.className = '';
+            }
+        }
+
+        // Legacy function for backward compatibility
+        async function testWebhook() {
+            await testWebhookLocal();
+        }
+
+        // Load recent webhook payloads
+        async function loadRecentPayloads() {
+            try {
+                const instanceId = window.location.pathname.split('/')[2];
+                const response = await fetch(`/api/custom-webhooks/logs/instance/${instanceId}?limit=20`);
+                
+                if (response.ok) {
+                    const logs = await response.json();
+                    recentPayloads = logs.filter(log => log.request_body && Object.keys(log.request_body).length > 0);
+                    
+                    const select = document.getElementById('recentPayloadSelect');
+                    select.innerHTML = '<option value="">Select from recent payloads...</option>';
+                    
+                    recentPayloads.forEach((log, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        
+                        // Create a readable description
+                        const timestamp = new Date(log.executed_at).toLocaleString();
+                        const webhookName = log.webhook_name || 'Unknown';
+                        const hasData = log.request_body && Object.keys(log.request_body).length > 0;
+                        const dataPreview = hasData ? 
+                            Object.keys(log.request_body).slice(0, 3).join(', ') + 
+                            (Object.keys(log.request_body).length > 3 ? '...' : '') : 'No data';
+                        
+                        option.textContent = `${timestamp} - ${webhookName} (${dataPreview})`;
+                        select.appendChild(option);
+                    });
+                    
+                    if (recentPayloads.length === 0) {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'No recent payloads found';
+                        option.disabled = true;
+                        select.appendChild(option);
+                    }
+                } else {
+                    alert('Failed to load recent payloads');
+                }
+            } catch (err) {
+                console.error('Error loading recent payloads:', err);
+                alert('Error loading recent payloads: ' + err.message);
+            }
+        }
+
+        // Select a recent payload
+        function selectRecentPayload() {
+            const select = document.getElementById('recentPayloadSelect');
+            const selectedIndex = select.value;
+            
+            if (selectedIndex !== '' && recentPayloads[selectedIndex]) {
+                const payload = recentPayloads[selectedIndex];
+                const payloadText = JSON.stringify(payload.request_body, null, 2);
+                document.getElementById('testPayload').value = payloadText;
+                
+                // Also update context with the actual headers from that request
+                if (payload.request_headers) {
+                    const contextData = {
+                        headers: payload.request_headers,
+                        ip: payload.ip_address || '127.0.0.1',
+                        instance_id: payload.webhook_id || 'test',
+                        timestamp: payload.executed_at
+                    };
+                    document.getElementById('testContext').value = JSON.stringify(contextData, null, 2);
+                }
+            }
+        }
+
+        // Clear test payload
+        function clearTestPayload() {
+            document.getElementById('testPayload').value = '{\n  "name": "Test Company",\n  "email": "test@example.com"\n}';
+            document.getElementById('testContext').value = '{\n  "headers": {\n    "content-type": "application/json",\n    "user-agent": "TestClient"\n  },\n  "ip": "127.0.0.1",\n  "instance_id": "test"\n}';
+            document.getElementById('recentPayloadSelect').value = '';
+        }
+
+        // Load recent payloads for webhook test mode
+        async function loadRecentPayloadsForWebhook() {
+            await loadRecentPayloads(); // Reuse the same function
+            
+            // Copy options to webhook test select
+            const sourceSelect = document.getElementById('recentPayloadSelect');
+            const targetSelect = document.getElementById('webhookRecentPayloadSelect');
+            
+            targetSelect.innerHTML = sourceSelect.innerHTML;
+        }
+
+        // Select recent payload for webhook test mode
+        function selectRecentPayloadForWebhook() {
+            const select = document.getElementById('webhookRecentPayloadSelect');
+            const selectedIndex = select.value;
+            
+            if (selectedIndex !== '' && recentPayloads[selectedIndex]) {
+                const payload = recentPayloads[selectedIndex];
+                const payloadText = JSON.stringify(payload.request_body, null, 2);
+                document.getElementById('webhookTestPayload').value = payloadText;
+            }
+        }
+
+        // Clear webhook test payload
+        function clearWebhookTestPayload() {
+            document.getElementById('webhookTestPayload').value = '{\n  "name": "Test Company",\n  "email": "test@example.com"\n}';
+            document.getElementById('webhookRecentPayloadSelect').value = '';
         }
 
         function viewLogs(webhookId) {
