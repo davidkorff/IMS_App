@@ -269,7 +269,23 @@
             font-weight: 600;
         }
 
+        .restricted-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e74c3c;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
         .tile-development {
+            position: relative;
+        }
+
+        .tile-restricted {
             position: relative;
         }
 
@@ -379,7 +395,8 @@
                 <span class="tile-action">View Forms →</span>
             </button>
 
-            <button class="tile" onclick="window.location.href = window.location.href + '/system-settings'">
+            <button class="tile tile-restricted" onclick="handleRestrictedTileClick(window.location.href + '/system-settings')">
+                <span class="restricted-badge">Restricted</span>
                 <div class="tile-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"></circle>
@@ -529,6 +546,15 @@
                 window.location.href = url;
             } else if (password !== null) {
                 alert('Incorrect password');
+            }
+        }
+
+        function handleRestrictedTileClick(url) {
+            const password = prompt('This feature is restricted. Please enter the admin password to continue:');
+            if (password === '12345') {
+                window.location.href = url;
+            } else if (password !== null) {
+                alert('Incorrect password. Access denied.');
             }
         }
 
