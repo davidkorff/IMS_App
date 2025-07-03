@@ -47,10 +47,43 @@ let undoStack = [];
 let redoStack = [];
 
 // Initialize on DOM ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('Form Builder initializing...');
+    
+    // Check for form_schema_id in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const formSchemaId = urlParams.get('form_schema_id');
+    
+    if (formSchemaId && window.fetchWithAuth) {
+        console.log('Loading form schema:', formSchemaId);
+        try {
+            const response = await window.fetchWithAuth(`/api/forms/schemas/${formSchemaId}`);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Form data loaded:', data);
+                
+                // Load the schema - handle both direct schema and database row format
+                if (data.form_schema) {
+                    window.loadFormSchema(data.form_schema);
+                } else if (data.pages && data.fields) {
+                    window.loadFormSchema(data);
+                } else {
+                    console.error('Unexpected data format:', data);
+                }
+            } else {
+                console.error('Failed to load form schema:', response.status);
+            }
+        } catch (error) {
+            console.error('Error loading form schema:', error);
+        }
+    } else {
+        console.log('No form_schema_id, using default form');
+    }
+    
     initializeDragDrop();
     initializeEventHandlers();
     renderForm();
+    renderPageTabs();
 });
 
 // Utility function to generate unique IDs
@@ -256,6 +289,7 @@ function getDefaultLabel(type) {
 
 // Create field element for display
 function createFieldElement(field) {
+    console.log('Creating field element for:', field.id, field.type);
     const div = document.createElement('div');
     div.className = 'form-field';
     div.dataset.fieldId = field.id;
@@ -289,9 +323,17 @@ function createFieldElement(field) {
     div.appendChild(preview);
     
     // Click handler
-    div.addEventListener('click', function() {
+    div.addEventListener('click', function(e) {
+        console.log('Field clicked!', this.dataset.fieldId);
+        // Don't select if clicking on action buttons
+        if (e.target.closest('.field-actions')) {
+            console.log('Clicked on action button, ignoring');
+            return;
+        }
         selectElement(this);
     });
+    
+    console.log('Click handler attached to field:', field.id);
     
     return div;
 }
@@ -360,7 +402,9 @@ function getFieldPreview(field) {
 }
 
 // Select element and show properties
-function selectElement(element) {
+window.selectElement = function selectElement(element) {
+    console.log('selectElement called', element);
+    
     // Remove previous selection
     document.querySelectorAll('.form-field.selected').forEach(el => {
         el.classList.remove('selected');
@@ -372,17 +416,31 @@ function selectElement(element) {
     
     // Show properties
     const fieldId = element.dataset.fieldId;
+    console.log('Field ID:', fieldId);
     const field = formSchema.fields[fieldId];
+    console.log('Field data:', field);
     
     if (field) {
         showFieldProperties(field);
+    } else {
+        console.error('Field not found for ID:', fieldId);
     }
 }
 
 // Show field properties in right panel
 function showFieldProperties(field) {
-    document.getElementById('noSelectionMessage').style.display = 'none';
-    document.getElementById('fieldProperties').style.display = 'block';
+    console.log('showFieldProperties called for:', field);
+    
+    const noSelectionEl = document.getElementById('noSelectionMessage');
+    const fieldPropsEl = document.getElementById('fieldProperties');
+    
+    if (!noSelectionEl || !fieldPropsEl) {
+        console.error('Properties panel elements not found!');
+        return;
+    }
+    
+    noSelectionEl.style.display = 'none';
+    fieldPropsEl.style.display = 'block';
     
     // Basic properties
     document.getElementById('propLabel').value = field.label || '';
@@ -623,39 +681,53 @@ function renderForm() {
     
     if (!page) return;
     
-    let html = `
-        <div class="form-page" data-page-id="${page.id}">
-            <div class="page-header">
-                <div>
-                    <h5 class="mb-0">${page.title}</h5>
-                    <small>${page.description}</small>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-light" onclick="editPageSettings('${page.id}')">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="page-content">
-    `;
+    // Clear container
+    container.innerHTML = '';
     
-    // Render sections
-    page.sections.forEach(section => {
-        html += renderSection(section);
-    });
+    // Create page container
+    const pageDiv = document.createElement('div');
+    pageDiv.className = 'form-page';
+    pageDiv.dataset.pageId = page.id;
     
-    // Add section button
-    html += `
-                <div class="text-center">
-                    <button class="btn btn-outline-primary" onclick="addSection('${page.id}')">
-                        <i class="fas fa-plus"></i> Add Section
-                    </button>
-                </div>
-            </div>
+    // Create page header
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'page-header';
+    headerDiv.innerHTML = `
+        <div>
+            <h5 class="mb-0">${page.title}</h5>
+            <small>${page.description}</small>
+        </div>
+        <div>
+            <button class="btn btn-sm btn-light" onclick="editPageSettings('${page.id}')">
+                <i class="fas fa-cog"></i>
+            </button>
         </div>
     `;
     
-    container.innerHTML = html;
+    // Create page content container
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'page-content';
+    
+    // Render sections
+    page.sections.forEach(section => {
+        const sectionElement = renderSection(section);
+        contentDiv.appendChild(sectionElement);
+    });
+    
+    // Add section button
+    const addSectionDiv = document.createElement('div');
+    addSectionDiv.className = 'text-center';
+    addSectionDiv.innerHTML = `
+        <button class="btn btn-outline-primary" onclick="addSection('${page.id}')">
+            <i class="fas fa-plus"></i> Add Section
+        </button>
+    `;
+    contentDiv.appendChild(addSectionDiv);
+    
+    // Assemble page
+    pageDiv.appendChild(headerDiv);
+    pageDiv.appendChild(contentDiv);
+    container.appendChild(pageDiv);
     
     // Re-initialize sortable
     initializeSortableForSections();
@@ -663,24 +735,33 @@ function renderForm() {
 
 // Render a section
 function renderSection(section) {
-    let html = `
-        <div class="form-section" data-section-id="${section.id}">
-            <div class="section-header">
-                <div class="section-title">${section.title}</div>
-                <div class="section-actions">
-                    <button class="btn btn-sm btn-outline-secondary" onclick="editSection('${section.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSection('${section.id}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="section-fields" id="${section.id}-fields">
+    // Create section container
+    const sectionDiv = document.createElement('div');
+    sectionDiv.className = 'form-section';
+    sectionDiv.dataset.sectionId = section.id;
+    
+    // Create header
+    const headerDiv = document.createElement('div');
+    headerDiv.className = 'section-header';
+    headerDiv.innerHTML = `
+        <div class="section-title">${section.title}</div>
+        <div class="section-actions">
+            <button class="btn btn-sm btn-outline-secondary" onclick="editSection('${section.id}')">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteSection('${section.id}')">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
     `;
     
+    // Create fields container
+    const fieldsDiv = document.createElement('div');
+    fieldsDiv.className = 'section-fields';
+    fieldsDiv.id = `${section.id}-fields`;
+    
     if (section.items.length === 0) {
-        html += `
+        fieldsDiv.innerHTML = `
             <div class="empty-section">
                 <i class="fas fa-arrow-left"></i>
                 <p>Drag fields here to start building your form</p>
@@ -690,17 +771,15 @@ function renderSection(section) {
         section.items.forEach(item => {
             if (item.type === 'field' && formSchema.fields[item.fieldId]) {
                 const fieldElement = createFieldElement(formSchema.fields[item.fieldId]);
-                html += fieldElement.outerHTML;
+                fieldsDiv.appendChild(fieldElement); // Append as DOM element, not HTML string
             }
         });
     }
     
-    html += `
-            </div>
-        </div>
-    `;
+    sectionDiv.appendChild(headerDiv);
+    sectionDiv.appendChild(fieldsDiv);
     
-    return html;
+    return sectionDiv;
 }
 
 // Render page tabs
@@ -1131,11 +1210,30 @@ window.getFormSchema = function() {
 
 // Load schema (for editing existing forms)
 window.loadFormSchema = function(schema) {
+    console.log('loadFormSchema called with:', schema);
+    
+    // If schema is actually the database row, extract the form_schema
+    if (schema && schema.form_schema && !schema.pages) {
+        console.log('Extracting form_schema from database row');
+        schema = schema.form_schema;
+    }
+    
+    if (!schema || !schema.pages || !schema.fields) {
+        console.error('Invalid schema format:', schema);
+        return;
+    }
+    
     formSchema = schema;
     currentPageIndex = 0;
     renderForm();
     renderPageTabs();
     saveToUndoStack();
+    
+    console.log('Form loaded successfully:', {
+        id: formSchema.id,
+        pages: formSchema.pages.length,
+        fields: Object.keys(formSchema.fields).length
+    });
 };
 
 // Add option to field

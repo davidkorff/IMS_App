@@ -97,37 +97,44 @@ async function loadFormSchemaWithDebug(formSchemaId) {
         if (response.ok) {
             const data = await response.json();
             console.log('✅ Response data received');
-            console.log('📦 Data structure:', Object.keys(data));
-            console.log('📦 Has form_schema:', !!data.form_schema);
-            
-            if (data.form_schema) {
-                console.log('📋 Form schema structure:', {
-                    id: data.form_schema.id,
-                    pages: data.form_schema.pages?.length,
-                    fields: Object.keys(data.form_schema.fields || {}).length,
-                    version: data.form_schema.version
-                });
-                
-                // Try to load the schema
-                if (window.loadFormSchema) {
-                    console.log('🎯 Calling loadFormSchema...');
-                    window.loadFormSchema(data.form_schema);
-                    console.log('✅ loadFormSchema called successfully');
-                    
-                    // Verify it loaded
-                    setTimeout(() => {
-                        console.log('🔍 Verifying form loaded:');
-                        console.log('  - formSchema.id:', window.formSchema?.id);
-                        console.log('  - formSchema.pages:', window.formSchema?.pages?.length);
-                        console.log('  - DOM updated:', document.querySelectorAll('.form-field').length > 0);
-                    }, 500);
-                } else {
-                    console.error('❌ loadFormSchema function not found!');
-                    console.log('Available window functions:', Object.keys(window).filter(k => typeof window[k] === 'function').slice(0, 20));
-                }
+            // Check if data is an array (old behavior) or object (expected)
+            if (Array.isArray(data)) {
+                console.log('📦 Data is an array with', data.length, 'items');
+                console.log('⚠️ Unexpected array response, expected single object');
+                console.log('First item keys:', data[0] ? Object.keys(data[0]) : 'empty array');
             } else {
-                console.error('❌ No form_schema in response data');
-                console.log('Response data:', data);
+                console.log('📦 Data structure:', Object.keys(data));
+                console.log('📦 Has form_schema:', !!data.form_schema);
+                
+                if (data.form_schema) {
+                    console.log('📋 Form schema structure:', {
+                        id: data.form_schema.id,
+                        pages: data.form_schema.pages?.length,
+                        fields: Object.keys(data.form_schema.fields || {}).length,
+                        version: data.form_schema.version
+                    });
+                    
+                    // Try to load the schema
+                    if (window.loadFormSchema) {
+                        console.log('🎯 Calling loadFormSchema...');
+                        window.loadFormSchema(data.form_schema);
+                        console.log('✅ loadFormSchema called successfully');
+                        
+                        // Verify it loaded
+                        setTimeout(() => {
+                            console.log('🔍 Verifying form loaded:');
+                            console.log('  - formSchema.id:', window.formSchema?.id);
+                            console.log('  - formSchema.pages:', window.formSchema?.pages?.length);
+                            console.log('  - DOM updated:', document.querySelectorAll('.form-field').length > 0);
+                        }, 500);
+                    } else {
+                        console.error('❌ loadFormSchema function not found!');
+                        console.log('Available window functions:', Object.keys(window).filter(k => typeof window[k] === 'function').slice(0, 20));
+                    }
+                } else {
+                    console.error('❌ No form_schema in response data');
+                    console.log('Response data:', data);
+                }
             }
         } else {
             console.error('❌ API request failed');
