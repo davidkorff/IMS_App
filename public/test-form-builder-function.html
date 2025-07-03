@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Form Builder Function</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Test Form Builder loadFormSchema Function</h1>
+        <p>This page tests if the loadFormSchema function works correctly.</p>
+        
+        <button class="btn btn-primary" onclick="openFormBuilderAndTest()">Open Form Builder and Test</button>
+        
+        <div class="mt-4">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Click the button above to open form builder</li>
+                <li>Check the console in the form builder window</li>
+                <li>After 2 seconds, we'll try to load a test schema</li>
+            </ol>
+        </div>
+        
+        <div class="mt-4 p-3 bg-light">
+            <h4>Test Schema:</h4>
+            <pre id="testSchema"></pre>
+        </div>
+    </div>
+    
+    <script>
+        // Simple test schema
+        const testSchema = {
+            id: 'test_schema_123',
+            version: '1.0',
+            metadata: {
+                title: 'Test Form',
+                description: 'This is a test form'
+            },
+            pages: [{
+                id: 'page1',
+                title: 'Test Page',
+                sections: [{
+                    id: 'section1',
+                    type: 'fieldset',
+                    title: 'Test Section',
+                    items: [{
+                        type: 'field',
+                        fieldId: 'field1'
+                    }]
+                }]
+            }],
+            fields: {
+                'field1': {
+                    id: 'field1',
+                    type: 'text',
+                    name: 'test_field',
+                    label: 'Test Field',
+                    required: true
+                }
+            },
+            settings: {
+                allowSaveDraft: true,
+                showProgressBar: true
+            }
+        };
+        
+        document.getElementById('testSchema').textContent = JSON.stringify(testSchema, null, 2);
+        
+        function openFormBuilderAndTest() {
+            // Open form builder
+            const formBuilderWindow = window.open('/form-builder.html', 'formBuilder', 'width=1400,height=800');
+            
+            // Wait for it to load, then test
+            setTimeout(() => {
+                console.log('Testing loadFormSchema...');
+                
+                if (formBuilderWindow && !formBuilderWindow.closed) {
+                    // Check if function exists
+                    if (formBuilderWindow.loadFormSchema) {
+                        console.log('✅ loadFormSchema function exists');
+                        
+                        // Try to call it
+                        try {
+                            formBuilderWindow.loadFormSchema(testSchema);
+                            console.log('✅ loadFormSchema called successfully');
+                            
+                            // Check if it worked
+                            setTimeout(() => {
+                                if (formBuilderWindow.formSchema && formBuilderWindow.formSchema.id === 'test_schema_123') {
+                                    console.log('✅ Form schema loaded correctly!');
+                                    alert('Success! Check the form builder window - you should see "Test Form" loaded.');
+                                } else {
+                                    console.error('❌ Form schema not loaded correctly');
+                                    console.log('Current formSchema:', formBuilderWindow.formSchema);
+                                }
+                            }, 500);
+                        } catch (error) {
+                            console.error('❌ Error calling loadFormSchema:', error);
+                        }
+                    } else {
+                        console.error('❌ loadFormSchema function not found on window');
+                        console.log('Available functions:', Object.keys(formBuilderWindow).filter(k => typeof formBuilderWindow[k] === 'function'));
+                    }
+                } else {
+                    console.error('❌ Form builder window not available');
+                }
+            }, 3000); // Give it 3 seconds to load
+        }
+    </script>
+</body>
+</html>

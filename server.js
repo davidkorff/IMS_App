@@ -8,6 +8,11 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Subdomain routing for producer portals (if needed)
+const subdomainRouter = require('./middleware/subdomainRouter');
+app.use(subdomainRouter);
+
 app.use(express.static('public'));
 
 console.log('Loading routes...');
@@ -21,6 +26,15 @@ app.use('/api/email-filing', require('./routes/emailConfig'));
 app.use('/api/billing', require('./routes/billing'));
 app.use('/api/migration', require('./routes/migration'));
 app.use('/api/custom-webhooks', require('./routes/customWebhooks'));
+
+// Form builder routes
+try {
+    console.log('Loading form builder routes...');
+    app.use('/api/forms', require('./routes/formBuilder'));
+    console.log('✅ Form builder routes loaded successfully');
+} catch (error) {
+    console.error('❌ Error loading form builder routes:', error);
+}
 
 // Add system settings routes directly
 try {
@@ -38,6 +52,23 @@ try {
     console.log('✅ Custom routes loaded successfully');
 } catch (error) {
     console.error('❌ Error loading custom routes:', error);
+}
+
+// Load producer portal routes
+console.log('Loading producer portal routes...');
+try {
+    const producerRouter = require('./routes/producer');
+    const producerAdminRouter = require('./routes/producerAdmin');
+    
+    // Producer routes (public and authenticated)
+    app.use('/api/producer', producerRouter);
+    console.log('✅ Producer routes loaded at /api/producer');
+    
+    // Producer admin routes (requires MGA admin auth)
+    app.use('/api/producer-admin', producerAdminRouter);
+    console.log('✅ Producer admin routes loaded at /api/producer-admin');
+} catch (error) {
+    console.error('❌ Error loading producer portal routes:', error);
 }
 
 app.use('/auth/graph', require('./routes/graphAuth'));
@@ -157,6 +188,50 @@ app.get('/instance/:id/system-settings', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'system-settings.html'));
 });
 
+// Producer admin route
+app.get('/instance/:id/producer-admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-admin.html'));
+});
+
+// Form builder route
+app.get('/form-builder.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'form-builder.html'));
+});
+
+// Instance-specific producer portal routes
+app.get('/instance/:id/producer-register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-register.html'));
+});
+
+app.get('/instance/:id/producer-login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-login.html'));
+});
+
+// Producer portal routes
+app.get('/producer-login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-login.html'));
+});
+
+app.get('/producer-register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-register.html'));
+});
+
+app.get('/producer-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-dashboard.html'));
+});
+
+app.get('/producer-submission/new', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-submission.html'));
+});
+
+app.get('/producer-submission/:id', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-submission-detail.html'));
+});
+
+app.get('/producer-submissions', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-submissions.html'));
+});
+
 // Custom Routes pages - specific routes first, then dynamic ones
 app.get('/instance/:id/custom-routes', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'custom-routes.html'));
@@ -183,6 +258,43 @@ app.get('/instance/:id/custom-routes/:routeId', (req, res) => {
 // Public form routes (no authentication)
 app.get('/form/:slug', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'custom-routes-public-form.html'));
+});
+
+// Producer Portal Routes
+app.get('/producer/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-login.html'));
+});
+
+app.get('/producer/register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-register.html'));
+});
+
+app.get('/producer/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-dashboard.html'));
+});
+
+app.get('/producer/forgot-password', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-forgot-password.html'));
+});
+
+app.get('/producer/reset-password', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-reset-password.html'));
+});
+
+app.get('/producer/profile', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-profile.html'));
+});
+
+app.get('/producer/submissions', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-submissions.html'));
+});
+
+app.get('/producer/submissions/:id', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-submission-detail.html'));
+});
+
+app.get('/producer/new-submission/:lobId', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-new-submission.html'));
 });
 
 const PORT = process.env.PORT || 5000;

@@ -15,4 +15,4 @@ const pool = process.env.DATABASE_URL
       database: 'IMS_Application'
     });
 
-module.exports = pool; 
+module.exports = pool;

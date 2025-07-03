@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Submission</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --info-color: #3498db;
+            --light-bg: #f8f9fa;
+            --card-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background-color: var(--primary-color);
+            box-shadow: var(--card-shadow);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: white !important;
+        }
+
+        .main-container {
+            margin-top: 80px;
+            padding: 20px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 20px;
+        }
+
+        .progress-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 30px;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .step.active .step-number {
+            background: var(--secondary-color);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .step.completed .step-number {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .step-title {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .step.active .step-title {
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+
+        .step-line {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            right: -50%;
+            height: 2px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+
+        .step:last-child .step-line {
+            display: none;
+        }
+
+        .step.completed .step-line {
+            background: var(--success-color);
+        }
+
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-control, .form-select {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px 15px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+
+        .required-field::after {
+            content: " *";
+            color: var(--danger-color);
+        }
+
+        .help-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .btn-navigation {
+            padding: 10px 30px;
+            border-radius: 5px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--secondary-color);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            border: none;
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+            border: none;
+        }
+
+        .alert {
+            border-radius: 5px;
+            border: none;
+        }
+
+        .premium-display {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .premium-amount {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading-spinner.active {
+            display: block;
+        }
+
+        .error-message {
+            color: var(--danger-color);
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        input.error, select.error {
+            border-color: var(--danger-color);
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                margin-top: 60px;
+                padding: 10px;
+            }
+            
+            .form-card {
+                padding: 20px;
+            }
+            
+            .step-title {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/producer-dashboard" id="portalBrand">Producer Portal</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/producer-dashboard">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/producer-submissions">
+                            <i class="fas fa-file-alt"></i> My Submissions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container main-container">
+        <!-- Progress Indicator -->
+        <div class="progress-container">
+            <h3 class="mb-4"><span id="productName">New Submission</span></h3>
+            <div class="step-indicator" id="stepIndicator">
+                <!-- Steps will be dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Form Container -->
+        <form id="submissionForm">
+            <div class="form-card">
+                <div id="formSections">
+                    <!-- Form sections will be dynamically generated -->
+                </div>
+                
+                <!-- Navigation Buttons -->
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-secondary btn-navigation" id="prevBtn" onclick="changeStep(-1)">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-primary btn-navigation" id="nextBtn" onclick="changeStep(1)">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="button" class="btn btn-success btn-navigation" id="submitBtn" onclick="submitForm()" style="display: none;">
+                        <i class="fas fa-check"></i> Submit
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+            <p class="mt-3">Processing your submission...</p>
+        </div>
+
+        <!-- Premium Display -->
+        <div class="premium-display" id="premiumDisplay" style="display: none;">
+            <h4>Estimated Premium</h4>
+            <div class="premium-amount" id="premiumAmount">$0</div>
+            <p class="text-muted">This is an estimate. Final premium subject to underwriting approval.</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentStep = 0;
+        let formConfig = null;
+        let formData = {};
+        let lobId = null;
+        
+        // Check authentication
+        const producerToken = localStorage.getItem('producerToken');
+        if (!producerToken) {
+            window.location.href = '/producer-login';
+        }
+        
+        // Get LOB ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        lobId = urlParams.get('product');
+        
+        if (!lobId) {
+            alert('No product selected');
+            window.location.href = '/producer-dashboard';
+        }
+        
+        // Sample form configuration (this would come from the LOB configuration)
+        const sampleFormConfig = {
+            product_name: "Workers Compensation",
+            steps: [
+                {
+                    title: "Business Information",
+                    fields: [
+                        {
+                            name: "insuredName",
+                            type: "text",
+                            label: "Business Name",
+                            required: true,
+                            placeholder: "Enter your business name"
+                        },
+                        {
+                            name: "businessType",
+                            type: "select",
+                            label: "Business Type",
+                            required: true,
+                            options: [
+                                { value: "", label: "Select business type" },
+                                { value: "LLC", label: "Limited Liability Company (LLC)" },
+                                { value: "Corporation", label: "Corporation" },
+                                { value: "Partnership", label: "Partnership" },
+                                { value: "SoleProprietorship", label: "Sole Proprietorship" }
+                            ]
+                        },
+                        {
+                            name: "fein",
+                            type: "text",
+                            label: "Federal Tax ID (FEIN)",
+                            required: true,
+                            pattern: "\\d{2}-\\d{7}",
+                            placeholder: "XX-XXXXXXX"
+                        },
+                        {
+                            name: "yearEstablished",
+                            type: "number",
+                            label: "Year Established",
+                            required: true,
+                            min: 1900,
+                            max: new Date().getFullYear()
+                        }
+                    ]
+                },
+                {
+                    title: "Location Information",
+                    fields: [
+                        {
+                            name: "address1",
+                            type: "text",
+                            label: "Street Address",
+                            required: true
+                        },
+                        {
+                            name: "address2",
+                            type: "text",
+                            label: "Suite/Unit",
+                            required: false
+                        },
+                        {
+                            name: "city",
+                            type: "text",
+                            label: "City",
+                            required: true
+                        },
+                        {
+                            name: "state",
+                            type: "select",
+                            label: "State",
+                            required: true,
+                            options: [
+                                { value: "", label: "Select state" },
+                                { value: "CA", label: "California" },
+                                { value: "TX", label: "Texas" },
+                                { value: "FL", label: "Florida" },
+                                { value: "NY", label: "New York" }
+                                // Add more states
+                            ]
+                        },
+                        {
+                            name: "zip",
+                            type: "text",
+                            label: "ZIP Code",
+                            required: true,
+                            pattern: "\\d{5}",
+                            maxlength: 5
+                        }
+                    ]
+                },
+                {
+                    title: "Coverage Details",
+                    fields: [
+                        {
+                            name: "effectiveDate",
+                            type: "date",
+                            label: "Requested Effective Date",
+                            required: true,
+                            min: new Date().toISOString().split('T')[0]
+                        },
+                        {
+                            name: "numberOfEmployees",
+                            type: "number",
+                            label: "Number of Employees",
+                            required: true,
+                            min: 1
+                        },
+                        {
+                            name: "annualPayroll",
+                            type: "number",
+                            label: "Estimated Annual Payroll",
+                            required: true,
+                            min: 0,
+                            prefix: "$"
+                        },
+                        {
+                            name: "priorClaims",
+                            type: "select",
+                            label: "Any claims in the past 5 years?",
+                            required: true,
+                            options: [
+                                { value: "", label: "Select" },
+                                { value: "No", label: "No" },
+                                { value: "Yes", label: "Yes" }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+        
+        // Initialize form
+        function initializeForm() {
+            formConfig = sampleFormConfig; // In production, load from API based on LOB
+            document.getElementById('productName').textContent = formConfig.product_name;
+            
+            // Generate step indicators
+            generateStepIndicators();
+            
+            // Generate form sections
+            generateFormSections();
+            
+            // Show first step
+            showStep(0);
+        }
+        
+        // Generate step indicators
+        function generateStepIndicators() {
+            const stepIndicator = document.getElementById('stepIndicator');
+            stepIndicator.innerHTML = formConfig.steps.map((step, index) => `
+                <div class="step ${index === 0 ? 'active' : ''}" id="step-${index}">
+                    <div class="step-number">${index + 1}</div>
+                    <div class="step-title">${step.title}</div>
+                    ${index < formConfig.steps.length - 1 ? '<div class="step-line"></div>' : ''}
+                </div>
+            `).join('');
+        }
+        
+        // Generate form sections
+        function generateFormSections() {
+            const formSections = document.getElementById('formSections');
+            formSections.innerHTML = formConfig.steps.map((step, stepIndex) => `
+                <div class="form-section ${stepIndex === 0 ? 'active' : ''}" id="section-${stepIndex}">
+                    <h4 class="mb-4">${step.title}</h4>
+                    ${step.fields.map(field => generateField(field)).join('')}
+                </div>
+            `).join('');
+        }
+        
+        // Generate individual field
+        function generateField(field) {
+            let fieldHtml = `<div class="mb-3">`;
+            fieldHtml += `<label for="${field.name}" class="form-label ${field.required ? 'required-field' : ''}">${field.label}</label>`;
+            
+            switch (field.type) {
+                case 'text':
+                case 'email':
+                case 'tel':
+                case 'date':
+                case 'number':
+                    fieldHtml += `
+                        <input 
+                            type="${field.type}" 
+                            class="form-control" 
+                            id="${field.name}" 
+                            name="${field.name}"
+                            ${field.required ? 'required' : ''}
+                            ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}
+                            ${field.pattern ? `pattern="${field.pattern}"` : ''}
+                            ${field.min ? `min="${field.min}"` : ''}
+                            ${field.max ? `max="${field.max}"` : ''}
+                            ${field.maxlength ? `maxlength="${field.maxlength}"` : ''}
+                        >
+                    `;
+                    break;
+                    
+                case 'select':
+                    fieldHtml += `
+                        <select class="form-select" id="${field.name}" name="${field.name}" ${field.required ? 'required' : ''}>
+                            ${field.options.map(opt => `
+                                <option value="${opt.value}">${opt.label}</option>
+                            `).join('')}
+                        </select>
+                    `;
+                    break;
+                    
+                case 'textarea':
+                    fieldHtml += `
+                        <textarea 
+                            class="form-control" 
+                            id="${field.name}" 
+                            name="${field.name}"
+                            rows="3"
+                            ${field.required ? 'required' : ''}
+                            ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}
+                        ></textarea>
+                    `;
+                    break;
+            }
+            
+            if (field.help) {
+                fieldHtml += `<div class="help-text">${field.help}</div>`;
+            }
+            
+            fieldHtml += `<div class="error-message" id="error-${field.name}"></div>`;
+            fieldHtml += `</div>`;
+            
+            return fieldHtml;
+        }
+        
+        // Show specific step
+        function showStep(step) {
+            // Hide all sections
+            document.querySelectorAll('.form-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Show current section
+            document.getElementById(`section-${step}`).classList.add('active');
+            
+            // Update step indicators
+            document.querySelectorAll('.step').forEach((stepEl, index) => {
+                stepEl.classList.remove('active', 'completed');
+                if (index < step) {
+                    stepEl.classList.add('completed');
+                } else if (index === step) {
+                    stepEl.classList.add('active');
+                }
+            });
+            
+            // Update navigation buttons
+            document.getElementById('prevBtn').style.display = step === 0 ? 'none' : 'inline-block';
+            document.getElementById('nextBtn').style.display = step === formConfig.steps.length - 1 ? 'none' : 'inline-block';
+            document.getElementById('submitBtn').style.display = step === formConfig.steps.length - 1 ? 'inline-block' : 'none';
+            
+            currentStep = step;
+        }
+        
+        // Change step
+        function changeStep(direction) {
+            // Validate current step before moving forward
+            if (direction > 0 && !validateStep(currentStep)) {
+                return;
+            }
+            
+            // Save current step data
+            saveStepData(currentStep);
+            
+            const newStep = currentStep + direction;
+            if (newStep >= 0 && newStep < formConfig.steps.length) {
+                showStep(newStep);
+            }
+        }
+        
+        // Validate step
+        function validateStep(stepIndex) {
+            const step = formConfig.steps[stepIndex];
+            let isValid = true;
+            
+            step.fields.forEach(field => {
+                const element = document.getElementById(field.name);
+                const errorElement = document.getElementById(`error-${field.name}`);
+                
+                // Clear previous error
+                element.classList.remove('error');
+                errorElement.classList.remove('show');
+                
+                // Check required
+                if (field.required && !element.value) {
+                    element.classList.add('error');
+                    errorElement.textContent = `${field.label} is required`;
+                    errorElement.classList.add('show');
+                    isValid = false;
+                }
+                
+                // Check pattern
+                if (field.pattern && element.value && !new RegExp(field.pattern).test(element.value)) {
+                    element.classList.add('error');
+                    errorElement.textContent = `Invalid format`;
+                    errorElement.classList.add('show');
+                    isValid = false;
+                }
+            });
+            
+            return isValid;
+        }
+        
+        // Save step data
+        function saveStepData(stepIndex) {
+            const step = formConfig.steps[stepIndex];
+            step.fields.forEach(field => {
+                const element = document.getElementById(field.name);
+                formData[field.name] = element.value;
+            });
+        }
+        
+        // Submit form
+        async function submitForm() {
+            // Validate final step
+            if (!validateStep(currentStep)) {
+                return;
+            }
+            
+            // Save final step data
+            saveStepData(currentStep);
+            
+            // Show loading
+            document.getElementById('formSections').style.display = 'none';
+            document.querySelector('.d-flex').style.display = 'none';
+            document.getElementById('loadingSpinner').classList.add('active');
+            
+            try {
+                // Submit to API
+                const response = await fetch('/api/producer/submissions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${producerToken}`
+                    },
+                    body: JSON.stringify({
+                        lob_id: lobId,
+                        form_data: formData
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    // Show success message
+                    document.getElementById('loadingSpinner').classList.remove('active');
+                    document.querySelector('.form-card').innerHTML = `
+                        <div class="text-center">
+                            <i class="fas fa-check-circle text-success" style="font-size: 64px;"></i>
+                            <h3 class="mt-4">Submission Received!</h3>
+                            <p>Your submission has been received and is being processed.</p>
+                            <p>Submission ID: <strong>${result.submission_id}</strong></p>
+                            <a href="/producer-dashboard" class="btn btn-primary mt-3">
+                                <i class="fas fa-home"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    `;
+                    
+                    // Show premium if available
+                    if (result.premium) {
+                        document.getElementById('premiumAmount').textContent = `$${result.premium.toLocaleString()}`;
+                        document.getElementById('premiumDisplay').style.display = 'block';
+                    }
+                } else {
+                    throw new Error('Submission failed');
+                }
+            } catch (error) {
+                console.error('Submission error:', error);
+                document.getElementById('loadingSpinner').classList.remove('active');
+                alert('Failed to submit. Please try again.');
+                
+                // Show form again
+                document.getElementById('formSections').style.display = 'block';
+                document.querySelector('.d-flex').style.display = 'flex';
+            }
+        }
+        
+        // Logout
+        function logout() {
+            localStorage.removeItem('producerToken');
+            window.location.href = '/producer-login';
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', initializeForm);
+    </script>
+</body>
+</html>

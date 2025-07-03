@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Producer Portal - Register</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0066CC;
+            --secondary-color: #333333;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            padding: 40px 0;
+        }
+        
+        .register-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .register-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+        
+        .portal-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .portal-logo img {
+            max-height: 60px;
+            max-width: 200px;
+        }
+        
+        .portal-title {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #0052a3;
+            border-color: #0052a3;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 102, 204, 0.25);
+        }
+        
+        .section-title {
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .loading-spinner {
+            display: none;
+        }
+        
+        .custom-styles {
+            /* Custom CSS will be injected here */
+        }
+    </style>
+    <style class="custom-styles"></style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <div class="portal-logo">
+                <img src="" alt="Logo" id="portalLogo" style="display: none;">
+                <h3 class="portal-title" id="portalTitle">Producer Registration</h3>
+            </div>
+            
+            <div id="alertContainer"></div>
+            
+            <form id="registrationForm">
+                <!-- Instance Selection (if needed) -->
+                <div id="instanceSelection" class="mb-4" style="display: none;">
+                    <h5 class="section-title">Select Portal</h5>
+                    <div class="mb-3">
+                        <label for="instanceId" class="form-label">Which portal are you registering for? <span class="text-danger">*</span></label>
+                        <select class="form-control" id="instanceId">
+                            <option value="">Select a portal...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <h5 class="section-title">Personal Information</h5>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="firstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="firstName" required>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="lastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="lastName" required>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="email" required>
+                    <div class="form-text">This will be your username for login</div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="password" required minlength="8">
+                        <div class="form-text">Minimum 8 characters</div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="confirmPassword" required>
+                    </div>
+                </div>
+                
+                <h5 class="section-title mt-4">Agency Information</h5>
+                
+                <div class="mb-3">
+                    <label for="agencyName" class="form-label">Agency Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="agencyName" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phone" placeholder="(123) 456-7890">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="address1" class="form-label">Address Line 1</label>
+                    <input type="text" class="form-control" id="address1">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="address2" class="form-label">Address Line 2</label>
+                    <input type="text" class="form-control" id="address2">
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="city" class="form-label">City</label>
+                        <input type="text" class="form-control" id="city">
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <label for="state" class="form-label">State</label>
+                        <select class="form-control" id="state">
+                            <option value="">Select...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <label for="zip" class="form-label">ZIP Code</label>
+                        <input type="text" class="form-control" id="zip" maxlength="10">
+                    </div>
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="agreeTerms" required>
+                    <label class="form-check-label" for="agreeTerms">
+                        I agree to the <a href="#" id="termsLink" target="_blank">Terms of Service</a>
+                    </label>
+                </div>
+                
+                <div class="d-grid">
+                    <button type="button" class="btn btn-primary btn-lg" id="submitBtn" onclick="handleRegistration(event)">
+                        <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                        Create Account
+                    </button>
+                </div>
+            </form>
+            
+            <div class="text-center mt-3">
+                <p>Already have an account? <a href="/producer/login">Login here</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/states.js"></script>
+    <script>
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up registration page...');
+            
+        // Populate states dropdown
+        function populateStates() {
+            const stateSelect = document.getElementById('state');
+            const states = window.STATES || [];
+            
+            states.forEach(state => {
+                const option = document.createElement('option');
+                option.value = state.code;
+                option.textContent = state.name;
+                stateSelect.appendChild(option);
+            });
+        }
+        
+        // Get instance ID from URL or other source
+        function getInstanceId() {
+            // Check if we're on an instance-specific URL
+            const pathMatch = window.location.pathname.match(/\/instance\/(\d+)\//);
+            if (pathMatch) {
+                return pathMatch[1];
+            }
+            
+            // Check URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('instance')) {
+                return urlParams.get('instance');
+            }
+            
+            // Check if we have a subdomain (not localhost)
+            const hostname = window.location.hostname;
+            if (!hostname.includes('localhost') && !hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+                // We have a subdomain, let the backend figure it out
+                return 'subdomain';
+            }
+            
+            return null;
+        }
+        
+        // Load available instances for selection
+        async function loadAvailableInstances() {
+            try {
+                const response = await fetch('/api/instances/active-portals');
+                if (response.ok) {
+                    const instances = await response.json();
+                    const select = document.getElementById('instanceId');
+                    
+                    instances.forEach(instance => {
+                        const option = document.createElement('option');
+                        option.value = instance.instance_id;
+                        option.textContent = instance.portal_name || instance.name;
+                        select.appendChild(option);
+                    });
+                    
+                    document.getElementById('instanceSelection').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Failed to load instances:', error);
+                showAlert('Failed to load available portals');
+            }
+        }
+        
+        // Load portal configuration
+        async function loadPortalConfig(instanceId) {
+            try {
+                let url = '/api/producer/portal/config';
+                if (instanceId && instanceId !== 'subdomain') {
+                    url += `?instanceId=${instanceId}`;
+                }
+                
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    applyPortalBranding(data.config);
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Failed to load portal config:', error);
+                return false;
+            }
+        }
+        
+        // Apply branding
+        function applyPortalBranding(config) {
+            if (config.portal_name) {
+                document.getElementById('portalTitle').textContent = config.portal_name + ' - Registration';
+                document.title = config.portal_name + ' - Register';
+            }
+            
+            if (config.logo_url) {
+                const logo = document.getElementById('portalLogo');
+                logo.src = config.logo_url;
+                logo.style.display = 'block';
+            }
+            
+            if (config.primary_color) {
+                document.documentElement.style.setProperty('--primary-color', config.primary_color);
+            }
+            
+            if (config.secondary_color) {
+                document.documentElement.style.setProperty('--secondary-color', config.secondary_color);
+            }
+            
+            if (config.custom_css) {
+                document.querySelector('.custom-styles').textContent = config.custom_css;
+            }
+            
+            if (config.terms_of_service) {
+                document.getElementById('termsLink').href = '/producer/terms';
+            }
+        }
+        
+        // Show alert
+        function showAlert(message, type = 'danger') {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            document.getElementById('alertContainer').innerHTML = alertHtml;
+        }
+        
+        // Handle registration - global function for onclick
+        window.handleRegistration = async function(e) {
+            e.preventDefault();
+            console.log('Registration button clicked!');
+            
+            // Check if all required fields are filled
+            const form = document.getElementById('registrationForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Validate passwords match
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                showAlert('Passwords do not match');
+                return;
+            }
+            
+            // Get instance ID
+            let instanceId = getInstanceId();
+            if (!instanceId) {
+                // Check if user selected an instance
+                const selectedInstance = document.getElementById('instanceId').value;
+                if (!selectedInstance) {
+                    showAlert('Please select a portal to register for');
+                    return;
+                }
+                instanceId = selectedInstance;
+            }
+            
+            const formData = {
+                email: document.getElementById('email').value,
+                password: password,
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                agencyName: document.getElementById('agencyName').value,
+                phone: document.getElementById('phone').value,
+                address1: document.getElementById('address1').value,
+                address2: document.getElementById('address2').value,
+                city: document.getElementById('city').value,
+                state: document.getElementById('state').value,
+                zip: document.getElementById('zip').value,
+                instanceId: instanceId !== 'subdomain' ? instanceId : undefined
+            };
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const spinner = submitBtn.querySelector('.loading-spinner');
+            
+            submitBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            
+            try {
+                console.log('Sending registration request with data:', formData);
+                const response = await fetch('/api/producer/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (response.ok) {
+                    showAlert('Registration successful! Please check your email to verify your account.', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/producer-login';
+                    }, 3000);
+                } else {
+                    showAlert(data.error || 'Registration failed');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showAlert('Network error. Please try again. ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        }
+        
+        // Setup form submission handler
+        function setupFormHandler() {
+            // Use querySelector to be more specific
+            const forms = document.querySelectorAll('#registrationForm');
+            console.log('Found forms:', forms.length);
+            
+            const form = document.querySelector('form#registrationForm');
+            if (!form) {
+                console.error('Registration form not found!');
+                return;
+            }
+            
+            console.log('Setting up form submission handler on form:', form);
+            
+            // Remove any existing listeners
+            const newForm = form.cloneNode(true);
+            form.parentNode.replaceChild(newForm, form);
+            
+            // Add the event listener to the new form
+            newForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Form submitted!');
+            
+            // Validate passwords match
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                showAlert('Passwords do not match');
+                return;
+            }
+            
+            // Get instance ID
+            let instanceId = getInstanceId();
+            if (!instanceId) {
+                // Check if user selected an instance
+                const selectedInstance = document.getElementById('instanceId').value;
+                if (!selectedInstance) {
+                    showAlert('Please select a portal to register for');
+                    return;
+                }
+                instanceId = selectedInstance;
+            }
+            
+            const formData = {
+                email: document.getElementById('email').value,
+                password: password,
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                agencyName: document.getElementById('agencyName').value,
+                phone: document.getElementById('phone').value,
+                address1: document.getElementById('address1').value,
+                address2: document.getElementById('address2').value,
+                city: document.getElementById('city').value,
+                state: document.getElementById('state').value,
+                zip: document.getElementById('zip').value,
+                instanceId: instanceId !== 'subdomain' ? instanceId : undefined
+            };
+            
+            const submitBtn = newForm.querySelector('button[type="submit"]');
+            const spinner = submitBtn.querySelector('.loading-spinner');
+            
+            submitBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            
+            try {
+                console.log('Sending registration request with data:', formData);
+                const response = await fetch('/api/producer/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (response.ok) {
+                    showAlert('Registration successful! Please check your email to verify your account.', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/producer-login';
+                    }, 3000);
+                } else {
+                    showAlert(data.error || 'Registration failed');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showAlert('Network error. Please try again. ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                spinner.style.display = 'none';
+            }
+            });
+        }
+        
+        // Initialize
+        console.log('Initializing registration page...');
+        populateStates();
+        
+        // Determine how to handle instance selection
+        const instanceId = getInstanceId();
+        console.log('Detected instance ID:', instanceId);
+        
+        if (instanceId) {
+            // We have an instance ID, load its configuration
+            loadPortalConfig(instanceId);
+        } else {
+            // No instance ID, show instance selection
+            console.log('No instance ID found, loading available instances...');
+            loadAvailableInstances();
+        }
+        
+        // Make sure form exists and setup handler
+        const form = document.getElementById('registrationForm');
+        console.log('Registration form found:', form);
+        
+        // Setup the form submission handler
+        // setupFormHandler(); // Not needed with onclick approach
+        
+        }); // End of DOMContentLoaded
+    </script>
+</body>
+</html>

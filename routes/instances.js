@@ -145,4 +145,27 @@ router.get('/:id', auth, async (req, res) => {
     }
 });
 
+// Get active producer portals (public endpoint)
+router.get('/active-portals', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                i.instance_id,
+                i.name,
+                i.subdomain,
+                ppc.portal_name,
+                ppc.is_active
+            FROM ims_instances i
+            INNER JOIN producer_portal_config ppc ON i.instance_id = ppc.instance_id
+            WHERE ppc.is_active = true
+            ORDER BY i.name
+        `);
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching active portals:', err);
+        res.status(500).json({ message: 'Failed to fetch portals' });
+    }
+});
+
 module.exports = router;

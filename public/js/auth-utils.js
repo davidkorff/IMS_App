@@ -7,6 +7,19 @@ class AuthUtils {
     static getToken() {
         return localStorage.getItem(this.TOKEN_KEY);
     }
+    
+    // Get user from localStorage
+    static async getUser() {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            try {
+                return JSON.parse(userData);
+            } catch (e) {
+                return null;
+            }
+        }
+        return null;
+    }
 
     // Set token in localStorage
     static setToken(token) {
@@ -63,10 +76,14 @@ class AuthUtils {
             return;
         }
 
-        // Add auth header
+        // Add auth header and instance ID
+        const user = await this.getUser();
+        const instanceId = user?.instance_id || localStorage.getItem('instanceId') || window.instanceId;
+        
         const authHeaders = {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
+            'x-instance-id': instanceId,
             ...options.headers
         };
 
@@ -181,3 +198,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Make it available globally
 window.AuthUtils = AuthUtils;
+
+// Add helper functions for backward compatibility
+window.checkAuth = async function() {
+    const token = AuthUtils.getToken();
+    if (!token || AuthUtils.isTokenExpired()) {
+        return null;
+    }
+    
+    // Get user data from localStorage
+    const userData = localStorage.getItem('user');
+    if (userData) {
+        try {
+            return JSON.parse(userData);
+        } catch (e) {
+            return null;
+        }
+    }
+    
+    // If no user data, try to fetch it
+    try {
+        const response = await fetch('/api/auth/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            localStorage.setItem('user', JSON.stringify(user));
+            return user;
+        }
+    } catch (error) {
+        console.error('Error fetching user data:', error);
+    }
+    
+    return null;
+};
+
+window.fetchWithAuth = function(url, options = {}) {
+    return AuthUtils.fetchWithAuth(url, options);
+};

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Form Builder Load</title>
+    <script>
+        // Test loading the form builder with form_schema_id
+        function testFormBuilderLoad() {
+            const formSchemaId = 'a1715135-94dc-456a-a68a-982ab0ed0fe1';
+            const instanceId = 4;
+            
+            // Make instanceId available
+            window.instanceId = instanceId;
+            
+            // Open form builder with form_schema_id in URL
+            const url = `/form-builder.html?form_schema_id=${formSchemaId}`;
+            const formBuilderWindow = window.open(url, 'formBuilder', 'width=1400,height=800');
+            
+            console.log('Opened form builder with URL:', url);
+        }
+    </script>
+</head>
+<body>
+    <h1>Test Form Builder Load</h1>
+    <p>This test will open the form builder with the Workers Compensation form loaded.</p>
+    <button onclick="testFormBuilderLoad()">Open Form Builder</button>
+    
+    <h2>Expected Result:</h2>
+    <ul>
+        <li>Form builder window opens</li>
+        <li>Workers Compensation Application form loads automatically</li>
+        <li>You should see 5 pages with all fields</li>
+    </ul>
+    
+    <h2>Debug Steps:</h2>
+    <ol>
+        <li>Open browser developer console (F12)</li>
+        <li>Click the button above</li>
+        <li>Check console in both windows for debug messages</li>
+        <li>Look for "Loading form schema:" message</li>
+    </ol>
+</body>
+</html>

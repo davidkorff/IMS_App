@@ -220,6 +220,9 @@
 
                 if (response.ok) {
                     localStorage.setItem('token', data.token);
+                    if (data.user) {
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    }
                     window.location.href = '/dashboard';
                 } else {
                     showAlert('login', data.message || 'Invalid credentials');

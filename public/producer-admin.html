@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Producer Management - IMS Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <style>
+        .producer-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .status-badge {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+        }
+        
+        .status-pending {
+            background-color: #ffc107;
+            color: #000;
+        }
+        
+        .status-approved {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .status-suspended {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .status-rejected {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .tab-content {
+            padding-top: 20px;
+        }
+        
+        .stat-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #0066cc;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .producer-detail-modal .modal-dialog {
+            max-width: 800px;
+        }
+        
+        .activity-log {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .activity-log-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .activity-log-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">IMS Admin</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text text-white me-3" id="userName"></span>
+                <a class="nav-link text-white" href="/dashboard">Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2><i class="fas fa-users"></i> Producer Management</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="#" id="instanceLink">Instance</a></li>
+                        <li class="breadcrumb-item active">Producer Management</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Alert Container -->
+        <div id="alertContainer"></div>
+
+        <!-- Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number" id="totalProducers">0</div>
+                    <div class="stat-label">Total Producers</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number" id="approvedProducers">0</div>
+                    <div class="stat-label">Approved</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number" id="pendingProducers">0</div>
+                    <div class="stat-label">Pending Approval</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-box">
+                    <div class="stat-number" id="activeProducers">0</div>
+                    <div class="stat-label">Active (30 days)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#producersTab">
+                    <i class="fas fa-users"></i> Producers
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#portalConfigTab">
+                    <i class="fas fa-cog"></i> Portal Configuration
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#lobTab">
+                    <i class="fas fa-list"></i> Lines of Business
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- Producers Tab -->
+            <div class="tab-pane fade show active" id="producersTab">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="searchProducers" placeholder="Search producers...">
+                            <button class="btn btn-outline-secondary" type="button" id="searchBtn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-control" id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="suspended">Suspended</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-primary float-end" id="refreshBtn">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div id="producersList">
+                    <!-- Producers will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Portal Configuration Tab -->
+            <div class="tab-pane fade" id="portalConfigTab">
+                <div class="producer-card">
+                    <h4>Portal Settings</h4>
+                    <form id="portalConfigForm" onsubmit="return false;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Portal Name</label>
+                                    <input type="text" class="form-control" id="portalName">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Logo URL</label>
+                                    <input type="url" class="form-control" id="logoUrl">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Primary Color</label>
+                                    <input type="color" class="form-control" id="primaryColor">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label class="form-label">Secondary Color</label>
+                                    <input type="color" class="form-control" id="secondaryColor">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Portal Status</label>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="portalActive">
+                                        <label class="form-check-label" for="portalActive">
+                                            Active
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Welcome Message</label>
+                            <textarea class="form-control" id="welcomeMessage" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Custom CSS</label>
+                            <textarea class="form-control" id="customCss" rows="5" style="font-family: monospace;"></textarea>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary" id="savePortalConfigBtn">Save Configuration</button>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <h5>Producer Registration URLs</h5>
+                    <div class="alert alert-info">
+                        <p class="mb-2"><strong>Direct Registration URL:</strong></p>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" readonly id="directRegistrationUrl" value="">
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('directRegistrationUrl')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <small>This URL allows producers to register directly for this instance.</small>
+                    </div>
+                    
+                    <div class="alert alert-secondary" id="subdomainInfo" style="display: none;">
+                        <p class="mb-2"><strong>Subdomain URL:</strong></p>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" readonly id="subdomainUrl" value="">
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('subdomainUrl')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <small>If you have configured a subdomain, producers can also register at this URL.</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lines of Business Tab -->
+            <div class="tab-pane fade" id="lobTab">
+                <div class="mb-3">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newLobModal">
+                        <i class="fas fa-plus"></i> Add Line of Business
+                    </button>
+                </div>
+                
+                <div id="lobList">
+                    <!-- LOBs will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Producer Detail Modal -->
+    <div class="modal fade producer-detail-modal" id="producerDetailModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Producer Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="producerDetailContent">
+                    <!-- Content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New LOB Modal -->
+    <div class="modal fade" id="newLobModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Line of Business</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newLobForm">
+                        <!-- Nav tabs -->
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic-content" type="button">
+                                    Basic Information
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="ims-tab" data-bs-toggle="tab" data-bs-target="#ims-content" type="button">
+                                    IMS Integration
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="form-tab" data-bs-toggle="tab" data-bs-target="#form-content" type="button">
+                                    Form Builder
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab content -->
+                        <div class="tab-content">
+                            <!-- Basic Information Tab -->
+                            <div class="tab-pane fade show active" id="basic-content">
+                                <div class="mb-3">
+                                    <label class="form-label">Product Name</label>
+                                    <input type="text" class="form-control" id="lobName" required placeholder="e.g., Workers Compensation">
+                                    <div class="form-text">The name producers will see for this insurance product</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Product Code (Optional)</label>
+                                    <input type="text" class="form-control" id="lobCode" placeholder="e.g., WC, GL, PROP">
+                                    <div class="form-text">Internal reference code</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control" id="lobDescription" rows="2" placeholder="Brief description of this product"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- IMS Integration Tab -->
+                            <div class="tab-pane fade" id="ims-content">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Configure how submissions will be sent to IMS.
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Company</label>
+                                    <select class="form-control" id="lobCompany">
+                                        <option value="">Select Company...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Line of Business</label>
+                                    <select class="form-control" id="lobImsLine" disabled>
+                                        <option value="">Select company first...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Data Processing Procedure (Optional)</label>
+                                    <input type="text" class="form-control" id="lobImsProcedure" placeholder="e.g., ProcessWorkerCompSubmission_WS">
+                                    <div class="form-text">
+                                        IMS stored procedure to process submission data and trigger form attachment. 
+                                        Include "_WS" suffix (it will be handled automatically).
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form Builder Tab -->
+                            <div class="tab-pane fade" id="form-content">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Design the submission form that producers will fill out.
+                                </div>
+                                
+                                <div class="text-center p-5">
+                                    <i class="fas fa-edit fa-3x text-primary mb-3"></i>
+                                    <h5>Form Designer</h5>
+                                    <p class="text-muted">Create a custom submission form with our advanced form builder</p>
+                                    
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-primary" onclick="openFormBuilder()">
+                                            <i class="fas fa-magic"></i> Open Form Builder
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary" onclick="loadFormTemplate()">
+                                            <i class="fas fa-file-alt"></i> Use Template
+                                        </button>
+                                    </div>
+                                    
+                                    <div id="formSchemaPreview" class="mt-4" style="display: none;">
+                                        <div class="alert alert-success">
+                                            <i class="fas fa-check-circle"></i> Form configured
+                                            <button class="btn btn-sm btn-outline-success float-end" onclick="openFormBuilder()">
+                                                Edit Form
+                                            </button>
+                                        </div>
+                                        <div class="text-start">
+                                            <h6>Form Structure:</h6>
+                                            <ul id="formStructureList"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <input type="hidden" id="formSchemaData" name="formSchemaData">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveLobBtn">Save Line of Business</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/auth-utils.js"></script>
+    <script>
+        // Get instance ID from URL
+        const pathParts = window.location.pathname.split('/');
+        const instanceId = pathParts[2];
+        
+        // Check authentication
+        checkAuth().then(user => {
+            if (!user) {
+                window.location.href = '/login';
+                return;
+            }
+            document.getElementById('userName').textContent = user.name;
+            
+            // Check permissions
+            if (!user.permissions || !user.permissions.includes('producer_portal.view')) {
+                alert('You do not have permission to access this page');
+                window.location.href = '/dashboard';
+                return;
+            }
+            
+            // Initialize
+            loadStatistics();
+            loadProducers();
+            loadPortalConfig();
+            loadLinesOfBusiness();
+            
+            // Set up event handlers after everything is loaded
+            setupEventHandlers();
+        });
+        
+        // Load statistics
+        async function loadStatistics() {
+            try {
+                const response = await fetchWithAuth(`/api/producer-admin/statistics?instanceId=${instanceId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('totalProducers').textContent = data.producers.total_producers || 0;
+                    document.getElementById('approvedProducers').textContent = data.producers.approved_producers || 0;
+                    document.getElementById('pendingProducers').textContent = data.producers.pending_producers || 0;
+                    document.getElementById('activeProducers').textContent = data.producers.active_last_30_days || 0;
+                }
+            } catch (error) {
+                console.error('Failed to load statistics:', error);
+            }
+        }
+        
+        // Load producers
+        async function loadProducers() {
+            const search = document.getElementById('searchProducers').value;
+            const status = document.getElementById('statusFilter').value;
+            
+            try {
+                let url = `/api/producer-admin/producers?instanceId=${instanceId}&`;
+                if (search) url += `search=${encodeURIComponent(search)}&`;
+                if (status) url += `status=${status}&`;
+                
+                const response = await fetchWithAuth(url);
+                console.log('Producers response:', response);
+                if (response.ok) {
+                    const producers = await response.json();
+                    console.log('Producers data:', producers);
+                    displayProducers(producers);
+                } else {
+                    console.error('Failed to load producers:', response.status);
+                    const error = await response.text();
+                    console.error('Error:', error);
+                }
+            } catch (error) {
+                console.error('Failed to load producers:', error);
+            }
+        }
+        
+        // Display producers
+        function displayProducers(producers) {
+            const container = document.getElementById('producersList');
+            
+            if (producers.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">No producers found</div>';
+                return;
+            }
+            
+            container.innerHTML = producers.map(producer => `
+                <div class="producer-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5>${producer.first_name} ${producer.last_name}</h5>
+                            <p class="mb-1">${producer.agency_name}</p>
+                            <p class="text-muted mb-0">${producer.email}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <span class="status-badge status-${producer.status}">${producer.status}</span>
+                        </div>
+                        <div class="col-md-2 text-center">
+                            <div>${producer.total_submissions || 0}</div>
+                            <small class="text-muted">Submissions</small>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewProducerDetails(${producer.producer_id})">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // View producer details - make it global for onclick
+        window.viewProducerDetails = async function(producerId) {
+            try {
+                const response = await fetchWithAuth(`/api/producer-admin/producers/${producerId}?instanceId=${instanceId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    showProducerDetailModal(data);
+                }
+            } catch (error) {
+                console.error('Failed to load producer details:', error);
+            }
+        }
+        
+        // Show producer detail modal
+        function showProducerDetailModal(data) {
+            const content = document.getElementById('producerDetailContent');
+            const producer = data.producer;
+            
+            content.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Contact Information</h6>
+                        <p><strong>Name:</strong> ${producer.first_name} ${producer.last_name}</p>
+                        <p><strong>Email:</strong> ${producer.email}</p>
+                        <p><strong>Phone:</strong> ${producer.phone || 'N/A'}</p>
+                        <p><strong>Agency:</strong> ${producer.agency_name}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Account Status</h6>
+                        <p><strong>Status:</strong> <span class="status-badge status-${producer.status}">${producer.status}</span></p>
+                        <p><strong>Registered:</strong> ${new Date(producer.created_at).toLocaleDateString()}</p>
+                        <p><strong>Last Login:</strong> ${producer.last_login ? new Date(producer.last_login).toLocaleDateString() : 'Never'}</p>
+                    </div>
+                </div>
+                
+                ${producer.status === 'pending' ? `
+                    <hr>
+                    <h6>Approval Actions</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Grant Access To:</label>
+                        <div id="lobAccessList">
+                            ${data.lobAccess.length === 0 ? 'No lines of business configured' : ''}
+                        </div>
+                    </div>
+                    <button class="btn btn-success" onclick="approveProducer(${producer.producer_id})">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-danger" onclick="showRejectDialog(${producer.producer_id})">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                ` : ''}
+                
+                <hr>
+                <h6>Recent Activity</h6>
+                <div class="activity-log">
+                    ${data.recentActivity.map(activity => `
+                        <div class="activity-log-item">
+                            <small class="text-muted">${new Date(activity.created_at).toLocaleString()}</small><br>
+                            ${activity.action}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            const modal = new bootstrap.Modal(document.getElementById('producerDetailModal'));
+            modal.show();
+        }
+        
+        // Load portal configuration
+        async function loadPortalConfig() {
+            try {
+                console.log('Loading portal config for instance:', instanceId);
+                const response = await fetchWithAuth(`/api/producer-admin/config?instanceId=${instanceId}`);
+                console.log('Portal config response:', response);
+                if (response.ok) {
+                    const config = await response.json();
+                    console.log('Portal config data:', config);
+                    document.getElementById('portalName').value = config.portal_name || '';
+                    document.getElementById('logoUrl').value = config.logo_url || '';
+                    document.getElementById('primaryColor').value = config.primary_color || '#0066CC';
+                    document.getElementById('secondaryColor').value = config.secondary_color || '#333333';
+                    document.getElementById('welcomeMessage').value = config.welcome_message || '';
+                    document.getElementById('customCss').value = config.custom_css || '';
+                    document.getElementById('portalActive').checked = config.is_active;
+                    
+                    // Set registration URLs
+                    const baseUrl = window.location.origin;
+                    document.getElementById('directRegistrationUrl').value = `${baseUrl}/instance/${instanceId}/producer-register`;
+                    
+                    // Check if subdomain is configured (custom_domain field)
+                    if (config.custom_domain || config.subdomain) {
+                        const subdomain = config.custom_domain || config.subdomain;
+                        document.getElementById('subdomainInfo').style.display = 'block';
+                        // Show the subdomain-based URL using the 42ims.com format
+                        document.getElementById('subdomainUrl').value = `https://${subdomain}.42ims.com/producer-register`;
+                        
+                        // Add a note about subdomain approval status
+                        const subdomainInfo = document.getElementById('subdomainInfo');
+                        if (!config.is_custom_domain_approved) {
+                            const note = document.createElement('small');
+                            note.className = 'text-warning d-block mt-2';
+                            note.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Note: Subdomain requires admin approval and DNS configuration to work.';
+                            subdomainInfo.appendChild(note);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load portal config:', error);
+            }
+        }
+        
+        // Set up event handlers
+        function setupEventHandlers() {
+            console.log('Setting up event handlers...');
+            
+            // Save portal configuration button
+            const saveBtn = document.getElementById('savePortalConfigBtn');
+            console.log('Save button found:', saveBtn);
+            
+            if (saveBtn) {
+                saveBtn.addEventListener('click', savePortalConfig);
+            } else {
+                console.error('Save button not found!');
+            }
+            
+            // Search and filter handlers
+            document.getElementById('searchBtn').addEventListener('click', loadProducers);
+            document.getElementById('statusFilter').addEventListener('change', loadProducers);
+            document.getElementById('refreshBtn').addEventListener('click', () => {
+                loadStatistics();
+                loadProducers();
+            });
+            
+            // Save LOB button
+            document.getElementById('saveLobBtn').addEventListener('click', saveLob);
+            
+            // Field type change handler
+            const fieldTypeSelect = document.getElementById('fieldType');
+            if (fieldTypeSelect) {
+                fieldTypeSelect.addEventListener('change', function() {
+                    const optionsContainer = document.getElementById('fieldOptionsContainer');
+                    if (['select', 'radio', 'checkbox'].includes(this.value)) {
+                        optionsContainer.style.display = 'block';
+                    } else {
+                        optionsContainer.style.display = 'none';
+                    }
+                });
+            }
+        }
+        
+        // Save portal configuration
+        async function savePortalConfig() {
+            console.log('Save portal config function called!');
+            const submitBtn = document.getElementById('savePortalConfigBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            const config = {
+                instanceId: instanceId, // Add the instanceId from the URL
+                portal_name: document.getElementById('portalName').value,
+                logo_url: document.getElementById('logoUrl').value,
+                primary_color: document.getElementById('primaryColor').value,
+                secondary_color: document.getElementById('secondaryColor').value,
+                welcome_message: document.getElementById('welcomeMessage').value,
+                custom_css: document.getElementById('customCss').value,
+                is_active: document.getElementById('portalActive').checked
+            };
+            
+            console.log('Saving config:', config);
+            
+            try {
+                const response = await fetchWithAuth('/api/producer-admin/config', {
+                    method: 'PUT',
+                    body: JSON.stringify(config)
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (response.ok) {
+                    showAlert('✅ Portal configuration saved successfully!', 'success');
+                    // Stay on the Portal Configuration tab
+                    setTimeout(() => {
+                        const portalTab = document.querySelector('a[data-bs-toggle="tab"][href="#portalConfigTab"]');
+                        if (portalTab) {
+                            portalTab.click();
+                        }
+                    }, 100);
+                } else {
+                    const errorData = await response.json();
+                    console.error('Save failed:', errorData);
+                    showAlert('Failed to save configuration: ' + (errorData.error || 'Unknown error'), 'danger');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                showAlert('Error saving configuration: ' + error.message, 'danger');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+        
+        // Load lines of business
+        async function loadLinesOfBusiness() {
+            try {
+                const response = await fetchWithAuth(`/api/producer-admin/lines-of-business?instanceId=${instanceId}`);
+                if (response.ok) {
+                    const lobs = await response.json();
+                    displayLinesOfBusiness(lobs);
+                }
+            } catch (error) {
+                console.error('Failed to load lines of business:', error);
+            }
+        }
+        
+        // Display lines of business
+        function displayLinesOfBusiness(lobs) {
+            const container = document.getElementById('lobList');
+            
+            if (lobs.length === 0) {
+                container.innerHTML = '<div class="alert alert-info">No lines of business configured</div>';
+                return;
+            }
+            
+            container.innerHTML = lobs.map(lob => `
+                <div class="producer-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5>${lob.line_name} ${lob.line_code ? `<small class="text-muted">(${lob.line_code})</small>` : ''}</h5>
+                            <p class="mb-1">${lob.description || ''}</p>
+                            ${lob.ims_line_guid ? 
+                                `<small class="text-success"><i class="fas fa-check-circle"></i> Company: ${lob.ims_company_guid ? 'Configured' : 'Not set'} | Line: Configured</small>` : 
+                                '<small class="text-warning"><i class="fas fa-exclamation-triangle"></i> IMS integration not configured</small>'}
+                            ${lob.ims_procedure_name ? 
+                                `<br><small class="text-info"><i class="fas fa-cog"></i> Procedure: ${lob.ims_procedure_name}</small>` : ''}
+                            ${lob.form_schema_id ? 
+                                `<br><small class="text-primary"><i class="fas fa-file-alt"></i> Custom form configured</small>` : 
+                                '<br><small class="text-muted"><i class="fas fa-file-alt"></i> Using default form</small>'}
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editLob('${lob.lob_id}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-info me-1" onclick="editLobForm('${lob.lob_id}', '${lob.form_schema_id || ''}')" title="Edit Form">
+                                <i class="fas fa-file-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-${lob.is_active ? 'danger' : 'success'}" 
+                                    onclick="toggleLob('${lob.lob_id}', ${!lob.is_active})"
+                                    title="${lob.is_active ? 'Deactivate' : 'Activate'}">
+                                <i class="fas fa-${lob.is_active ? 'pause' : 'play'}"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        
+        // Form builder state
+        let formSchema = null;
+        let formBuilderWindow = null;
+        let currentLobId = null;
+        let currentFormSchemaId = null;
+        
+        // Open form builder
+        window.openFormBuilder = function() {
+            // Open form builder in new window
+            const width = 1400;
+            const height = 800;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+            
+            formBuilderWindow = window.open(
+                '/form-builder.html',
+                'formBuilder',
+                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+            );
+            
+            // Store current LOB ID if we're editing
+            const lobName = document.getElementById('lobName').value;
+            if (lobName) {
+                window.currentLobId = currentLobId; // Make it available to form builder
+            }
+        };
+        
+        // Receive form schema from form builder
+        window.receiveFormSchema = function(schemaData) {
+            currentFormSchemaId = schemaData.form_id;
+            formSchema = schemaData.form_schema;
+            displayFormPreview();
+            showAlert('Form schema saved successfully!', 'success');
+            
+            // Update hidden field with schema ID
+            const schemaField = document.getElementById('formSchemaId');
+            if (!schemaField) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.id = 'formSchemaId';
+                input.name = 'formSchemaId';
+                document.getElementById('newLobForm').appendChild(input);
+            }
+            document.getElementById('formSchemaId').value = currentFormSchemaId;
+        };
+        
+        // Handle messages from form builder
+        function handleFormBuilderMessage(event) {
+            if (event.source === formBuilderWindow) {
+                if (event.data.type === 'saveFormSchema') {
+                    formSchema = event.data.schema;
+                    document.getElementById('formSchemaData').value = JSON.stringify(formSchema);
+                    displayFormPreview();
+                    formBuilderWindow.close();
+                }
+            }
+        }
+        
+        // Display form preview
+        function displayFormPreview() {
+            if (!formSchema) return;
+            
+            document.getElementById('formSchemaPreview').style.display = 'block';
+            
+            const list = document.getElementById('formStructureList');
+            let html = '';
+            
+            formSchema.pages.forEach((page, pageIndex) => {
+                html += `<li><strong>${page.title}</strong>`;
+                html += '<ul>';
+                
+                page.sections.forEach(section => {
+                    const fieldCount = section.items.filter(item => item.type === 'field').length;
+                    html += `<li>${section.title} (${fieldCount} fields)</li>`;
+                });
+                
+                html += '</ul></li>';
+            });
+            
+            list.innerHTML = html;
+        }
+        
+        // Load form template
+        window.loadFormTemplate = function() {
+            const templates = {
+                'Workers Compensation': {
+                    pages: [{
+                        title: 'Business Information',
+                        sections: [{
+                            title: 'Company Details',
+                            fields: [
+                                { type: 'text', label: 'Business Name', required: true },
+                                { type: 'select', label: 'Business Type', options: ['LLC', 'Corporation', 'Partnership'], required: true },
+                                { type: 'number', label: 'Years in Business', required: true },
+                                { type: 'textarea', label: 'Description of Operations', required: true }
+                            ]
+                        }, {
+                            title: 'Employee Information',
+                            fields: [
+                                { type: 'number', label: 'Full-Time Employees', required: true },
+                                { type: 'number', label: 'Part-Time Employees', required: true },
+                                { type: 'number', label: 'Annual Payroll', required: true },
+                                { type: 'select', label: 'Highest Risk Class', options: ['Clerical', 'Sales', 'Manufacturing', 'Construction'], required: true }
+                            ]
+                        }]
+                    }]
+                },
+                'General Liability': {
+                    pages: [{
+                        title: 'Business Information',
+                        sections: [{
+                            title: 'Operations',
+                            fields: [
+                                { type: 'text', label: 'Business Name', required: true },
+                                { type: 'textarea', label: 'Detailed Description of Operations', required: true },
+                                { type: 'number', label: 'Annual Gross Receipts', required: true },
+                                { type: 'checkbox', label: 'Operations Performed', options: ['Retail', 'Wholesale', 'Manufacturing', 'Service', 'Construction'] }
+                            ]
+                        }, {
+                            title: 'Premises Information',
+                            fields: [
+                                { type: 'number', label: 'Total Square Footage', required: true },
+                                { type: 'select', label: 'Building Type', options: ['Owned', 'Leased'], required: true },
+                                { type: 'checkbox', label: 'Premises Features', options: ['Parking Lot', 'Swimming Pool', 'Elevator', 'Security'] }
+                            ]
+                        }]
+                    }]
+                }
+            };
+            
+            // Show template selection dialog
+            const templateOptions = Object.keys(templates).map(name => 
+                `<option value="${name}">${name}</option>`
+            ).join('');
+            
+            const templateName = prompt('Select a template:\n' + Object.keys(templates).join('\n'));
+            
+            if (templateName && templates[templateName]) {
+                // Convert simple template to full schema
+                formSchema = {
+                    id: 'template_' + Date.now(),
+                    version: '1.0',
+                    metadata: {
+                        title: templateName + ' Application',
+                        description: 'Application form for ' + templateName
+                    },
+                    pages: [],
+                    fields: {},
+                    settings: {
+                        allowSaveDraft: true,
+                        showProgressBar: true
+                    }
+                };
+                
+                // Build full schema from template
+                templates[templateName].pages.forEach((templatePage, pageIndex) => {
+                    const page = {
+                        id: 'page' + pageIndex,
+                        title: templatePage.title,
+                        sections: []
+                    };
+                    
+                    templatePage.sections.forEach((templateSection, sectionIndex) => {
+                        const section = {
+                            id: 'section' + pageIndex + '_' + sectionIndex,
+                            title: templateSection.title,
+                            type: 'fieldset',
+                            layout: '1-column',
+                            items: []
+                        };
+                        
+                        templateSection.fields.forEach((templateField, fieldIndex) => {
+                            const fieldId = 'field' + pageIndex + '_' + sectionIndex + '_' + fieldIndex;
+                            
+                            // Create field in schema
+                            formSchema.fields[fieldId] = {
+                                id: fieldId,
+                                type: templateField.type,
+                                label: templateField.label,
+                                name: templateField.label.toLowerCase().replace(/\s+/g, '_'),
+                                required: templateField.required || false,
+                                options: templateField.options ? templateField.options.map(opt => ({
+                                    value: opt.toLowerCase().replace(/\s+/g, '_'),
+                                    label: opt
+                                })) : []
+                            };
+                            
+                            // Add to section
+                            section.items.push({
+                                type: 'field',
+                                fieldId: fieldId
+                            });
+                        });
+                        
+                        page.sections.push(section);
+                    });
+                    
+                    formSchema.pages.push(page);
+                });
+                
+                document.getElementById('formSchemaData').value = JSON.stringify(formSchema);
+                displayFormPreview();
+                showAlert('Template loaded successfully!', 'success');
+            }
+        };
+        
+        // Save LOB function
+        async function saveLob() {
+            const procedureName = document.getElementById('lobImsProcedure').value.trim();
+            
+            // Get required documents
+            const requiredDocs = document.getElementById('requiredDocuments').value
+                .split('\n')
+                .filter(doc => doc.trim())
+                .map(doc => doc.trim());
+            
+            // Build form configuration
+            const formConfig = {
+                fields: formFields,
+                documents: requiredDocs
+            };
+            
+            const lob = {
+                instanceId: instanceId,  // Add instanceId from URL
+                line_name: document.getElementById('lobName').value,
+                line_code: document.getElementById('lobCode').value,
+                description: document.getElementById('lobDescription').value,
+                ims_line_guid: document.getElementById('lobImsLine').value || null,
+                ims_company_guid: document.getElementById('lobCompany').value || null,
+                ims_procedure_name: procedureName || null,  // Store the full procedure name with _WS
+                form_config: formConfig,  // Add the form configuration
+                form_schema_id: currentFormSchemaId || null  // Add the form schema ID
+            };
+            
+            try {
+                const response = await fetchWithAuth('/api/producer-admin/lines-of-business', {
+                    method: 'POST',
+                    body: JSON.stringify(lob)
+                });
+                
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('newLobModal')).hide();
+                    loadLinesOfBusiness();
+                    showAlert('Line of business created successfully', 'success');
+                    // Reset form fields
+                    formFields = [];
+                    document.getElementById('newLobForm').reset();
+                } else {
+                    const error = await response.json();
+                    showAlert('Failed to create line of business: ' + (error.error || 'Unknown error'), 'danger');
+                }
+            } catch (error) {
+                showAlert('Error creating line of business: ' + error.message, 'danger');
+            }
+        }
+        
+        // Show alert
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertId = 'alert-' + Date.now();
+            
+            const alertHtml = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            alertContainer.innerHTML = alertHtml;
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    alert.classList.remove('show');
+                    setTimeout(() => alert.remove(), 150);
+                }
+            }, 5000);
+            
+            // Scroll to top to show alert
+            window.scrollTo(0, 0);
+        }
+        
+        // Copy to clipboard
+        function copyToClipboard(inputId) {
+            const input = document.getElementById(inputId);
+            input.select();
+            input.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                document.execCommand('copy');
+                showAlert('URL copied to clipboard!', 'success');
+            } catch (err) {
+                showAlert('Failed to copy URL', 'danger');
+            }
+        }
+        
+        // Approve producer
+        window.approveProducer = async function(producerId) {
+            if (!confirm('Are you sure you want to approve this producer?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetchWithAuth(`/api/producer-admin/producers/${producerId}/approve?instanceId=${instanceId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ lobAccess: [] }) // Empty for now, can be enhanced later
+                });
+                
+                if (response.ok) {
+                    showAlert('Producer approved successfully!', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('producerDetailModal')).hide();
+                    loadProducers();
+                    loadStatistics();
+                } else {
+                    const error = await response.json();
+                    showAlert('Failed to approve producer: ' + error.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error approving producer: ' + error.message, 'danger');
+            }
+        }
+        
+        // Show reject dialog
+        window.showRejectDialog = function(producerId) {
+            const reason = prompt('Please provide a reason for rejection:');
+            if (reason) {
+                rejectProducer(producerId, reason);
+            }
+        }
+        
+        // Reject producer
+        async function rejectProducer(producerId, reason) {
+            try {
+                const response = await fetchWithAuth(`/api/producer-admin/producers/${producerId}/reject?instanceId=${instanceId}`, {
+                    method: 'POST',
+                    body: JSON.stringify({ reason })
+                });
+                
+                if (response.ok) {
+                    showAlert('Producer rejected.', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('producerDetailModal')).hide();
+                    loadProducers();
+                    loadStatistics();
+                } else {
+                    const error = await response.json();
+                    showAlert('Failed to reject producer: ' + error.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Error rejecting producer: ' + error.message, 'danger');
+            }
+        }
+        
+        // Load IMS companies when modal is shown
+        document.getElementById('newLobModal').addEventListener('shown.bs.modal', function () {
+            loadImsCompanies();
+            // Clear form when modal opens
+            document.getElementById('newLobForm').reset();
+            document.getElementById('lobImsLine').innerHTML = '<option value="">Select company first...</option>';
+            document.getElementById('lobImsLine').disabled = true;
+            document.getElementById('lobImsProcedure').innerHTML = '<option value="">Select line first...</option>';
+            document.getElementById('lobImsProcedure').disabled = true;
+        });
+        
+        // Load IMS companies
+        async function loadImsCompanies() {
+            try {
+                const response = await fetchWithAuth(`/api/webui/forms/companies?instanceId=${instanceId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const companies = Array.isArray(data) ? data : (data.Table || []);
+                    const select = document.getElementById('lobCompany');
+                    
+                    select.innerHTML = '<option value="">Select Company...</option>';
+                    companies.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.CompanyLocationGUID || company.CompanyGUID;
+                        option.textContent = company.LocationName || company.CompanyName;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load IMS companies:', error);
+                showAlert('Failed to load companies. Please check your IMS connection.', 'warning');
+            }
+        }
+        
+        // Handle company selection
+        document.getElementById('lobCompany').addEventListener('change', async function(e) {
+            const companyGuid = e.target.value;
+            
+            // Reset dependent fields
+            document.getElementById('lobImsLine').innerHTML = '<option value="">Select company first...</option>';
+            document.getElementById('lobImsLine').disabled = true;
+            document.getElementById('lobImsProcedure').innerHTML = '<option value="">Select line first...</option>';
+            document.getElementById('lobImsProcedure').disabled = true;
+            
+            if (companyGuid) {
+                await loadLinesForCompany(companyGuid);
+            }
+        });
+        
+        // Load lines for selected company
+        async function loadLinesForCompany(companyGuid) {
+            try {
+                const response = await fetchWithAuth(`/api/webui/forms/lines?instanceId=${instanceId}&companyId=${companyGuid}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const lines = Array.isArray(data) ? data : (data.Table || []);
+                    const select = document.getElementById('lobImsLine');
+                    
+                    select.innerHTML = '<option value="">Select Line...</option>';
+                    lines.forEach(line => {
+                        const option = document.createElement('option');
+                        option.value = line.LineGUID || line.lineguid;
+                        option.textContent = line.LineName || line.linename || line.LineOfBusiness || line.lineofbusiness;
+                        option.dataset.lineId = line.LineID || line.lineid;
+                        select.appendChild(option);
+                    });
+                    
+                    select.disabled = false;
+                }
+            } catch (error) {
+                console.error('Failed to load lines:', error);
+            }
+        }
+        
+        // Save LOB button click handler
+        document.getElementById('saveLobBtn').addEventListener('click', saveLob);
+        
+        // Edit LOB function
+        window.editLob = function(lobId) {
+            // TODO: Implement edit functionality
+            console.log('Edit LOB:', lobId);
+            showAlert('Edit functionality coming soon', 'info');
+        };
+        
+        // Edit LOB form
+        window.editLobForm = async function(lobId, formSchemaId) {
+            console.log('🎯 editLobForm called');
+            console.log('  - lobId:', lobId);
+            console.log('  - formSchemaId:', formSchemaId);
+            console.log('  - instanceId:', instanceId);
+            
+            currentLobId = lobId;
+            
+            // Open form builder
+            const width = 1400;
+            const height = 800;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+            
+            // Pass form_schema_id in URL if it exists
+            let url = '/form-builder.html';
+            if (formSchemaId && formSchemaId !== 'null' && formSchemaId !== 'undefined') {
+                url += `?form_schema_id=${formSchemaId}`;
+            }
+            
+            console.log('  - Opening URL:', url);
+            
+            // Make instanceId available to child window
+            window.instanceId = instanceId;
+            localStorage.setItem('instanceId', instanceId);
+            
+            formBuilderWindow = window.open(
+                url,
+                'formBuilder',
+                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+            );
+            
+            // If there's an existing form schema, load it after window loads
+            if (formSchemaId && formSchemaId !== 'null') {
+                formBuilderWindow.addEventListener('load', async () => {
+                    try {
+                        const response = await fetchWithAuth(`/api/forms/schemas/${formSchemaId}`);
+                        if (response.ok) {
+                            const schemaData = await response.json();
+                            setTimeout(() => {
+                                if (formBuilderWindow.loadFormSchema) {
+                                    formBuilderWindow.loadFormSchema(schemaData.form_schema);
+                                }
+                            }, 500);
+                        }
+                    } catch (error) {
+                        console.error('Error loading form schema:', error);
+                    }
+                });
+            }
+        };
+        
+        // Toggle LOB active status
+        window.toggleLob = function(lobId, activate) {
+            // TODO: Implement toggle functionality
+            console.log('Toggle LOB:', lobId, activate);
+            showAlert('Toggle functionality coming soon', 'info');
+        };
+    </script>
+</body>
+</html>

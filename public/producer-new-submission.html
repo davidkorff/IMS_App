@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Submission - Producer Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0066CC;
+            --secondary-color: #333333;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand img {
+            max-height: 40px;
+        }
+        
+        .submission-content {
+            padding: 30px 0;
+        }
+        
+        .form-section {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        
+        .form-section h4 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #0052a3;
+            border-color: #0052a3;
+        }
+        
+        .progress-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+        
+        .progress-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        
+        .progress-step::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            right: -50%;
+            height: 2px;
+            background: #e9ecef;
+            z-index: -1;
+        }
+        
+        .progress-step:last-child::before {
+            display: none;
+        }
+        
+        .progress-step.active .step-icon {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .progress-step.completed .step-icon {
+            background: #28a745;
+            color: white;
+        }
+        
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #6c757d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .step-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .field-required {
+            color: #dc3545;
+        }
+        
+        .custom-styles {
+            /* Custom CSS will be injected here */
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .form-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+    </style>
+    <style class="custom-styles"></style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/producer/dashboard">
+                <img src="" alt="Logo" id="navLogo" style="display: none;">
+                <span id="navTitle">Producer Portal</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/producer/dashboard">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/producer/submissions">
+                            <i class="fas fa-file-alt"></i> Submissions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="logoutLink">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Submission Content -->
+    <div class="container submission-content">
+        <!-- Progress Indicator -->
+        <div class="progress-indicator">
+            <div class="progress-step active" id="step1">
+                <div class="step-icon">1</div>
+                <div class="step-label">Basic Information</div>
+            </div>
+            <div class="progress-step" id="step2">
+                <div class="step-icon">2</div>
+                <div class="step-label">Coverage Details</div>
+            </div>
+            <div class="progress-step" id="step3">
+                <div class="step-icon">3</div>
+                <div class="step-label">Review & Submit</div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3">Loading form configuration...</p>
+        </div>
+
+        <!-- Form Container -->
+        <div id="formContainer" style="display: none;">
+            <form id="submissionForm">
+                <!-- Step 1: Basic Information -->
+                <div class="form-section" id="section1">
+                    <h4>Basic Information</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Insured Name <span class="field-required">*</span></label>
+                                <input type="text" class="form-control" name="insuredName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">DBA/Trade Name</label>
+                                <input type="text" class="form-control" name="dbaName">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Mailing Address <span class="field-required">*</span></label>
+                                <input type="text" class="form-control" name="mailingAddress1" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Address Line 2</label>
+                                <input type="text" class="form-control" name="mailingAddress2">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">City <span class="field-required">*</span></label>
+                                <input type="text" class="form-control" name="mailingCity" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">State <span class="field-required">*</span></label>
+                                <select class="form-control" name="mailingState" required>
+                                    <option value="">Select State</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">ZIP Code <span class="field-required">*</span></label>
+                                <input type="text" class="form-control" name="mailingZip" pattern="[0-9]{5}(-[0-9]{4})?" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Phone <span class="field-required">*</span></label>
+                                <input type="tel" class="form-control" name="phone" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Email <span class="field-required">*</span></label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Effective Date <span class="field-required">*</span></label>
+                                <input type="date" class="form-control" name="effectiveDate" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Expiration Date <span class="field-required">*</span></label>
+                                <input type="date" class="form-control" name="expirationDate" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-end">
+                        <button type="button" class="btn btn-primary" onclick="nextStep()">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Coverage Details (Dynamic) -->
+                <div class="form-section" id="section2" style="display: none;">
+                    <h4>Coverage Details</h4>
+                    <div id="dynamicFields">
+                        <!-- Dynamic fields will be inserted here based on LOB configuration -->
+                    </div>
+                    <div class="text-end mt-3">
+                        <button type="button" class="btn btn-secondary me-2" onclick="previousStep()">
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="nextStep()">
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Review & Submit -->
+                <div class="form-section" id="section3" style="display: none;">
+                    <h4>Review & Submit</h4>
+                    <div class="form-preview" id="formPreview">
+                        <!-- Form preview will be generated here -->
+                    </div>
+                    
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="confirmAccuracy" required>
+                        <label class="form-check-label" for="confirmAccuracy">
+                            I confirm that all information provided is accurate and complete.
+                        </label>
+                    </div>
+                    
+                    <div class="text-end mt-3">
+                        <button type="button" class="btn btn-secondary me-2" onclick="previousStep()">
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <button type="submit" class="btn btn-success" id="submitBtn">
+                            <i class="fas fa-paper-plane"></i> Submit Application
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Success Message -->
+        <div class="form-section" id="successMessage" style="display: none;">
+            <div class="text-center">
+                <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                <h3 class="mt-3">Submission Received!</h3>
+                <p class="text-muted">Your application has been submitted successfully.</p>
+                <p>Reference Number: <strong id="referenceNumber"></strong></p>
+                <div class="mt-4">
+                    <a href="/producer/dashboard" class="btn btn-primary">
+                        <i class="fas fa-home"></i> Back to Dashboard
+                    </a>
+                    <a href="/producer/submissions" class="btn btn-outline-primary">
+                        <i class="fas fa-list"></i> View Submissions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/states.js"></script>
+    <script src="/js/form-renderer.js"></script>
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('producerToken');
+        const sessionToken = localStorage.getItem('producerSessionToken');
+        
+        if (!token) {
+            window.location.href = '/producer/login';
+        }
+        
+        // Set up auth headers
+        const authHeaders = {
+            'Authorization': `Bearer ${token}`,
+            'X-Session-Token': sessionToken,
+            'Content-Type': 'application/json'
+        };
+        
+        // Get LOB ID from URL
+        const pathParts = window.location.pathname.split('/');
+        const lobId = pathParts[pathParts.length - 1];
+        
+        let currentStep = 1;
+        let lobConfig = null;
+        let formData = {};
+        let formRenderer = null;
+        let useSchemaForm = false;
+        
+        // Load LOB configuration
+        async function loadLOBConfiguration() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+            
+            try {
+                const response = await fetch(`/api/producer/lines-of-business/${lobId}`, {
+                    headers: authHeaders
+                });
+                
+                if (response.ok) {
+                    lobConfig = await response.json();
+                    
+                    // Check if LOB has a form schema
+                    if (lobConfig.form_schema_id) {
+                        await loadFormSchema(lobConfig.form_schema_id);
+                    } else {
+                        setupForm();
+                        document.getElementById('loadingSpinner').style.display = 'none';
+                        document.getElementById('formContainer').style.display = 'block';
+                    }
+                } else {
+                    throw new Error('Failed to load form configuration');
+                }
+            } catch (error) {
+                console.error('Error loading LOB:', error);
+                alert('Failed to load form configuration. Please try again.');
+                window.location.href = '/producer/dashboard';
+            }
+        }
+        
+        // Load form schema if LOB has one
+        async function loadFormSchema(formSchemaId) {
+            try {
+                const response = await fetch(`/api/forms/schemas/${formSchemaId}`, {
+                    headers: authHeaders
+                });
+                
+                if (response.ok) {
+                    const schemaData = await response.json();
+                    useSchemaForm = true;
+                    renderSchemaForm(schemaData.form_schema);
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                } else {
+                    // Fallback to traditional form
+                    setupForm();
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    document.getElementById('formContainer').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading form schema:', error);
+                // Fallback to traditional form
+                setupForm();
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('formContainer').style.display = 'block';
+            }
+        }
+        
+        // Render form using schema
+        function renderSchemaForm(schema) {
+            // Hide the traditional form container
+            document.getElementById('formContainer').style.display = 'none';
+            
+            // Create a new container for the schema-based form
+            const schemaFormContainer = document.createElement('div');
+            schemaFormContainer.id = 'schemaFormContainer';
+            schemaFormContainer.className = 'form-section';
+            document.querySelector('.submission-content').appendChild(schemaFormContainer);
+            
+            // Initialize form renderer
+            formRenderer = new FormRenderer(schema, schemaFormContainer, {
+                mode: 'fill',
+                showProgress: true,
+                autoSave: true,
+                onFieldChange: (field, value) => {
+                    console.log('Field changed:', field.name, value);
+                },
+                onPageChange: (pageIndex) => {
+                    console.log('Page changed:', pageIndex);
+                    window.scrollTo(0, 0);
+                },
+                onSave: async (state) => {
+                    try {
+                        const response = await fetch('/api/forms/submissions', {
+                            method: 'POST',
+                            headers: authHeaders,
+                            body: JSON.stringify({
+                                form_id: schema.id,
+                                submission_guid: null, // Will be created when submission is created
+                                form_data: state.data,
+                                form_state: state,
+                                is_draft: true
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Failed to save draft');
+                        }
+                    } catch (error) {
+                        console.error('Error saving draft:', error);
+                        alert('Failed to save draft. Please try again.');
+                    }
+                },
+                onSubmit: async (formData) => {
+                    await submitSchemaForm(formData);
+                }
+            });
+        }
+        
+        // Submit schema-based form
+        async function submitSchemaForm(formData) {
+            try {
+                // Prepare submission data
+                const submissionData = {
+                    lob_id: lobId,
+                    form_data: formData,
+                    status: 'pending'
+                };
+                
+                const response = await fetch('/api/producer/submissions', {
+                    method: 'POST',
+                    headers: authHeaders,
+                    body: JSON.stringify(submissionData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    // Save form submission data
+                    await fetch('/api/forms/submissions', {
+                        method: 'POST',
+                        headers: authHeaders,
+                        body: JSON.stringify({
+                            form_id: formRenderer.schema.id,
+                            submission_guid: result.submission_uuid || result.submission_id,
+                            form_data: formData,
+                            form_state: {
+                                currentPage: formRenderer.currentPage,
+                                data: formData,
+                                submitted: true,
+                                completedAt: new Date().toISOString()
+                            },
+                            is_draft: false
+                        })
+                    });
+                    
+                    // Show success message
+                    document.getElementById('schemaFormContainer').style.display = 'none';
+                    document.getElementById('referenceNumber').textContent = result.submission_uuid || result.submission_id;
+                    document.getElementById('successMessage').style.display = 'block';
+                    
+                    // Hide progress indicator
+                    document.querySelector('.progress-indicator').style.display = 'none';
+                    
+                } else {
+                    throw new Error('Failed to submit application');
+                }
+            } catch (error) {
+                console.error('Submission error:', error);
+                alert('Failed to submit application. Please try again.');
+            }
+        }
+        
+        // Setup form with LOB configuration
+        function setupForm() {
+            // Set page title
+            document.title = `New ${lobConfig.line_name} Submission - Producer Portal`;
+            
+            // Populate states dropdown
+            const stateSelect = document.querySelector('select[name="mailingState"]');
+            if (window.STATES) {
+                window.STATES.forEach(state => {
+                    const option = document.createElement('option');
+                    option.value = state.code;
+                    option.textContent = state.name;
+                    stateSelect.appendChild(option);
+                });
+            }
+            
+            // Set minimum effective date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.querySelector('input[name="effectiveDate"]').min = today;
+            
+            // Set default expiration date to 1 year from effective date
+            document.querySelector('input[name="effectiveDate"]').addEventListener('change', function() {
+                const effectiveDate = new Date(this.value);
+                const expirationDate = new Date(effectiveDate);
+                expirationDate.setFullYear(expirationDate.getFullYear() + 1);
+                document.querySelector('input[name="expirationDate"]').value = expirationDate.toISOString().split('T')[0];
+            });
+            
+            // Setup dynamic fields for step 2
+            setupDynamicFields();
+        }
+        
+        // Setup dynamic fields based on LOB configuration
+        function setupDynamicFields() {
+            const container = document.getElementById('dynamicFields');
+            
+            // Check if LOB has custom form configuration
+            if (lobConfig.form_config && lobConfig.form_config.fields && lobConfig.form_config.fields.length > 0) {
+                // Use the configured fields
+                let dynamicFieldsHTML = '<div class="row">';
+                let colCount = 0;
+                
+                lobConfig.form_config.fields.forEach((field, index) => {
+                    // Determine column width based on field type
+                    const colWidth = (field.type === 'textarea' || field.type === 'file') ? 12 : 6;
+                    
+                    // Start new row if needed
+                    if (colCount + colWidth > 12) {
+                        dynamicFieldsHTML += '</div><div class="row">';
+                        colCount = 0;
+                    }
+                    
+                    dynamicFieldsHTML += `<div class="col-md-${colWidth}">`;
+                    dynamicFieldsHTML += '<div class="mb-3">';
+                    dynamicFieldsHTML += `<label class="form-label">${field.label}`;
+                    if (field.required) {
+                        dynamicFieldsHTML += ' <span class="field-required">*</span>';
+                    }
+                    dynamicFieldsHTML += '</label>';
+                    
+                    // Generate field based on type
+                    switch(field.type) {
+                        case 'text':
+                            dynamicFieldsHTML += `<input type="text" class="form-control" name="${field.name}" ${field.required ? 'required' : ''}>`;
+                            break;
+                        case 'number':
+                            dynamicFieldsHTML += `<input type="number" class="form-control" name="${field.name}" ${field.required ? 'required' : ''}>`;
+                            break;
+                        case 'date':
+                            dynamicFieldsHTML += `<input type="date" class="form-control" name="${field.name}" ${field.required ? 'required' : ''}>`;
+                            break;
+                        case 'select':
+                            dynamicFieldsHTML += `<select class="form-control" name="${field.name}" ${field.required ? 'required' : ''}>`;
+                            dynamicFieldsHTML += '<option value="">Select...</option>';
+                            if (field.options) {
+                                field.options.forEach(option => {
+                                    dynamicFieldsHTML += `<option value="${option}">${option}</option>`;
+                                });
+                            }
+                            dynamicFieldsHTML += '</select>';
+                            break;
+                        case 'textarea':
+                            dynamicFieldsHTML += `<textarea class="form-control" name="${field.name}" rows="3" ${field.required ? 'required' : ''}></textarea>`;
+                            break;
+                        case 'checkbox':
+                            dynamicFieldsHTML += `<div class="form-check">`;
+                            dynamicFieldsHTML += `<input class="form-check-input" type="checkbox" name="${field.name}" id="${field.name}">`;
+                            dynamicFieldsHTML += `<label class="form-check-label" for="${field.name}">Check to confirm</label>`;
+                            dynamicFieldsHTML += '</div>';
+                            break;
+                        case 'radio':
+                            if (field.options) {
+                                field.options.forEach((option, optIndex) => {
+                                    dynamicFieldsHTML += `<div class="form-check">`;
+                                    dynamicFieldsHTML += `<input class="form-check-input" type="radio" name="${field.name}" id="${field.name}_${optIndex}" value="${option}" ${field.required ? 'required' : ''}>`;
+                                    dynamicFieldsHTML += `<label class="form-check-label" for="${field.name}_${optIndex}">${option}</label>`;
+                                    dynamicFieldsHTML += '</div>';
+                                });
+                            }
+                            break;
+                        case 'file':
+                            dynamicFieldsHTML += `<input type="file" class="form-control" name="${field.name}" ${field.required ? 'required' : ''}>`;
+                            dynamicFieldsHTML += '<div class="form-text">Supported formats: PDF, DOC, DOCX, JPG, PNG</div>';
+                            break;
+                    }
+                    
+                    dynamicFieldsHTML += '</div></div>';
+                    colCount += colWidth;
+                });
+                
+                dynamicFieldsHTML += '</div>';
+                
+                // Add document upload section if required
+                if (lobConfig.form_config.documents && lobConfig.form_config.documents.length > 0) {
+                    dynamicFieldsHTML += '<hr><h5>Required Documents</h5>';
+                    dynamicFieldsHTML += '<div class="alert alert-info">';
+                    dynamicFieldsHTML += '<ul class="mb-0">';
+                    lobConfig.form_config.documents.forEach(doc => {
+                        dynamicFieldsHTML += `<li>${doc}</li>`;
+                    });
+                    dynamicFieldsHTML += '</ul></div>';
+                    dynamicFieldsHTML += '<div class="mb-3">';
+                    dynamicFieldsHTML += '<label class="form-label">Upload Documents</label>';
+                    dynamicFieldsHTML += '<input type="file" class="form-control" name="documents" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">';
+                    dynamicFieldsHTML += '<div class="form-text">You can select multiple files at once</div>';
+                    dynamicFieldsHTML += '</div>';
+                }
+                
+                container.innerHTML = dynamicFieldsHTML;
+            } else {
+                // Default fields if no configuration exists
+                const dynamicFieldsHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Business Type <span class="field-required">*</span></label>
+                                <select class="form-control" name="businessType" required>
+                                    <option value="">Select Business Type</option>
+                                    <option value="LLC">LLC</option>
+                                    <option value="Corporation">Corporation</option>
+                                    <option value="Partnership">Partnership</option>
+                                    <option value="Sole Proprietorship">Sole Proprietorship</option>
+                                    <option value="Non-Profit">Non-Profit</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Years in Business <span class="field-required">*</span></label>
+                                <input type="number" class="form-control" name="yearsInBusiness" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Description of Operations <span class="field-required">*</span></label>
+                                <textarea class="form-control" name="operationsDescription" rows="3" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Number of Employees</label>
+                                <input type="number" class="form-control" name="employeeCount" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Annual Revenue</label>
+                                <input type="number" class="form-control" name="annualRevenue" min="0" step="1000">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Prior Insurance Carrier</label>
+                                <input type="text" class="form-control" name="priorCarrier">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Additional Notes</label>
+                                <textarea class="form-control" name="additionalNotes" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.innerHTML = dynamicFieldsHTML;
+            }
+        }
+        
+        // Navigation functions
+        function nextStep() {
+            if (currentStep === 1) {
+                // Validate step 1
+                const section1Fields = document.querySelectorAll('#section1 input[required], #section1 select[required]');
+                let valid = true;
+                
+                section1Fields.forEach(field => {
+                    if (!field.value) {
+                        field.classList.add('is-invalid');
+                        valid = false;
+                    } else {
+                        field.classList.remove('is-invalid');
+                    }
+                });
+                
+                if (!valid) {
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+                
+                // Collect step 1 data
+                collectFormData('section1');
+                
+                // Move to step 2
+                document.getElementById('section1').style.display = 'none';
+                document.getElementById('section2').style.display = 'block';
+                updateProgressIndicator(2);
+                currentStep = 2;
+                
+            } else if (currentStep === 2) {
+                // Validate step 2
+                const section2Fields = document.querySelectorAll('#section2 input[required], #section2 select[required], #section2 textarea[required]');
+                let valid = true;
+                
+                section2Fields.forEach(field => {
+                    if (!field.value) {
+                        field.classList.add('is-invalid');
+                        valid = false;
+                    } else {
+                        field.classList.remove('is-invalid');
+                    }
+                });
+                
+                if (!valid) {
+                    alert('Please fill in all required fields.');
+                    return;
+                }
+                
+                // Collect step 2 data
+                collectFormData('section2');
+                
+                // Generate preview
+                generatePreview();
+                
+                // Move to step 3
+                document.getElementById('section2').style.display = 'none';
+                document.getElementById('section3').style.display = 'block';
+                updateProgressIndicator(3);
+                currentStep = 3;
+            }
+        }
+        
+        function previousStep() {
+            if (currentStep === 2) {
+                document.getElementById('section2').style.display = 'none';
+                document.getElementById('section1').style.display = 'block';
+                updateProgressIndicator(1);
+                currentStep = 1;
+            } else if (currentStep === 3) {
+                document.getElementById('section3').style.display = 'none';
+                document.getElementById('section2').style.display = 'block';
+                updateProgressIndicator(2);
+                currentStep = 2;
+            }
+        }
+        
+        function updateProgressIndicator(step) {
+            // Update progress steps
+            for (let i = 1; i <= 3; i++) {
+                const stepElement = document.getElementById(`step${i}`);
+                if (i < step) {
+                    stepElement.classList.add('completed');
+                    stepElement.classList.remove('active');
+                } else if (i === step) {
+                    stepElement.classList.add('active');
+                    stepElement.classList.remove('completed');
+                } else {
+                    stepElement.classList.remove('active', 'completed');
+                }
+            }
+        }
+        
+        // Collect form data from a section
+        function collectFormData(sectionId) {
+            const section = document.getElementById(sectionId);
+            const inputs = section.querySelectorAll('input, select, textarea');
+            
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    formData[input.name] = input.checked;
+                } else if (input.type === 'radio') {
+                    if (input.checked) {
+                        formData[input.name] = input.value;
+                    }
+                } else {
+                    formData[input.name] = input.value;
+                }
+            });
+        }
+        
+        // Generate preview
+        function generatePreview() {
+            const preview = document.getElementById('formPreview');
+            
+            let previewHTML = '<h5>Application Summary</h5>';
+            
+            // Basic Information
+            previewHTML += '<h6 class="mt-3">Basic Information</h6>';
+            previewHTML += '<dl class="row">';
+            previewHTML += `<dt class="col-sm-4">Insured Name:</dt><dd class="col-sm-8">${formData.insuredName || ''}</dd>`;
+            if (formData.dbaName) {
+                previewHTML += `<dt class="col-sm-4">DBA/Trade Name:</dt><dd class="col-sm-8">${formData.dbaName}</dd>`;
+            }
+            previewHTML += `<dt class="col-sm-4">Address:</dt><dd class="col-sm-8">${formData.mailingAddress1}<br>`;
+            if (formData.mailingAddress2) {
+                previewHTML += `${formData.mailingAddress2}<br>`;
+            }
+            previewHTML += `${formData.mailingCity}, ${formData.mailingState} ${formData.mailingZip}</dd>`;
+            previewHTML += `<dt class="col-sm-4">Phone:</dt><dd class="col-sm-8">${formData.phone || ''}</dd>`;
+            previewHTML += `<dt class="col-sm-4">Email:</dt><dd class="col-sm-8">${formData.email || ''}</dd>`;
+            previewHTML += `<dt class="col-sm-4">Effective Date:</dt><dd class="col-sm-8">${formData.effectiveDate || ''}</dd>`;
+            previewHTML += `<dt class="col-sm-4">Expiration Date:</dt><dd class="col-sm-8">${formData.expirationDate || ''}</dd>`;
+            previewHTML += '</dl>';
+            
+            // Coverage Details
+            previewHTML += '<h6 class="mt-3">Coverage Details</h6>';
+            previewHTML += '<dl class="row">';
+            if (formData.businessType) {
+                previewHTML += `<dt class="col-sm-4">Business Type:</dt><dd class="col-sm-8">${formData.businessType}</dd>`;
+            }
+            if (formData.yearsInBusiness) {
+                previewHTML += `<dt class="col-sm-4">Years in Business:</dt><dd class="col-sm-8">${formData.yearsInBusiness}</dd>`;
+            }
+            if (formData.operationsDescription) {
+                previewHTML += `<dt class="col-sm-4">Operations:</dt><dd class="col-sm-8">${formData.operationsDescription}</dd>`;
+            }
+            if (formData.employeeCount) {
+                previewHTML += `<dt class="col-sm-4">Employees:</dt><dd class="col-sm-8">${formData.employeeCount}</dd>`;
+            }
+            if (formData.annualRevenue) {
+                previewHTML += `<dt class="col-sm-4">Annual Revenue:</dt><dd class="col-sm-8">$${parseInt(formData.annualRevenue).toLocaleString()}</dd>`;
+            }
+            previewHTML += '</dl>';
+            
+            preview.innerHTML = previewHTML;
+        }
+        
+        // Handle form submission
+        document.getElementById('submissionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Check confirmation
+            if (!document.getElementById('confirmAccuracy').checked) {
+                alert('Please confirm that all information is accurate.');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            
+            try {
+                // Prepare submission data
+                const submissionData = {
+                    lob_id: lobId,
+                    form_data: formData,
+                    status: 'pending'
+                };
+                
+                const response = await fetch('/api/producer/submissions', {
+                    method: 'POST',
+                    headers: authHeaders,
+                    body: JSON.stringify(submissionData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    // Show success message
+                    document.getElementById('formContainer').style.display = 'none';
+                    document.getElementById('referenceNumber').textContent = result.submission_uuid || result.submission_id;
+                    document.getElementById('successMessage').style.display = 'block';
+                    
+                    // Update progress indicator
+                    document.getElementById('step3').classList.add('completed');
+                    
+                } else {
+                    throw new Error('Failed to submit application');
+                }
+            } catch (error) {
+                console.error('Submission error:', error);
+                alert('Failed to submit application. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Application';
+            }
+        });
+        
+        // Logout
+        document.getElementById('logoutLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            try {
+                await fetch('/api/producer/auth/logout', {
+                    method: 'POST',
+                    headers: authHeaders
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            localStorage.removeItem('producerToken');
+            localStorage.removeItem('producerSessionToken');
+            localStorage.removeItem('producerInfo');
+            window.location.href = '/producer/login';
+        });
+        
+        // Load portal configuration
+        async function loadPortalConfig() {
+            try {
+                const response = await fetch('/api/producer/portal/config');
+                if (response.ok) {
+                    const data = await response.json();
+                    applyPortalBranding(data.config);
+                }
+            } catch (error) {
+                console.error('Failed to load portal config:', error);
+            }
+        }
+        
+        // Apply branding
+        function applyPortalBranding(config) {
+            if (config.portal_name) {
+                document.getElementById('navTitle').textContent = config.portal_name;
+            }
+            
+            if (config.logo_url) {
+                const logo = document.getElementById('navLogo');
+                logo.src = config.logo_url;
+                logo.style.display = 'inline-block';
+            }
+            
+            if (config.primary_color) {
+                document.documentElement.style.setProperty('--primary-color', config.primary_color);
+            }
+            
+            if (config.custom_css) {
+                document.querySelector('.custom-styles').textContent = config.custom_css;
+            }
+        }
+        
+        // Initialize
+        loadPortalConfig();
+        loadLOBConfiguration();
+    </script>
+</body>
+</html>

@@ -18,7 +18,22 @@
       "Bash(find:*)",
       "Bash(cp:*)",
       "Bash(git rev-parse:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "Bash(bash:*)",
+      "Bash(sudo service:*)",
+      "Bash(USE_TCP=true npm start)",
+      "Bash(ss:*)",
+      "Bash(timeout:*)",
+      "Bash(PGPASSWORD=D040294k psql -U postgres -h localhost -d IMS_Application -c \"SELECT 1\")",
+      "Bash(./test-login-api.sh:*)",
+      "Bash(kill:*)",
+      "Bash(npm run migrate:*)",
+      "Bash(npm run:*)",
+      "Bash(echo:*)",
+      "Bash(sed:*)",
+      "Bash(PGPASSWORD=D040294k psql -h 172.17.224.1 -U postgres -d IMS_Application -c \"SELECT lob_id, line_name, form_schema_id FROM portal_lines_of_business WHERE lob_id = 4;\")"
     ],
     "deny": []
   },

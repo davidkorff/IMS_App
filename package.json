@@ -4,7 +4,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "producer": "set PORT=5001 && node server-producer.js",
+    "producer:dev": "set PORT=5001 && nodemon server-producer.js"
   },
   "engines": {
     "node": ">=16.0.0"

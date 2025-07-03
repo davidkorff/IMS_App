@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Submissions - Producer Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0066CC;
+            --secondary-color: #333333;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .navbar-brand img {
+            max-height: 40px;
+        }
+        
+        .submissions-content {
+            padding: 30px 0;
+        }
+        
+        .filter-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        
+        .submissions-table {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #0052a3;
+            border-color: #0052a3;
+        }
+        
+        .badge-pending {
+            background-color: #ffc107;
+            color: #000;
+        }
+        
+        .badge-processing {
+            background-color: #17a2b8;
+            color: white;
+        }
+        
+        .badge-quoted {
+            background-color: #6f42c1;
+            color: white;
+        }
+        
+        .badge-completed {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .badge-error {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .custom-styles {
+            /* Custom CSS will be injected here */
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            color: #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+    </style>
+    <style class="custom-styles"></style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/producer/dashboard">
+                <img src="" alt="Logo" id="navLogo" style="display: none;">
+                <span id="navTitle">Producer Portal</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/producer/dashboard">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/producer/submissions">
+                            <i class="fas fa-file-alt"></i> Submissions
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/producer/profile">
+                            <i class="fas fa-user"></i> Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="logoutLink">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Submissions Content -->
+    <div class="container submissions-content">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h2>My Submissions</h2>
+                <p class="text-muted">View and manage your insurance submissions</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-primary" id="newSubmissionBtn">
+                    <i class="fas fa-plus"></i> New Submission
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-section">
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select class="form-control" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="quoted">Quoted</option>
+                        <option value="completed">Completed</option>
+                        <option value="error">Error</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Line of Business</label>
+                    <select class="form-control" id="lobFilter">
+                        <option value="">All Lines</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search by reference or insured name...">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-secondary w-100" onclick="applyFilters()">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submissions Table -->
+        <div class="submissions-table">
+            <div class="table-container">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Reference</th>
+                            <th>Insured Name</th>
+                            <th>Line of Business</th>
+                            <th>Status</th>
+                            <th>Policy Number</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="submissionsTableBody">
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <i class="fas fa-folder-open"></i>
+                <h4>No Submissions Found</h4>
+                <p class="text-muted">You haven't created any submissions yet.</p>
+                <button class="btn btn-primary" onclick="document.getElementById('newSubmissionBtn').click()">
+                    <i class="fas fa-plus"></i> Create Your First Submission
+                </button>
+            </div>
+
+            <!-- Pagination -->
+            <nav id="paginationContainer" style="display: none;">
+                <ul class="pagination justify-content-center">
+                    <!-- Pagination items will be generated here -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- New Submission Modal -->
+    <div class="modal fade" id="newSubmissionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select Line of Business</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="lobList" class="list-group">
+                        <!-- LOBs will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('producerToken');
+        const sessionToken = localStorage.getItem('producerSessionToken');
+        
+        if (!token) {
+            window.location.href = '/producer/login';
+        }
+        
+        // Set up auth headers
+        const authHeaders = {
+            'Authorization': `Bearer ${token}`,
+            'X-Session-Token': sessionToken,
+            'Content-Type': 'application/json'
+        };
+        
+        let currentPage = 1;
+        const pageSize = 20;
+        let currentFilters = {};
+        
+        // Load submissions
+        async function loadSubmissions(page = 1) {
+            try {
+                const offset = (page - 1) * pageSize;
+                const params = new URLSearchParams({
+                    limit: pageSize,
+                    offset: offset,
+                    ...currentFilters
+                });
+                
+                const response = await fetch(`/api/producer/submissions?${params}`, {
+                    headers: authHeaders
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displaySubmissions(data.submissions);
+                    setupPagination(data.pagination);
+                } else {
+                    console.error('Failed to load submissions');
+                }
+            } catch (error) {
+                console.error('Error loading submissions:', error);
+            }
+        }
+        
+        // Display submissions
+        function displaySubmissions(submissions) {
+            const tbody = document.getElementById('submissionsTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const table = document.querySelector('.table-container');
+            const pagination = document.getElementById('paginationContainer');
+            
+            if (submissions.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'block';
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            table.style.display = 'block';
+            emptyState.style.display = 'none';
+            
+            tbody.innerHTML = submissions.map(sub => {
+                const formData = sub.form_data || {};
+                const insuredName = formData.insuredName || 'N/A';
+                const submittedDate = new Date(sub.submitted_at).toLocaleDateString();
+                const reference = sub.submission_uuid ? sub.submission_uuid.substring(0, 8) : sub.submission_id;
+                
+                return `
+                    <tr>
+                        <td>${submittedDate}</td>
+                        <td><code>${reference}</code></td>
+                        <td>${insuredName}</td>
+                        <td>${sub.line_name || 'N/A'}</td>
+                        <td>
+                            <span class="badge badge-${sub.status}">${sub.status}</span>
+                        </td>
+                        <td>${sub.ims_policy_number || '-'}</td>
+                        <td>
+                            <a href="/producer/submissions/${sub.submission_id}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Setup pagination
+        function setupPagination(pagination) {
+            const container = document.getElementById('paginationContainer');
+            const ul = container.querySelector('.pagination');
+            
+            const totalPages = Math.ceil(pagination.total / pagination.limit);
+            
+            if (totalPages <= 1) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            container.style.display = 'block';
+            
+            let paginationHTML = '';
+            
+            // Previous button
+            paginationHTML += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Previous</a>
+                </li>
+            `;
+            
+            // Page numbers
+            for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+                paginationHTML += `
+                    <li class="page-item ${currentPage === i ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                    </li>
+                `;
+            }
+            
+            // Next button
+            paginationHTML += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Next</a>
+                </li>
+            `;
+            
+            ul.innerHTML = paginationHTML;
+        }
+        
+        // Change page
+        function changePage(page) {
+            currentPage = page;
+            loadSubmissions(page);
+        }
+        
+        // Apply filters
+        function applyFilters() {
+            currentFilters = {};
+            
+            const status = document.getElementById('statusFilter').value;
+            if (status) currentFilters.status = status;
+            
+            const lobId = document.getElementById('lobFilter').value;
+            if (lobId) currentFilters.lobId = lobId;
+            
+            const search = document.getElementById('searchInput').value.trim();
+            if (search) currentFilters.search = search;
+            
+            currentPage = 1;
+            loadSubmissions(1);
+        }
+        
+        // Load lines of business for filter
+        async function loadLOBFilter() {
+            try {
+                const response = await fetch('/api/producer/lines-of-business', {
+                    headers: authHeaders
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const select = document.getElementById('lobFilter');
+                    
+                    data.linesOfBusiness.forEach(lob => {
+                        const option = document.createElement('option');
+                        option.value = lob.lob_id;
+                        option.textContent = lob.line_name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load LOB filter:', error);
+            }
+        }
+        
+        // Load lines of business for new submission
+        async function loadLinesOfBusiness() {
+            try {
+                const response = await fetch('/api/producer/lines-of-business', {
+                    headers: authHeaders
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayLinesOfBusiness(data.linesOfBusiness);
+                }
+            } catch (error) {
+                console.error('Failed to load lines of business:', error);
+            }
+        }
+        
+        // Display lines of business
+        function displayLinesOfBusiness(lobs) {
+            const lobList = document.getElementById('lobList');
+            
+            if (lobs.length === 0) {
+                lobList.innerHTML = '<p class="text-center">No lines of business available</p>';
+                return;
+            }
+            
+            lobList.innerHTML = lobs.map(lob => `
+                <a href="/producer/new-submission/${lob.lob_id}" class="list-group-item list-group-item-action">
+                    <h6 class="mb-1">${lob.line_name}</h6>
+                    <p class="mb-1 text-muted">${lob.description || ''}</p>
+                    ${lob.min_premium ? `<small>Min Premium: $${lob.min_premium}</small>` : ''}
+                </a>
+            `).join('');
+        }
+        
+        // New submission button
+        document.getElementById('newSubmissionBtn').addEventListener('click', () => {
+            const modal = new bootstrap.Modal(document.getElementById('newSubmissionModal'));
+            modal.show();
+            loadLinesOfBusiness();
+        });
+        
+        // Search on enter
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                applyFilters();
+            }
+        });
+        
+        // Logout
+        document.getElementById('logoutLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            try {
+                await fetch('/api/producer/auth/logout', {
+                    method: 'POST',
+                    headers: authHeaders
+                });
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+            
+            localStorage.removeItem('producerToken');
+            localStorage.removeItem('producerSessionToken');
+            localStorage.removeItem('producerInfo');
+            window.location.href = '/producer/login';
+        });
+        
+        // Load portal configuration
+        async function loadPortalConfig() {
+            try {
+                const response = await fetch('/api/producer/portal/config');
+                if (response.ok) {
+                    const data = await response.json();
+                    applyPortalBranding(data.config);
+                }
+            } catch (error) {
+                console.error('Failed to load portal config:', error);
+            }
+        }
+        
+        // Apply branding
+        function applyPortalBranding(config) {
+            if (config.portal_name) {
+                document.getElementById('navTitle').textContent = config.portal_name;
+                document.title = config.portal_name + ' - My Submissions';
+            }
+            
+            if (config.logo_url) {
+                const logo = document.getElementById('navLogo');
+                logo.src = config.logo_url;
+                logo.style.display = 'inline-block';
+            }
+            
+            if (config.primary_color) {
+                document.documentElement.style.setProperty('--primary-color', config.primary_color);
+            }
+            
+            if (config.custom_css) {
+                document.querySelector('.custom-styles').textContent = config.custom_css;
+            }
+        }
+        
+        // Initialize
+        loadPortalConfig();
+        loadSubmissions();
+        loadLOBFilter();
+    </script>
+</body>
+</html>

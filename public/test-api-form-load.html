@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Form API Load</title>
+    <script src="/js/auth-utils.js"></script>
+</head>
+<body>
+    <h1>Test Form Schema API</h1>
+    <p>This page tests loading the form schema directly from the API.</p>
+    
+    <button onclick="testLoadForm()">Test Load Form</button>
+    
+    <div id="results" style="margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 5px;">
+        <h3>Results:</h3>
+        <pre id="output">Click the button to test...</pre>
+    </div>
+    
+    <script>
+        async function testLoadForm() {
+            const output = document.getElementById('output');
+            const formSchemaId = 'a1715135-94dc-456a-a68a-982ab0ed0fe1';
+            
+            output.textContent = 'Testing...\n';
+            
+            try {
+                // Test 1: Check authentication
+                output.textContent += '\n1. Checking authentication...\n';
+                const user = await checkAuth();
+                if (user) {
+                    output.textContent += `   ✅ Authenticated as: ${user.username || user.email}\n`;
+                output.textContent += `   Instance ID: ${user.instance_id}\n`;
+                } else {
+                    output.textContent += '   ❌ Not authenticated\n';
+                    return;
+                }
+                
+                // Test 2: Make API call
+                output.textContent += '\n2. Calling API...\n';
+                output.textContent += `   URL: /api/forms/schemas/${formSchemaId}\n`;
+                
+                const response = await fetchWithAuth(`/api/forms/schemas/${formSchemaId}`);
+                output.textContent += `   Response status: ${response.status} ${response.statusText}\n`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    output.textContent += '\n3. Response data:\n';
+                    output.textContent += `   - form_id: ${data.form_id}\n`;
+                    output.textContent += `   - title: ${data.title}\n`;
+                    output.textContent += `   - instance_id: ${data.instance_id}\n`;
+                    output.textContent += `   - lob_id: ${data.lob_id}\n`;
+                    output.textContent += `   - has form_schema: ${!!data.form_schema}\n`;
+                    
+                    if (data.form_schema) {
+                        output.textContent += '\n4. Form schema structure:\n';
+                        output.textContent += `   - id: ${data.form_schema.id}\n`;
+                        output.textContent += `   - pages: ${data.form_schema.pages?.length || 0}\n`;
+                        output.textContent += `   - fields: ${Object.keys(data.form_schema.fields || {}).length}\n`;
+                        output.textContent += `   - version: ${data.form_schema.version}\n`;
+                        
+                        // Show first page
+                        if (data.form_schema.pages && data.form_schema.pages[0]) {
+                            output.textContent += '\n5. First page:\n';
+                            output.textContent += `   - title: ${data.form_schema.pages[0].title}\n`;
+                            output.textContent += `   - sections: ${data.form_schema.pages[0].sections?.length || 0}\n`;
+                        }
+                    }
+                    
+                    output.textContent += '\n✅ SUCCESS: Form schema loaded correctly!';
+                } else {
+                    const error = await response.text();
+                    output.textContent += `\n❌ ERROR: ${error}\n`;
+                }
+                
+            } catch (error) {
+                output.textContent += `\n❌ EXCEPTION: ${error.message}\n`;
+                output.textContent += error.stack;
+            }
+        }
+    </script>
+</body>
+</html>
