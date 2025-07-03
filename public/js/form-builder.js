@@ -835,6 +835,73 @@ function generatePreviewHtml() {
                     <button class="btn btn-primary">${formSchema.settings.submitButtonText}</button>
                 </div>
             </div>
+            
+            <script>
+                // Simple repeater functionality for preview
+                window.addRepeaterItem = function(fieldId) {
+                    console.log('addRepeaterItem called for:', fieldId);
+                    const container = document.getElementById(fieldId + '_items');
+                    if (!container) {
+                        console.error('Container not found:', fieldId + '_items');
+                        return;
+                    }
+                    
+                    const currentCount = container.children.length;
+                    console.log('Current count:', currentCount);
+                    
+                    const newItem = container.children[0].cloneNode(true);
+                    
+                    // Update index in title
+                    const title = newItem.querySelector('h6');
+                    if (title) {
+                        title.textContent = title.textContent.replace(/\\d+/, currentCount + 1);
+                    }
+                    
+                    // Update remove button onclick
+                    const removeBtn = newItem.querySelector('button[onclick*="removeRepeaterItem"]');
+                    if (removeBtn) {
+                        removeBtn.setAttribute('onclick', 'removeRepeaterItem("' + fieldId + '", ' + currentCount + ')');
+                    }
+                    
+                    // Clear input values and update IDs/names
+                    newItem.querySelectorAll('input, select, textarea').forEach((input, idx) => {
+                        if (input.type === 'checkbox' || input.type === 'radio') {
+                            input.checked = false;
+                        } else {
+                            input.value = '';
+                        }
+                        
+                        // Update IDs and names to avoid conflicts
+                        if (input.id) {
+                            input.id = input.id.replace(/_\\d+_/, '_' + currentCount + '_');
+                        }
+                        if (input.name) {
+                            input.name = input.name.replace(/\\[\\d+\\]/, '[' + currentCount + ']');
+                        }
+                    });
+                    
+                    container.appendChild(newItem);
+                    console.log('Item added, new count:', container.children.length);
+                };
+                
+                window.removeRepeaterItem = function(fieldId, index) {
+                    const container = document.getElementById(fieldId + '_items');
+                    if (!container || container.children.length <= 1) return;
+                    
+                    const items = Array.from(container.children);
+                    if (items[index]) {
+                        items[index].remove();
+                        
+                        // Re-index remaining items
+                        container.querySelectorAll('.repeater-item').forEach((item, newIndex) => {
+                            const title = item.querySelector('h6');
+                            if (title) {
+                                title.textContent = title.textContent.replace(/\\d+/, newIndex + 1);
+                            }
+                        });
+                    }
+                };
+            </script>
         </body>
         </html>
     `;
@@ -897,12 +964,69 @@ function renderFieldForPreview(field) {
         case 'file':
             html += `<input type="file" class="form-control">`;
             break;
+            
+        case 'fieldset-repeater':
+            html += renderFieldsetRepeaterForPreview(field);
+            break;
+            
+        default:
+            html += `<input type="text" class="form-control" placeholder="${field.placeholder || ''}">`;
+            break;
     }
     
     // Help text
     if (field.helpText) {
         html += `<small class="form-text text-muted">${field.helpText}</small>`;
     }
+    
+    html += '</div>';
+    return html;
+}
+
+// Render fieldset-repeater for preview
+function renderFieldsetRepeaterForPreview(field) {
+    let html = '<div class="fieldset-repeater-preview border rounded p-3">';
+    
+    // Add help text if available
+    if (field.helpText) {
+        html += `<p class="text-muted small">${field.helpText}</p>`;
+    }
+    
+    // Container for all items with the expected ID
+    html += `<div class="repeater-items" id="${field.id}_items">`;
+    
+    // Show at least one item for preview
+    const itemsToShow = Math.max(1, field.defaultItems || 0);
+    
+    for (let i = 0; i < itemsToShow; i++) {
+        const itemLabel = field.itemLabel ? field.itemLabel.replace('#{index}', i + 1) : `Item ${i + 1}`;
+        
+        html += `<div class="repeater-item border rounded p-2 mb-2">`;
+        html += `<div class="d-flex justify-content-between align-items-center mb-2">`;
+        html += `<h6 class="mb-0">${itemLabel}</h6>`;
+        if (i > 0 || field.minItems === 0) {
+            html += `<button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRepeaterItem('${field.id}', ${i})">
+                ${field.removeButtonText || 'Remove'}
+            </button>`;
+        }
+        html += `</div>`;
+        
+        // Render fields within the repeater
+        if (field.fields && Array.isArray(field.fields)) {
+            field.fields.forEach(subField => {
+                html += renderFieldForPreview(subField);
+            });
+        }
+        
+        html += '</div>';
+    }
+    
+    html += '</div>'; // Close repeater-items container
+    
+    // Add button
+    html += `<button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addRepeaterItem('${field.id}')">
+        ${field.addButtonText || '+ Add Item'}
+    </button>`;
     
     html += '</div>';
     return html;

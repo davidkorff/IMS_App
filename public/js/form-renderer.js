@@ -402,6 +402,9 @@ class FormRenderer {
             case 'address':
                 return this.renderAddressFields(field, value, disabled, readonly);
                 
+            case 'fieldset-repeater':
+                return this.renderFieldsetRepeater(field, value, disabled, readonly);
+                
             default:
                 return `<input type="text" class="form-control" id="${field.id}" name="${field.name}" value="${value}" ${disabled ? 'disabled' : ''}>`;
         }
@@ -478,6 +481,205 @@ class FormRenderer {
         
         html += '</div>';
         return html;
+    }
+    
+    renderFieldsetRepeater(field, value = [], disabled, readonly) {
+        // Ensure value is an array
+        if (!Array.isArray(value)) {
+            value = [];
+        }
+        
+        const minItems = field.minItems || 0;
+        const maxItems = field.maxItems || 100;
+        const defaultItems = field.defaultItems || 0;
+        
+        // Initialize with default items if empty
+        if (value.length === 0 && defaultItems > 0) {
+            for (let i = 0; i < defaultItems; i++) {
+                value.push({});
+            }
+        }
+        
+        let html = `<div class="fieldset-repeater" data-field-id="${field.id}" data-min-items="${minItems}" data-max-items="${maxItems}">`;
+        
+        // Add help text if available
+        if (field.helpText) {
+            html += `<p class="text-muted small">${field.helpText}</p>`;
+        }
+        
+        // Container for all items
+        html += `<div class="repeater-items" id="${field.id}_items">`;
+        
+        // Render existing items
+        value.forEach((item, index) => {
+            html += this.renderRepeaterItem(field, item, index, disabled, readonly);
+        });
+        
+        html += '</div>'; // Close repeater-items
+        
+        // Add button (if not at max items and not disabled)
+        if (!disabled && value.length < maxItems) {
+            html += `
+                <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="window.formRenderer.addRepeaterItem('${field.id}')">
+                    ${field.addButtonText || '+ Add Item'}
+                </button>
+            `;
+        }
+        
+        html += '</div>'; // Close fieldset-repeater
+        
+        return html;
+    }
+    
+    renderRepeaterItem(field, itemValue = {}, index, disabled, readonly) {
+        const itemLabel = field.itemLabel ? field.itemLabel.replace('#{index}', index + 1) : `Item ${index + 1}`;
+        const canRemove = !disabled && (!field.minItems || this.getRepeaterItemCount(field.id) > field.minItems);
+        
+        let html = `<div class="repeater-item border rounded p-3 mb-2" data-item-index="${index}">`;
+        
+        // Item header with label and remove button
+        html += '<div class="d-flex justify-content-between align-items-center mb-2">';
+        html += `<h6 class="mb-0">${itemLabel}</h6>`;
+        
+        if (canRemove) {
+            html += `
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="window.formRenderer.removeRepeaterItem('${field.id}', ${index})">
+                    ${field.removeButtonText || 'Remove'}
+                </button>
+            `;
+        }
+        
+        html += '</div>';
+        
+        // Render fields within the repeater item
+        if (field.fields && Array.isArray(field.fields)) {
+            field.fields.forEach(subField => {
+                // Create a unique field instance for this item
+                const itemField = {
+                    ...subField,
+                    id: `${field.id}_${index}_${subField.id}`,
+                    name: `${field.name}[${index}][${subField.name}]`
+                };
+                
+                // Get value for this specific field
+                const fieldValue = itemValue[subField.name] || '';
+                
+                // Render the field
+                html += '<div class="mb-3">';
+                html += this.renderField(itemField, fieldValue);
+                html += '</div>';
+            });
+        }
+        
+        html += '</div>'; // Close repeater-item
+        
+        return html;
+    }
+    
+    addRepeaterItem(fieldId) {
+        const field = this.getFieldById(fieldId);
+        if (!field) return;
+        
+        const container = document.getElementById(`${fieldId}_items`);
+        if (!container) return;
+        
+        const currentCount = container.children.length;
+        if (currentCount >= (field.maxItems || 100)) {
+            alert(`Maximum ${field.maxItems} items allowed`);
+            return;
+        }
+        
+        // Create new empty item
+        const newItemHtml = this.renderRepeaterItem(field, {}, currentCount, false, false);
+        
+        // Add to DOM
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = newItemHtml;
+        container.appendChild(tempDiv.firstChild);
+        
+        // Update form data
+        if (!this.formData[field.name]) {
+            this.formData[field.name] = [];
+        }
+        this.formData[field.name].push({});
+        
+        // Reinitialize any special fields in the new item
+        this.initializeSpecialFields();
+    }
+    
+    removeRepeaterItem(fieldId, index) {
+        const field = this.getFieldById(fieldId);
+        if (!field) return;
+        
+        const container = document.getElementById(`${fieldId}_items`);
+        if (!container) return;
+        
+        const currentCount = container.children.length;
+        if (field.minItems && currentCount <= field.minItems) {
+            alert(`Minimum ${field.minItems} items required`);
+            return;
+        }
+        
+        // Remove from DOM
+        const itemToRemove = container.querySelector(`[data-item-index="${index}"]`);
+        if (itemToRemove) {
+            itemToRemove.remove();
+        }
+        
+        // Update form data
+        if (this.formData[field.name] && Array.isArray(this.formData[field.name])) {
+            this.formData[field.name].splice(index, 1);
+        }
+        
+        // Re-index remaining items
+        const remainingItems = container.querySelectorAll('.repeater-item');
+        remainingItems.forEach((item, newIndex) => {
+            item.setAttribute('data-item-index', newIndex);
+            // Update labels and field names/ids
+            this.reindexRepeaterItem(field, item, newIndex);
+        });
+    }
+    
+    reindexRepeaterItem(field, itemElement, newIndex) {
+        // Update item label
+        const labelElement = itemElement.querySelector('h6');
+        if (labelElement && field.itemLabel) {
+            labelElement.textContent = field.itemLabel.replace('#{index}', newIndex + 1);
+        }
+        
+        // Update remove button
+        const removeButton = itemElement.querySelector('button[onclick*="removeRepeaterItem"]');
+        if (removeButton) {
+            removeButton.setAttribute('onclick', `window.formRenderer.removeRepeaterItem('${field.id}', ${newIndex})`);
+        }
+        
+        // Update field names and ids
+        field.fields.forEach(subField => {
+            const oldId = `${field.id}_${itemElement.dataset.itemIndex}_${subField.id}`;
+            const newId = `${field.id}_${newIndex}_${subField.id}`;
+            const newName = `${field.name}[${newIndex}][${subField.name}]`;
+            
+            const fieldElement = itemElement.querySelector(`#${oldId}`);
+            if (fieldElement) {
+                fieldElement.id = newId;
+                fieldElement.name = newName;
+                
+                // Update associated labels
+                const label = itemElement.querySelector(`label[for="${oldId}"]`);
+                if (label) {
+                    label.setAttribute('for', newId);
+                }
+            }
+        });
+    }
+    
+    getRepeaterItemCount(fieldId) {
+        const container = document.getElementById(`${fieldId}_items`);
+        return container ? container.children.length : 0;
+    }
+    
+    getFieldById(fieldId) {
+        return this.schema.fields[fieldId];
     }
     
     renderRepeaterSection(section) {

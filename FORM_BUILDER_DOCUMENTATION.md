@@ -129,8 +129,294 @@ The Form Builder System is a comprehensive solution for creating dynamic, schema
 - **Selection**: select, radio, checkbox, toggle
 - **Text Areas**: textarea, richtext
 - **Special**: file, image, signature, rating, slider, color
-- **Complex**: address, location, repeater, grid
+- **Complex**: address, location, fieldset-repeater, grid
 - **Display**: heading, paragraph, divider, html
+
+## Repeatable Fields (fieldset-repeater)
+
+The `fieldset-repeater` type enables dynamic collections of fields that users can add/remove as needed. This is essential for insurance scenarios where the number of items varies (vehicles, locations, additional insureds, etc.).
+
+### Structure
+
+```javascript
+{
+    "id": "unique_id",
+    "type": "fieldset-repeater",
+    "name": "field_name",
+    "label": "Display Label",
+    "helpText": "Optional help text",
+    "minItems": 0,                    // Minimum number of items (0 = optional)
+    "maxItems": 50,                   // Maximum allowed items
+    "defaultItems": 0,                // Number of items to show initially
+    "addButtonText": "+ Add Item",    // Custom add button text
+    "removeButtonText": "Remove",     // Custom remove button text
+    "itemLabel": "Item #{index}",     // Dynamic label template
+    "collapsible": true,              // Allow collapse/expand of items
+    "fields": [                       // Array of fields in each item
+        {
+            "id": "field_id",
+            "type": "text",
+            "name": "field_name",
+            "label": "Field Label",
+            "required": true
+        }
+    ]
+}
+```
+
+### Real-World Insurance Examples
+
+#### 1. Vehicle Information
+```javascript
+{
+    "id": "vehicles",
+    "type": "fieldset-repeater",
+    "name": "vehicles",
+    "label": "Vehicle Information",
+    "minItems": 0,
+    "maxItems": 50,
+    "defaultItems": 0,
+    "addButtonText": "+ Add Vehicle",
+    "removeButtonText": "Remove",
+    "itemLabel": "Vehicle #{index}",
+    "collapsible": true,
+    "fields": [
+        {
+            "id": "year",
+            "type": "number",
+            "name": "year",
+            "label": "Year",
+            "required": true,
+            "placeholder": "e.g., 2020",
+            "validation": {
+                "min": 1900,
+                "max": 2025
+            }
+        },
+        {
+            "id": "make",
+            "type": "text",
+            "name": "make",
+            "label": "Make",
+            "required": true,
+            "placeholder": "e.g., Ford"
+        },
+        {
+            "id": "model",
+            "type": "text",
+            "name": "model",
+            "label": "Model",
+            "required": true,
+            "placeholder": "e.g., F-150"
+        },
+        {
+            "id": "vin",
+            "type": "text",
+            "name": "vin",
+            "label": "VIN",
+            "required": true,
+            "placeholder": "Vehicle Identification Number"
+        }
+    ]
+}
+```
+
+#### 2. Additional Locations
+```javascript
+{
+    "id": "locations",
+    "type": "fieldset-repeater",
+    "name": "locations",
+    "label": "Additional Locations",
+    "minItems": 0,
+    "maxItems": 100,
+    "defaultItems": 0,
+    "addButtonText": "+ Add Location",
+    "removeButtonText": "Remove",
+    "itemLabel": "Location #{index}",
+    "collapsible": true,
+    "fields": [
+        {
+            "id": "location_type",
+            "type": "select",
+            "name": "location_type",
+            "label": "Location Type",
+            "required": true,
+            "options": [
+                {"value": "owned", "label": "Owned"},
+                {"value": "leased", "label": "Leased"},
+                {"value": "client", "label": "Client Site"},
+                {"value": "temporary", "label": "Temporary"}
+            ]
+        },
+        {
+            "id": "street",
+            "type": "text",
+            "name": "street",
+            "label": "Street Address",
+            "required": true
+        },
+        {
+            "id": "city",
+            "type": "text",
+            "name": "city",
+            "label": "City",
+            "required": true
+        },
+        {
+            "id": "state",
+            "type": "select",
+            "name": "state",
+            "label": "State",
+            "required": true,
+            "options": [/* state options */]
+        },
+        {
+            "id": "zip",
+            "type": "text",
+            "name": "zip",
+            "label": "ZIP Code",
+            "required": true,
+            "validation": {
+                "pattern": "^\\d{5}(-\\d{4})?$"
+            }
+        }
+    ]
+}
+```
+
+#### 3. Additional Insureds
+```javascript
+{
+    "id": "additional_insureds",
+    "type": "fieldset-repeater",
+    "name": "additional_insureds",
+    "label": "Additional Insureds",
+    "minItems": 0,
+    "maxItems": 50,
+    "defaultItems": 0,
+    "addButtonText": "+ Add Additional Insured",
+    "removeButtonText": "Remove",
+    "itemLabel": "{name}",  // Uses field value in label
+    "fields": [
+        {
+            "id": "name",
+            "type": "text",
+            "name": "name",
+            "label": "Name",
+            "required": true
+        },
+        {
+            "id": "relationship",
+            "type": "select",
+            "name": "relationship",
+            "label": "Relationship",
+            "required": true,
+            "options": [
+                {"value": "landlord", "label": "Landlord"},
+                {"value": "lender", "label": "Mortgage Holder/Lender"},
+                {"value": "contractor", "label": "General Contractor"},
+                {"value": "client", "label": "Client"},
+                {"value": "partner", "label": "Business Partner"},
+                {"value": "other", "label": "Other"}
+            ]
+        },
+        {
+            "id": "coverage_type",
+            "type": "checkbox",
+            "name": "coverage_type",
+            "label": "Coverage Types Required",
+            "options": [
+                {"value": "primary", "label": "Primary Coverage"},
+                {"value": "noncontributory", "label": "Primary & Non-Contributory"},
+                {"value": "waiver", "label": "Waiver of Subrogation"},
+                {"value": "completed_ops", "label": "Completed Operations"}
+            ]
+        }
+    ]
+}
+```
+
+### Using with Conditional Logic
+
+Repeatable fields can be shown/hidden based on other field values:
+
+```javascript
+{
+    "pages": [{
+        "sections": [
+            {
+                "id": "section_vehicle_question",
+                "items": [
+                    {"type": "field", "fieldId": "has_vehicles"}
+                ]
+            },
+            {
+                "id": "section_vehicles",
+                "items": [
+                    {"type": "field", "fieldId": "vehicles"}
+                ],
+                "visibility": {
+                    "condition": "all",
+                    "rules": [{
+                        "field": "has_vehicles",
+                        "operator": "equals",
+                        "value": "yes"
+                    }]
+                }
+            }
+        ]
+    }],
+    "fields": {
+        "has_vehicles": {
+            "id": "has_vehicles",
+            "type": "radio",
+            "name": "has_vehicles",
+            "label": "Does this location have any vehicles?",
+            "required": true,
+            "options": [
+                {"value": "yes", "label": "Yes"},
+                {"value": "no", "label": "No"}
+            ]
+        },
+        "vehicles": {
+            "id": "vehicles",
+            "type": "fieldset-repeater",
+            // ... repeater configuration
+        }
+    }
+}
+```
+
+### Data Structure
+
+When submitted, repeatable fields produce an array of objects:
+
+```javascript
+{
+    "vehicles": [
+        {
+            "year": 2020,
+            "make": "Ford",
+            "model": "F-150",
+            "vin": "1FTFW1ET5LFA12345"
+        },
+        {
+            "year": 2019,
+            "make": "Chevrolet",
+            "model": "Silverado",
+            "vin": "1GCUYDED6KZ123456"
+        }
+    ],
+    "additional_insureds": [
+        {
+            "name": "ABC Property Management",
+            "relationship": "landlord",
+            "coverage_type": ["primary", "waiver"]
+        }
+    ]
+}
+```
 
 ## Features
 
@@ -236,6 +522,13 @@ const formRenderer = new FormRenderer(schema, containerElement, {
    - Use appropriate field types (e.g., email for email addresses)
    - Provide inline validation feedback
    - Show progress indicators for multi-page forms
+
+4. **Repeatable Fields**
+   - Use fieldset-repeater for dynamic collections (vehicles, locations, etc.)
+   - Set reasonable minItems/maxItems limits to prevent UI overload
+   - Provide clear addButtonText to guide users
+   - Use collapsible: true for better organization when items have many fields
+   - Consider using dynamic itemLabel with field values for better identification
 
 ## Future Enhancements
 

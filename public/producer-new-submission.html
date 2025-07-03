@@ -380,6 +380,7 @@
         let lobConfig = null;
         let formData = {};
         let formRenderer = null;
+        window.formRenderer = null; // Make it globally accessible
         let useSchemaForm = false;
         
         // Load LOB configuration
@@ -488,6 +489,9 @@
                     await submitSchemaForm(formData);
                 }
             });
+            
+            // Make formRenderer globally accessible for repeater buttons
+            window.formRenderer = formRenderer;
         }
         
         // Submit schema-based form
