@@ -17,7 +17,7 @@ router.post('/', auth, async (req, res) => {
         // Validate customDomain is provided
         if (!customDomain) {
             return res.status(400).json({ 
-                message: 'Email domain identifier is required' 
+                message: 'Requested subdomain is required' 
             });
         }
 
@@ -32,24 +32,30 @@ router.post('/', auth, async (req, res) => {
             return res.status(400).json({ message: 'Instance with this name already exists' });
         }
 
+        // Format the custom domain
+        const formattedDomain = customDomain
+            .toLowerCase()
+            .replace(/[^a-z0-9-]/g, '')
+            .replace(/^-+|-+$/g, '');
+
         // Check if custom domain is already in use
         const domainInUse = await pool.query(
             'SELECT * FROM ims_instances WHERE custom_domain = $1',
-            [customDomain.toLowerCase()]
+            [formattedDomain]
         );
 
         if (domainInUse.rows.length > 0) {
             return res.status(400).json({ 
-                message: `Domain identifier "${customDomain}" is already in use` 
+                message: `Domain identifier "${formattedDomain}" is already in use` 
             });
         }
 
         // For backward compatibility, also set email_subdomain to the same value
-        const subdomain = customDomain.toLowerCase();
+        const subdomain = formattedDomain;
 
         const newInstance = await pool.query(
             'INSERT INTO ims_instances (user_id, name, url, username, password, email_subdomain, custom_domain, is_custom_domain_approved) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [userId, name, url, userName, password, subdomain, customDomain, false]
+            [userId, name, url, userName, password, subdomain, formattedDomain, false]
         );
 
         console.log(`[${requestId}] Created instance:`, newInstance.rows[0]);

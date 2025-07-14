@@ -203,7 +203,7 @@
                            placeholder="e.g., kL8TLc555qOmG69ZBvMFkA== (from database)">
                 </div>
                 <div class="form-group">
-                    <label for="customDomain">Email Domain Identifier (Required)</label>
+                    <label for="customDomain">Requested Subdomain (Required)</label>
                     <input type="text" id="customDomain" 
                            placeholder="e.g., isc" 
                            pattern="^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$"
@@ -228,6 +228,26 @@
         // Load instances when page loads
         document.addEventListener('DOMContentLoaded', function() {
             loadInstances();
+            
+            // Add input handler for custom domain field
+            const customDomainInput = document.getElementById('customDomain');
+            const previewDiv = document.getElementById('custom-domain-preview');
+            
+            if (customDomainInput) {
+                customDomainInput.addEventListener('input', function() {
+                    const value = this.value;
+                    const formatted = value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]/g, '')
+                        .replace(/^-+|-+$/g, '');
+                    
+                    if (formatted !== value && formatted.length > 0) {
+                        previewDiv.innerHTML = `<small>Will be formatted as: <strong>${formatted}</strong></small>`;
+                    } else {
+                        previewDiv.innerHTML = '';
+                    }
+                });
+            }
         });
 
         async function loadInstances() {
@@ -348,6 +368,9 @@
                     userName: document.getElementById('userName').value,
                     password: document.getElementById('password').value,
                     customDomain: document.getElementById('customDomain').value
+                        .toLowerCase()
+                        .replace(/[^a-z0-9-]/g, '')
+                        .replace(/^-+|-+$/g, '')
                 };
 
                 console.log('Instance data:', instanceData);
