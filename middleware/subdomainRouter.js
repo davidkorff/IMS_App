@@ -18,9 +18,14 @@ const subdomainRouter = async (req, res, next) => {
     
     // For localhost development, check if first part is not 'localhost'
     const isLocalhost = hostname.includes('localhost');
+    
+    // Define your main domain (without subdomain)
+    const mainDomain = '42ims.com';
+    const isMainDomain = hostname === mainDomain || hostname === `www.${mainDomain}`;
+    
     const hasSubdomain = isLocalhost ? 
         (parts.length >= 2 && parts[0] !== 'localhost') : 
-        (parts.length > 2 || (parts.length === 2 && !parts[1].includes(':')));
+        (parts.length > 2 && !isMainDomain);
     
     console.log('🔍 Subdomain check - Parts:', parts, 'Has subdomain:', hasSubdomain);
     
