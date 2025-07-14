@@ -45,6 +45,7 @@ router.get('/portal/config', async (req, res) => {
                 ppc.primary_color,
                 ppc.secondary_color,
                 ppc.custom_css,
+                ppc.custom_js,
                 ppc.welcome_message,
                 ppc.terms_of_service,
                 i.name as instance_name,
@@ -616,8 +617,32 @@ router.get('/lines-of-business/:lobId', authenticateProducer, async (req, res) =
     }
 });
 
+// Get form schema for LOB
+router.get('/form-schemas/:formId', authenticateProducer, async (req, res) => {
+    try {
+        const { formId } = req.params;
+        
+        // Get form schema
+        const result = await pool.query(`
+            SELECT * FROM form_schemas 
+            WHERE form_id = $1 AND instance_id = $2
+        `, [formId, req.instanceId]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Form schema not found' });
+        }
+        
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error fetching form schema:', error);
+        res.status(500).json({ error: 'Failed to fetch form schema' });
+    }
+});
+
 // Create new submission
 router.post('/submissions', authenticateProducer, async (req, res) => {
+    let submissionId = null;
+    
     try {
         const { lob_id, form_data, status = 'pending' } = req.body;
         
@@ -660,18 +685,21 @@ router.post('/submissions', authenticateProducer, async (req, res) => {
                 // Create a default route for this LOB
                 const routeInsert = await client.query(`
                     INSERT INTO custom_routes (
-                        instance_id, name, description, route_type,
-                        workflow_steps, lob_id, is_active, created_by
+                        instance_id, name, description, slug,
+                        route_category, lob_id, is_active,
+                        workflow_config
                     ) VALUES ($1, $2, $3, $4, $5, $6, true, $7)
                     RETURNING route_id
                 `, [
                     req.instanceId,
                     `Producer Portal - ${lobCheck.rows[0].line_name}`,
                     'Auto-generated route for producer portal submissions',
-                    'producer_portal',
-                    JSON.stringify(['validate', 'submit_to_ims', 'complete']),
+                    `producer-portal-lob-${lob_id}`,
+                    'producer-only',
                     lob_id,
-                    req.producer.producerId
+                    JSON.stringify({
+                        steps: ['validate', 'submit_to_ims', 'complete']
+                    })
                 ]);
                 routeId = routeInsert.rows[0].route_id;
             } else {
@@ -682,12 +710,20 @@ router.post('/submissions', authenticateProducer, async (req, res) => {
             const submissionResult = await client.query(`
                 INSERT INTO custom_route_submissions (
                     route_id, status, workflow_step, form_data,
-                    submitted_at, submission_uuid
-                ) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, gen_random_uuid())
+                    applicant_email, applicant_name
+                ) VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *
-            `, [routeId, status, 'initial', form_data]);
+            `, [
+                routeId, 
+                status, 
+                'initial', 
+                form_data,
+                req.producer.email,
+                `${req.producer.firstName} ${req.producer.lastName}`
+            ]);
             
             const submission = submissionResult.rows[0];
+            submissionId = submission.submission_id;
             
             // Link submission to producer
             await client.query(`
@@ -717,7 +753,8 @@ router.post('/submissions', authenticateProducer, async (req, res) => {
                 submission_id: submission.submission_id,
                 submission_uuid: submission.submission_uuid,
                 status: submission.status,
-                submitted_at: submission.submitted_at
+                submitted_at: submission.submitted_at,
+                message: 'Submission created successfully. Processing will begin shortly.'
             });
             
         } catch (error) {
@@ -727,9 +764,125 @@ router.post('/submissions', authenticateProducer, async (req, res) => {
             client.release();
         }
         
+        // Process submission asynchronously AFTER sending response
+        if (submissionId) {
+            try {
+                const ProducerSubmissionProcessor = require('../services/producerSubmissionProcessor');
+                const processor = new ProducerSubmissionProcessor();
+                
+                // Process in background
+                processor.processSubmission(submissionId, req.producer.producerId)
+                    .then(result => {
+                        console.log('Submission processed successfully:', {
+                            submissionId: submissionId,
+                            controlNumber: result.controlNumber,
+                            premium: result.premium
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Failed to process submission:', error);
+                    });
+            } catch (error) {
+                console.error('Error starting submission processor:', error);
+            }
+        }
+        
     } catch (error) {
         console.error('Error creating submission:', error);
         res.status(500).json({ error: 'Failed to create submission' });
+    }
+});
+
+// Get submission processing status
+router.get('/submissions/:submissionId/status', authenticateProducer, async (req, res) => {
+    try {
+        const { submissionId } = req.params;
+        
+        const result = await pool.query(`
+            SELECT 
+                s.submission_id,
+                s.submission_uuid,
+                s.status,
+                s.workflow_step,
+                s.ims_submission_guid,
+                s.ims_quote_guid,
+                s.form_data->'imsResults'->>'controlNumber' as control_number,
+                s.form_data->'imsResults'->>'premium' as premium,
+                s.form_data->'error' as error_message,
+                s.created_at,
+                s.updated_at
+            FROM custom_route_submissions s
+            JOIN producer_submissions ps ON s.submission_id = ps.submission_id
+            WHERE s.submission_id = $1 AND ps.producer_id = $2
+        `, [submissionId, req.producer.producerId]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Submission not found' });
+        }
+        
+        const submission = result.rows[0];
+        
+        res.json({
+            submission_id: submission.submission_id,
+            submission_uuid: submission.submission_uuid,
+            status: submission.status,
+            workflow_step: submission.workflow_step,
+            control_number: submission.control_number,
+            premium: submission.premium ? parseFloat(submission.premium) : null,
+            error_message: submission.error_message,
+            ims_quote_guid: submission.ims_quote_guid,
+            created_at: submission.created_at,
+            updated_at: submission.updated_at,
+            processing_complete: submission.status === 'quoted' || submission.status === 'failed'
+        });
+        
+    } catch (error) {
+        console.error('Error fetching submission status:', error);
+        res.status(500).json({ error: 'Failed to fetch submission status' });
+    }
+});
+
+// Manually trigger submission processing (useful for retries)
+router.post('/submissions/:submissionId/process', authenticateProducer, async (req, res) => {
+    try {
+        const { submissionId } = req.params;
+        
+        // Verify ownership
+        const check = await pool.query(`
+            SELECT s.submission_id, s.status
+            FROM custom_route_submissions s
+            JOIN producer_submissions ps ON s.submission_id = ps.submission_id
+            WHERE s.submission_id = $1 AND ps.producer_id = $2
+        `, [submissionId, req.producer.producerId]);
+        
+        if (check.rows.length === 0) {
+            return res.status(404).json({ error: 'Submission not found' });
+        }
+        
+        if (check.rows[0].status === 'processing') {
+            return res.status(400).json({ error: 'Submission is already being processed' });
+        }
+        
+        const ProducerSubmissionProcessor = require('../services/producerSubmissionProcessor');
+        const processor = new ProducerSubmissionProcessor();
+        
+        // Process synchronously for immediate response
+        const result = await processor.processSubmission(submissionId, req.producer.producerId);
+        
+        res.json({
+            success: true,
+            message: 'Submission processed successfully',
+            control_number: result.controlNumber,
+            quote_guid: result.quoteGuid,
+            premium: result.premium
+        });
+        
+    } catch (error) {
+        console.error('Error processing submission:', error);
+        res.status(500).json({ 
+            error: 'Failed to process submission',
+            details: error.message 
+        });
     }
 });
 

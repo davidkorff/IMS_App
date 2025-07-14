@@ -90,6 +90,10 @@ ALTER TABLE custom_routes ADD producer_access_level VARCHAR(50) DEFAULT 'all'; -
 ALTER TABLE custom_routes ADD rater_config TEXT; -- JSON for rater field mappings
 ALTER TABLE custom_routes ADD lob_id INT NULL;
 ALTER TABLE custom_routes ADD FOREIGN KEY (lob_id) REFERENCES portal_lines_of_business(lob_id);
+
+-- Note: Form schemas are stored in the existing form_schemas table
+-- which was already implemented as part of the form builder system
+-- See FORM_BUILDER_DOCUMENTATION.md for complete schema details
 ```
 
 #### Key Features
@@ -131,65 +135,132 @@ ALTER TABLE custom_routes ADD FOREIGN KEY (lob_id) REFERENCES portal_lines_of_bu
 #### Admin Interface Features
 - Visual drag-and-drop form designer
 - Field types:
-  - Text, Number, Email, Phone
-  - Dropdown, Radio, Checkbox
-  - Date picker
+  - Basic Input: Text, Number, Email, Phone, URL, Password
+  - Selection: Dropdown, Radio, Checkbox, Toggle
+  - Date/Time: Date picker, Time picker, DateTime picker
+  - Text Areas: Textarea, Rich text editor
   - File upload
-  - Address autocomplete
+  - Address fields with components
   - Signature pad
+  - Special: Rating, Slider, Color picker
+  - **Fieldset Repeater**: Dynamic collections for vehicles, locations, additional insureds
+  - Display: Heading, Paragraph, Divider, HTML
 - Field configuration:
   - Required/Optional
-  - Validation rules
+  - Validation rules (pattern, min/max, custom)
   - Conditional display logic
-  - Help text
+  - Help text and placeholders
   - Default values
+  - Display properties (width, CSS classes, icons)
+- Multi-page form support with sections
 - IMS field mapping interface
-- Preview mode for testing
+- Real-time preview mode
+- Undo/Redo functionality
+- Template library support
 
 #### Form Configuration Schema
 ```javascript
 {
-  "form_config": {
-    "steps": [
-      {
-        "title": "Business Information",
-        "fields": [
-          {
-            "name": "business_name",
-            "type": "text",
-            "label": "Business Name",
-            "required": true,
-            "ims_mapping": "insured.corporationName"
-          },
-          {
-            "name": "business_type",
-            "type": "select",
-            "label": "Business Type",
-            "options": ["LLC", "Corporation", "Partnership"],
-            "required": true,
-            "ims_mapping": "insured.businessTypeId",
-            "value_mapping": {
-              "LLC": 9,
-              "Corporation": 13,
-              "Partnership": 2
-            }
-          }
-        ]
-      },
-      {
-        "title": "Coverage Information",
-        "fields": [
-          {
-            "name": "coverage_limit",
-            "type": "select",
-            "label": "Coverage Limit",
-            "options": ["$1M/$2M", "$2M/$4M"],
-            "required": true,
-            "triggers_calculation": true
-          }
-        ]
+  "id": "unique_form_id",
+  "version": "1.0",
+  "metadata": {
+    "title": "Workers Compensation Application",
+    "description": "Complete application for WC coverage",
+    "lineOfBusiness": "workers_comp"
+  },
+  "pages": [
+    {
+      "id": "page1",
+      "title": "Business Information",
+      "sections": [
+        {
+          "id": "section1",
+          "type": "fieldset",
+          "title": "Insured Details",
+          "layout": "2-column",
+          "items": [
+            {"type": "field", "fieldId": "business_name"},
+            {"type": "field", "fieldId": "business_type"}
+          ]
+        },
+        {
+          "id": "section2",
+          "type": "fieldset",
+          "title": "Locations",
+          "items": [
+            {"type": "field", "fieldId": "locations"}
+          ]
+        }
+      ]
+    }
+  ],
+  "fields": {
+    "business_name": {
+      "id": "business_name",
+      "type": "text",
+      "name": "business_name",
+      "label": "Business Name",
+      "required": true,
+      "validation": {
+        "minLength": 2,
+        "maxLength": 100
       }
-    ]
+    },
+    "business_type": {
+      "id": "business_type",
+      "type": "select",
+      "name": "business_type",
+      "label": "Business Type",
+      "required": true,
+      "options": [
+        {"value": "llc", "label": "LLC"},
+        {"value": "corp", "label": "Corporation"},
+        {"value": "partnership", "label": "Partnership"}
+      ]
+    },
+    "locations": {
+      "id": "locations",
+      "type": "fieldset-repeater",
+      "name": "locations",
+      "label": "Business Locations",
+      "minItems": 1,
+      "maxItems": 50,
+      "defaultItems": 1,
+      "addButtonText": "+ Add Location",
+      "fields": [
+        {
+          "id": "street",
+          "type": "text",
+          "name": "street",
+          "label": "Street Address",
+          "required": true
+        },
+        {
+          "id": "city",
+          "type": "text",
+          "name": "city",
+          "label": "City",
+          "required": true
+        },
+        {
+          "id": "payroll",
+          "type": "number",
+          "name": "payroll",
+          "label": "Annual Payroll",
+          "required": true,
+          "validation": {
+            "min": 0
+          }
+        }
+      ]
+    }
+  },
+  "logic": [],
+  "calculations": [],
+  "settings": {
+    "allowSaveDraft": true,
+    "autoSave": true,
+    "showProgressBar": true
   }
 }
 ```
@@ -380,3 +451,31 @@ The application already supports subdomain-based routing. Producer portals will 
 - Immediate pricing
 - Online binding
 - Document delivery
+
+## Implementation Status (Current)
+
+### Completed Components
+- ✅ Form Builder System with drag-and-drop UI
+- ✅ Form Schema persistence in PostgreSQL (JSONB)
+- ✅ Form Renderer with multi-page support
+- ✅ Fieldset Repeater functionality for dynamic collections
+- ✅ Lines of Business configuration with form builder integration
+- ✅ Producer registration and authentication system
+- ✅ Producer dashboard with submission tracking
+- ✅ Portal configuration and white-labeling support
+- ✅ Instance-based data isolation
+
+### In Progress
+- 🔄 IMS API integration for producer creation
+- 🔄 Excel rater integration for premium calculation
+
+### Pending
+- ⏳ Document management system
+- ⏳ Communication hub
+- ⏳ Advanced analytics and reporting
+- ⏳ Payment gateway integration
+
+### Notes
+- The form builder supports all insurance-specific scenarios including vehicles, locations, and additional insureds through the fieldset-repeater field type
+- Form schemas are fully integrated with Lines of Business configuration
+- The system uses the existing subdomain infrastructure for multi-tenant support

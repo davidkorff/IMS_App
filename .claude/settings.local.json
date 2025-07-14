@@ -33,7 +33,10 @@
       "Bash(npm run:*)",
       "Bash(echo:*)",
       "Bash(sed:*)",
-      "Bash(PGPASSWORD=D040294k psql -h 172.17.224.1 -U postgres -d IMS_Application -c \"SELECT lob_id, line_name, form_schema_id FROM portal_lines_of_business WHERE lob_id = 4;\")"
+      "Bash(PGPASSWORD=D040294k psql -h 172.17.224.1 -U postgres -d IMS_Application -c \"SELECT lob_id, line_name, form_schema_id FROM portal_lines_of_business WHERE lob_id = 4;\")",
+      "Bash(pm2 list:*)",
+      "Bash(cat:*)",
+      "Bash(npx dotenv run:*)"
     ],
     "deny": []
   },

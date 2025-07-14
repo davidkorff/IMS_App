@@ -313,14 +313,24 @@
             
             tbody.innerHTML = submissions.map(sub => {
                 const formData = sub.form_data || {};
+                const imsResults = formData.imsResults || {};
                 const insuredName = formData.insuredName || 'N/A';
                 const submittedDate = new Date(sub.submitted_at).toLocaleDateString();
                 const reference = sub.submission_uuid ? sub.submission_uuid.substring(0, 8) : sub.submission_id;
                 
+                // Show IMS Quote ID if available, otherwise show internal reference
+                let displayReference = reference;
+                if (sub.ims_quote_guid || imsResults.quoteGuid) {
+                    const quoteGuid = sub.ims_quote_guid || imsResults.quoteGuid;
+                    displayReference = `<span title="IMS Quote: ${quoteGuid}">${quoteGuid.substring(0, 8)}</span>`;
+                } else {
+                    displayReference = `<code>${reference}</code>`;
+                }
+                
                 return `
                     <tr>
                         <td>${submittedDate}</td>
-                        <td><code>${reference}</code></td>
+                        <td>${displayReference}</td>
                         <td>${insuredName}</td>
                         <td>${sub.line_name || 'N/A'}</td>
                         <td>

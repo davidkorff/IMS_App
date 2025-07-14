@@ -246,6 +246,13 @@
                         <div class="mb-3">
                             <label class="form-label">Custom CSS</label>
                             <textarea class="form-control" id="customCss" rows="5" style="font-family: monospace;"></textarea>
+                            <small class="form-text text-muted">Add custom CSS styles for your portal</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Custom JavaScript</label>
+                            <textarea class="form-control" id="customJs" rows="5" style="font-family: monospace;" placeholder="// Custom JavaScript that runs on page load"></textarea>
+                            <small class="form-text text-muted">Add custom JavaScript code that will execute when the portal loads</small>
                         </div>
                         
                         <button type="button" class="btn btn-primary" id="savePortalConfigBtn">Save Configuration</button>
@@ -330,11 +337,6 @@
                                     IMS Integration
                                 </button>
                             </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="form-tab" data-bs-toggle="tab" data-bs-target="#form-content" type="button">
-                                    Form Builder
-                                </button>
-                            </li>
                         </ul>
 
                         <!-- Tab content -->
@@ -375,6 +377,15 @@
                                     </select>
                                 </div>
                                 <div class="mb-3">
+                                    <label class="form-label">Rating Type</label>
+                                    <select class="form-control" id="lobRatingType" disabled>
+                                        <option value="">Select rating type...</option>
+                                    </select>
+                                    <div class="form-text">
+                                        Select the Excel rater template that will be used for premium calculation
+                                    </div>
+                                </div>
+                                <div class="mb-3">
                                     <label class="form-label">Data Processing Procedure (Optional)</label>
                                     <input type="text" class="form-control" id="lobImsProcedure" placeholder="e.g., ProcessWorkerCompSubmission_WS">
                                     <div class="form-text">
@@ -382,43 +393,78 @@
                                         Include "_WS" suffix (it will be handled automatically).
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- Form Builder Tab -->
-                            <div class="tab-pane fade" id="form-content">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i> Design the submission form that producers will fill out.
+                                
+                                <!-- Additional GUID Fields -->
+                                <hr>
+                                <h6>Additional IMS GUIDs</h6>
+                                <div class="alert alert-warning">
+                                    <small><i class="fas fa-info-circle"></i> Temporarily paste GUIDs directly below. These fields will be replaced with dropdown selections in a future update.</small>
                                 </div>
                                 
-                                <div class="text-center p-5">
-                                    <i class="fas fa-edit fa-3x text-primary mb-3"></i>
-                                    <h5>Form Designer</h5>
-                                    <p class="text-muted">Create a custom submission form with our advanced form builder</p>
-                                    
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-primary" onclick="openFormBuilder()">
-                                            <i class="fas fa-magic"></i> Open Form Builder
-                                        </button>
-                                        <button type="button" class="btn btn-outline-primary" onclick="loadFormTemplate()">
-                                            <i class="fas fa-file-alt"></i> Use Template
-                                        </button>
-                                    </div>
-                                    
-                                    <div id="formSchemaPreview" class="mt-4" style="display: none;">
-                                        <div class="alert alert-success">
-                                            <i class="fas fa-check-circle"></i> Form configured
-                                            <button class="btn btn-sm btn-outline-success float-end" onclick="openFormBuilder()">
-                                                Edit Form
-                                            </button>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Company Location GUID</label>
+                                            <input type="text" class="form-control" id="lobCompanyLocationGuid" 
+                                                   placeholder="e.g., 12345678-1234-1234-1234-123456789012">
+                                            <div class="form-text">Company location GUID from IMS</div>
                                         </div>
-                                        <div class="text-start">
-                                            <h6>Form Structure:</h6>
-                                            <ul id="formStructureList"></ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Quoting Location GUID</label>
+                                            <input type="text" class="form-control" id="lobQuotingLocationGuid" 
+                                                   placeholder="e.g., 12345678-1234-1234-1234-123456789012">
+                                            <div class="form-text">Location GUID for quote creation</div>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <input type="hidden" id="formSchemaData" name="formSchemaData">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Issuing Location GUID</label>
+                                            <input type="text" class="form-control" id="lobIssuingLocationGuid" 
+                                                   placeholder="e.g., 12345678-1234-1234-1234-123456789012">
+                                            <div class="form-text">Location GUID for policy issuance</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Default Underwriter GUID</label>
+                                            <input type="text" class="form-control" id="lobUnderwriterGuid" 
+                                                   placeholder="e.g., 12345678-1234-1234-1234-123456789012">
+                                            <div class="form-text">Default underwriter user GUID</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Default Producer Contact GUID</label>
+                                            <input type="text" class="form-control" id="lobProducerContactGuid" 
+                                                   placeholder="e.g., 12345678-1234-1234-1234-123456789012">
+                                            <div class="form-text">Default producer contact GUID for submissions</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Default Producer Location GUID</label>
+                                            <input type="text" class="form-control" id="lobProducerLocationGuid" 
+                                                   placeholder="e.g., 12345678-1234-1234-1234-123456789012">
+                                            <div class="form-text">Default producer location GUID</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Excel Rater Template</label>
+                                    <input type="file" class="form-control" id="lobRaterFile" accept=".xlsx,.xls,.xlsm">
+                                    <div class="form-text">
+                                        Upload the Excel rater template for this rating type. This file will be used to calculate premiums.
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </form>
@@ -426,6 +472,168 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="saveLobBtn">Save Line of Business</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit LOB Modal -->
+    <div class="modal fade" id="editLobModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Line of Business</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editLobForm">
+                        <input type="hidden" id="editLobId">
+                        <!-- Nav tabs -->
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="edit-basic-tab" data-bs-toggle="tab" data-bs-target="#edit-basic-content" type="button">
+                                    Basic Information
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="edit-ims-tab" data-bs-toggle="tab" data-bs-target="#edit-ims-content" type="button">
+                                    IMS Integration
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="edit-excel-tab" data-bs-toggle="tab" data-bs-target="#edit-excel-content" type="button">
+                                    Excel Configuration
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab content -->
+                        <div class="tab-content">
+                            <!-- Basic Information Tab -->
+                            <div class="tab-pane fade show active" id="edit-basic-content">
+                                <div class="mb-3">
+                                    <label class="form-label">Product Name</label>
+                                    <input type="text" class="form-control" id="editLobName" required placeholder="e.g., Workers Compensation">
+                                    <div class="form-text">The name producers will see for this insurance product</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Product Code (Optional)</label>
+                                    <input type="text" class="form-control" id="editLobCode" placeholder="e.g., WC, GL, PROP">
+                                    <div class="form-text">Internal reference code</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control" id="editLobDescription" rows="2" placeholder="Brief description of this product"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- IMS Integration Tab -->
+                            <div class="tab-pane fade" id="edit-ims-content">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Configure how submissions will be sent to IMS.
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Company</label>
+                                    <select class="form-control" id="editLobCompany">
+                                        <option value="">Select Company...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Line of Business</label>
+                                    <select class="form-control" id="editLobImsLine" disabled>
+                                        <option value="">Select company first...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Rating Type</label>
+                                    <select class="form-control" id="editLobRatingType">
+                                        <option value="">Select rating type...</option>
+                                    </select>
+                                    <div class="form-text">Select the rating type for this line of business</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">IMS Procedure</label>
+                                    <select class="form-control" id="editLobImsProcedure" disabled>
+                                        <option value="">Select line first...</option>
+                                    </select>
+                                    <div class="form-text">
+                                        IMS stored procedure to process submission data and trigger form attachment. 
+                                        Include "_WS" suffix (it will be handled automatically).
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Excel Rater Template</label>
+                                    <input type="file" class="form-control" id="editLobRaterFile" accept=".xlsx,.xls,.xlsm">
+                                    <div class="form-text">
+                                        Upload the Excel rater template for this rating type. This file will be used to calculate premiums.
+                                    </div>
+                                    <div id="currentRaterFile" class="mt-2 text-muted" style="display: none;">
+                                        <i class="fas fa-file-excel"></i> Current file: <span id="currentRaterFileName"></span>
+                                        <button type="button" class="btn btn-sm btn-link" onclick="downloadRaterFile()">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Excel Configuration Tab -->
+                            <div class="tab-pane fade" id="edit-excel-content">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> Configure how Excel formulas are calculated and where to find the premium.
+                                </div>
+                                
+                                <!-- Formula Calculation Settings -->
+                                <div class="mb-4">
+                                    <h6 class="mb-3">Formula Calculation</h6>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="editExcelFormulaCalc" checked>
+                                        <label class="form-check-label" for="editExcelFormulaCalc">
+                                            Calculate Excel formulas before sending to IMS
+                                        </label>
+                                        <div class="form-text">IMS cannot calculate Excel formulas. Enable this to calculate them first.</div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <label class="form-label">Calculation Method</label>
+                                        <select class="form-control" id="editFormulaCalcMethod">
+                                            <option value="none">None - No calculation (populate only)</option>
+                                            <option value="python">Python (openpyxl) - Cross-platform calculation</option>
+                                            <option value="excel_com">Excel COM - Windows only, most accurate</option>
+                                            <option value="libreoffice">LibreOffice - Cross-platform, Docker-friendly</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <!-- Premium Cell Mappings -->
+                                <div class="mb-3">
+                                    <h6 class="mb-3">Premium Cell Locations</h6>
+                                    <p class="text-muted">Specify where to find the calculated premium in the Excel file. The system will check each location in priority order.</p>
+                                    
+                                    <div id="premiumMappingsContainer">
+                                        <!-- Premium mappings will be added here dynamically -->
+                                    </div>
+                                    
+                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addPremiumMapping()">
+                                        <i class="fas fa-plus"></i> Add Premium Location
+                                    </button>
+                                </div>
+                                
+                                <!-- Common Templates -->
+                                <div class="mt-4">
+                                    <h6 class="mb-2">Common Premium Locations</h6>
+                                    <div class="small text-muted">
+                                        <div><code>IMS_TAGS!B6</code> - Standard IMS location</div>
+                                        <div><code>Summary!B10</code> - Common summary sheet</div>
+                                        <div><code>Premium!B15</code> - Premium calculation sheet</div>
+                                        <div><code>Rating!E15</code> - Rating result cell</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="updateLobBtn">Update Line of Business</button>
                 </div>
             </div>
         </div>
@@ -622,6 +830,7 @@
                     document.getElementById('secondaryColor').value = config.secondary_color || '#333333';
                     document.getElementById('welcomeMessage').value = config.welcome_message || '';
                     document.getElementById('customCss').value = config.custom_css || '';
+                    document.getElementById('customJs').value = config.custom_js || '';
                     document.getElementById('portalActive').checked = config.is_active;
                     
                     // Set registration URLs
@@ -705,6 +914,7 @@
                 secondary_color: document.getElementById('secondaryColor').value,
                 welcome_message: document.getElementById('welcomeMessage').value,
                 custom_css: document.getElementById('customCss').value,
+                custom_js: document.getElementById('customJs').value,
                 is_active: document.getElementById('portalActive').checked
             };
             
@@ -774,6 +984,8 @@
                                 '<small class="text-warning"><i class="fas fa-exclamation-triangle"></i> IMS integration not configured</small>'}
                             ${lob.ims_procedure_name ? 
                                 `<br><small class="text-info"><i class="fas fa-cog"></i> Procedure: ${lob.ims_procedure_name}</small>` : ''}
+                            ${lob.ims_rating_type_name ? 
+                                `<br><small class="text-info"><i class="fas fa-calculator"></i> Rating: ${lob.ims_rating_type_name}</small>` : ''}
                             ${lob.form_schema_id ? 
                                 `<br><small class="text-primary"><i class="fas fa-file-alt"></i> Custom form configured</small>` : 
                                 '<br><small class="text-muted"><i class="fas fa-file-alt"></i> Using default form</small>'}
@@ -782,8 +994,8 @@
                             <button class="btn btn-sm btn-outline-primary me-1" onclick="editLob('${lob.lob_id}')" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-outline-info me-1" onclick="editLobForm('${lob.lob_id}', '${lob.form_schema_id || ''}')" title="Edit Form">
-                                <i class="fas fa-file-edit"></i>
+                            <button class="btn btn-sm btn-outline-info me-1" onclick="editLobForm('${lob.lob_id}', '${lob.form_schema_id || ''}')" title="${lob.form_schema_id ? 'Edit Form' : 'Create Form'}">
+                                <i class="fas fa-${lob.form_schema_id ? 'file-edit' : 'file-plus'}"></i> Form Builder
                             </button>
                             <button class="btn btn-sm btn-outline-${lob.is_active ? 'danger' : 'success'}" 
                                     onclick="toggleLob('${lob.lob_id}', ${!lob.is_active})"
@@ -811,36 +1023,31 @@
             const left = (screen.width - width) / 2;
             const top = (screen.height - height) / 2;
             
+            // Note: When creating a new LOB, we don't have a lobId yet
+            // The form will be linked to the LOB after both are saved
+            const url = `/form-builder.html?instanceId=${instanceId}`;
+            
             formBuilderWindow = window.open(
-                '/form-builder.html',
+                url,
                 'formBuilder',
                 `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
             );
             
-            // Store current LOB ID if we're editing
-            const lobName = document.getElementById('lobName').value;
-            if (lobName) {
-                window.currentLobId = currentLobId; // Make it available to form builder
-            }
+            // Make instance ID available to child window
+            window.instanceId = instanceId;
+            window.currentLobId = null; // No LOB ID yet for new forms
         };
         
         // Receive form schema from form builder
         window.receiveFormSchema = function(schemaData) {
             currentFormSchemaId = schemaData.form_id;
             formSchema = schemaData.form_schema;
-            displayFormPreview();
+            
+            // Since we're no longer showing form preview in LOB modal, just show success
             showAlert('Form schema saved successfully!', 'success');
             
-            // Update hidden field with schema ID
-            const schemaField = document.getElementById('formSchemaId');
-            if (!schemaField) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.id = 'formSchemaId';
-                input.name = 'formSchemaId';
-                document.getElementById('newLobForm').appendChild(input);
-            }
-            document.getElementById('formSchemaId').value = currentFormSchemaId;
+            // Refresh the LOB list to show the form is now associated
+            loadLinesOfBusiness();
         };
         
         // Handle messages from form builder
@@ -848,9 +1055,10 @@
             if (event.source === formBuilderWindow) {
                 if (event.data.type === 'saveFormSchema') {
                     formSchema = event.data.schema;
-                    document.getElementById('formSchemaData').value = JSON.stringify(formSchema);
-                    displayFormPreview();
+                    showAlert('Form schema saved successfully!', 'success');
                     formBuilderWindow.close();
+                    // Refresh the LOB list
+                    loadLinesOfBusiness();
                 }
             }
         }
@@ -997,9 +1205,8 @@
                     formSchema.pages.push(page);
                 });
                 
-                document.getElementById('formSchemaData').value = JSON.stringify(formSchema);
-                displayFormPreview();
-                showAlert('Template loaded successfully!', 'success');
+                // Template loading removed - form builder is now separate from LOB creation
+                showAlert('Form templates should be loaded in the form builder after creating the LOB', 'info');
             }
         };
         
@@ -1007,42 +1214,70 @@
         async function saveLob() {
             const procedureName = document.getElementById('lobImsProcedure').value.trim();
             
-            // Get required documents
-            const requiredDocs = document.getElementById('requiredDocuments').value
-                .split('\n')
-                .filter(doc => doc.trim())
-                .map(doc => doc.trim());
+            // Get rating type selection
+            const ratingTypeSelect = document.getElementById('lobRatingType');
+            const selectedRatingTypeId = ratingTypeSelect.value;
+            const selectedRatingTypeName = selectedRatingTypeId ? 
+                ratingTypeSelect.options[ratingTypeSelect.selectedIndex].text : null;
+            
+            // Get required documents (if that field exists)
+            const requiredDocsElement = document.getElementById('requiredDocuments');
+            const requiredDocs = requiredDocsElement ? 
+                requiredDocsElement.value.split('\n').filter(doc => doc.trim()).map(doc => doc.trim()) : [];
             
             // Build form configuration
             const formConfig = {
-                fields: formFields,
+                fields: typeof formFields !== 'undefined' ? formFields : [],
                 documents: requiredDocs
             };
             
-            const lob = {
-                instanceId: instanceId,  // Add instanceId from URL
-                line_name: document.getElementById('lobName').value,
-                line_code: document.getElementById('lobCode').value,
-                description: document.getElementById('lobDescription').value,
-                ims_line_guid: document.getElementById('lobImsLine').value || null,
-                ims_company_guid: document.getElementById('lobCompany').value || null,
-                ims_procedure_name: procedureName || null,  // Store the full procedure name with _WS
-                form_config: formConfig,  // Add the form configuration
-                form_schema_id: currentFormSchemaId || null  // Add the form schema ID
-            };
+            // Create FormData for file upload
+            const formData = new FormData();
+            
+            const lineGuid = document.getElementById('lobImsLine').value;
+            const companyGuid = document.getElementById('lobCompany').value;
+            
+            console.log('Saving LOB with:');
+            console.log('Line GUID:', lineGuid);
+            console.log('Company GUID:', companyGuid);
+            
+            formData.append('instanceId', instanceId);
+            formData.append('line_name', document.getElementById('lobName').value);
+            formData.append('line_code', document.getElementById('lobCode').value);
+            formData.append('description', document.getElementById('lobDescription').value);
+            formData.append('ims_line_guid', lineGuid || '');
+            formData.append('ims_company_guid', companyGuid || '');
+            formData.append('ims_rating_type_id', selectedRatingTypeId || '0');
+            formData.append('ims_rating_type_name', selectedRatingTypeName || '');
+            formData.append('ims_procedure_name', procedureName || '');
+            
+            // Add additional GUID fields
+            formData.append('ims_company_location_guid', document.getElementById('lobCompanyLocationGuid').value || '');
+            formData.append('ims_quoting_location_guid', document.getElementById('lobQuotingLocationGuid').value || '');
+            formData.append('ims_issuing_location_guid', document.getElementById('lobIssuingLocationGuid').value || '');
+            formData.append('ims_underwriter_guid', document.getElementById('lobUnderwriterGuid').value || '');
+            formData.append('ims_producer_contact_guid', document.getElementById('lobProducerContactGuid').value || '');
+            formData.append('ims_producer_location_guid', document.getElementById('lobProducerLocationGuid').value || '');
+            
+            // Add file if selected
+            const fileInput = document.getElementById('lobRaterFile');
+            if (fileInput.files.length > 0) {
+                formData.append('rater_file', fileInput.files[0]);
+            }
             
             try {
-                const response = await fetchWithAuth('/api/producer-admin/lines-of-business', {
+                const response = await fetch('/api/producer-admin/lines-of-business', {
                     method: 'POST',
-                    body: JSON.stringify(lob)
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: formData
                 });
                 
                 if (response.ok) {
                     bootstrap.Modal.getInstance(document.getElementById('newLobModal')).hide();
                     loadLinesOfBusiness();
                     showAlert('Line of business created successfully', 'success');
-                    // Reset form fields
-                    formFields = [];
                     document.getElementById('newLobForm').reset();
                 } else {
                     const error = await response.json();
@@ -1154,10 +1389,13 @@
         // Load IMS companies when modal is shown
         document.getElementById('newLobModal').addEventListener('shown.bs.modal', function () {
             loadImsCompanies();
+            loadRatingTypes();
             // Clear form when modal opens
             document.getElementById('newLobForm').reset();
             document.getElementById('lobImsLine').innerHTML = '<option value="">Select company first...</option>';
             document.getElementById('lobImsLine').disabled = true;
+            document.getElementById('lobRatingType').innerHTML = '<option value="">Select rating type...</option>';
+            document.getElementById('lobRatingType').disabled = false;
             document.getElementById('lobImsProcedure').innerHTML = '<option value="">Select line first...</option>';
             document.getElementById('lobImsProcedure').disabled = true;
         });
@@ -1209,6 +1447,349 @@
                     const lines = Array.isArray(data) ? data : (data.Table || []);
                     const select = document.getElementById('lobImsLine');
                     
+                    console.log('Lines data from IMS:', data);
+                    console.log('Lines array:', lines);
+                    
+                    select.innerHTML = '<option value="">Select Line...</option>';
+                    lines.forEach(line => {
+                        console.log('Processing line:', line);
+                        const option = document.createElement('option');
+                        option.value = line.LineGUID || line.lineguid;
+                        option.textContent = line.LineName || line.linename || line.LineOfBusiness || line.lineofbusiness;
+                        option.dataset.lineId = line.LineID || line.lineid;
+                        console.log('Option value (LineGUID):', option.value);
+                        select.appendChild(option);
+                    });
+                    
+                    select.disabled = false;
+                }
+            } catch (error) {
+                console.error('Failed to load lines:', error);
+            }
+        }
+        
+        // Load rating types from IMS
+        async function loadRatingTypes() {
+            try {
+                console.log('Loading rating types for instance:', instanceId);
+                const response = await fetchWithAuth(`/api/producer-admin/rating-types?instanceId=${instanceId}`);
+                console.log('Rating types response:', response);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Rating types data:', data);
+                    
+                    const ratingTypes = Array.isArray(data) ? data : (data.Table || data.RatingTypes || []);
+                    const select = document.getElementById('lobRatingType');
+                    
+                    select.innerHTML = '<option value="">Select Rating Type...</option>';
+                    
+                    if (ratingTypes.length === 0) {
+                        console.log('No rating types found');
+                        select.innerHTML += '<option value="" disabled>No rating types available</option>';
+                    } else {
+                        ratingTypes.forEach(ratingType => {
+                            const option = document.createElement('option');
+                            option.value = ratingType.RatingTypeID;
+                            option.textContent = ratingType.RatingType;
+                            select.appendChild(option);
+                        });
+                        console.log(`Loaded ${ratingTypes.length} rating types`);
+                    }
+                    
+                    select.disabled = false;
+                } else {
+                    console.error('Failed to load rating types, status:', response.status);
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    // If loading fails, still enable the select with no options
+                    document.getElementById('lobRatingType').disabled = false;
+                }
+            } catch (error) {
+                console.error('Exception loading rating types:', error);
+                document.getElementById('lobRatingType').disabled = false;
+            }
+        }
+        
+        // Save LOB button click handler
+        document.getElementById('saveLobBtn').addEventListener('click', saveLob);
+        
+        // Edit LOB function
+        // Premium mapping management
+        let premiumMappingCounter = 0;
+        
+        window.addPremiumMapping = function(sheet = '', cell = '', priority = '') {
+            const container = document.getElementById('premiumMappingsContainer');
+            const mappingId = `mapping_${premiumMappingCounter++}`;
+            
+            const mappingHtml = `
+                <div class="premium-mapping-row mb-2" id="${mappingId}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" 
+                                   placeholder="Sheet name (e.g., IMS_TAGS)" 
+                                   name="premium_sheet[]" 
+                                   value="${sheet}">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" 
+                                   placeholder="Cell (e.g., B6)" 
+                                   name="premium_cell[]" 
+                                   value="${cell}">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="number" class="form-control" 
+                                   placeholder="Priority" 
+                                   name="premium_priority[]" 
+                                   value="${priority || premiumMappingCounter}" 
+                                   min="1">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                    onclick="document.getElementById('${mappingId}').remove()">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', mappingHtml);
+        };
+        
+        window.editLob = async function(lobId) {
+            try {
+                // Fetch LOB details
+                const response = await fetchWithAuth(`/api/producer-admin/lines-of-business/${lobId}?instanceId=${instanceId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch LOB details');
+                }
+                
+                const lob = await response.json();
+                
+                // Populate the edit form
+                document.getElementById('editLobId').value = lob.lob_id;
+                document.getElementById('editLobName').value = lob.line_name || '';
+                document.getElementById('editLobCode').value = lob.line_code || '';
+                document.getElementById('editLobDescription').value = lob.description || '';
+                
+                // Populate Excel configuration
+                document.getElementById('editExcelFormulaCalc').checked = lob.excel_formula_calculation !== false;
+                document.getElementById('editFormulaCalcMethod').value = lob.formula_calc_method || 'none';
+                
+                // Clear and populate premium mappings
+                document.getElementById('premiumMappingsContainer').innerHTML = '';
+                premiumMappingCounter = 0;
+                
+                if (lob.premium_mappings && lob.premium_mappings.length > 0) {
+                    lob.premium_mappings.forEach(mapping => {
+                        addPremiumMapping(mapping.sheet_name, mapping.cell_reference, mapping.priority);
+                    });
+                } else {
+                    // Add default mappings
+                    addPremiumMapping('IMS_TAGS', 'B6', 1);
+                    addPremiumMapping('Summary', 'B6', 2);
+                }
+                
+                // Store LOB ID for download function
+                window.currentEditLobId = lob.lob_id;
+                
+                // Load IMS data
+                await loadEditImsCompanies();
+                await loadEditRatingTypes();
+                
+                // Set IMS values if they exist
+                if (lob.ims_company_guid) {
+                    document.getElementById('editLobCompany').value = lob.ims_company_guid;
+                    await loadEditLinesForCompany(lob.ims_company_guid);
+                    
+                    if (lob.ims_line_guid) {
+                        document.getElementById('editLobImsLine').value = lob.ims_line_guid;
+                        await loadEditProceduresForLine(lob.ims_line_guid);
+                        
+                        if (lob.ims_procedure_name) {
+                            document.getElementById('editLobImsProcedure').value = lob.ims_procedure_name;
+                        }
+                    }
+                }
+                
+                if (lob.ims_rating_type_id) {
+                    document.getElementById('editLobRatingType').value = lob.ims_rating_type_id;
+                }
+                
+                // Show existing rater file if present
+                if (lob.rater_file_name) {
+                    document.getElementById('currentRaterFileName').textContent = lob.rater_file_name;
+                    document.getElementById('currentRaterFile').style.display = 'block';
+                } else {
+                    document.getElementById('currentRaterFile').style.display = 'none';
+                }
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('editLobModal'));
+                modal.show();
+                
+            } catch (error) {
+                console.error('Error loading LOB details:', error);
+                showAlert('Failed to load LOB details: ' + error.message, 'danger');
+            }
+        };
+        
+        // Edit LOB form
+        window.editLobForm = async function(lobId, formSchemaId) {
+            console.log('🎯 editLobForm called');
+            console.log('  - lobId:', lobId);
+            console.log('  - formSchemaId:', formSchemaId);
+            console.log('  - instanceId:', instanceId);
+            
+            currentLobId = lobId;
+            
+            try {
+                // Create secure context on server
+                const contextResponse = await fetchWithAuth('/api/form-builder-context/context', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        lobId: lobId,
+                        instanceId: instanceId,
+                        formSchemaId: formSchemaId
+                    })
+                });
+                
+                if (!contextResponse.ok) {
+                    throw new Error('Failed to create form builder context');
+                }
+                
+                const { contextId } = await contextResponse.json();
+                console.log('  - Created context ID:', contextId);
+                
+                // Open form builder with only context ID
+                const width = 1400;
+                const height = 800;
+                const left = (screen.width - width) / 2;
+                const top = (screen.height - height) / 2;
+                
+                const url = `/form-builder.html?context=${contextId}`;
+                console.log('  - Opening URL:', url);
+                
+                formBuilderWindow = window.open(
+                    url,
+                    'formBuilder',
+                    `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+                );
+                
+            } catch (error) {
+                console.error('Error opening form builder:', error);
+                showAlert('Failed to open form builder: ' + error.message, 'danger');
+            }
+        };
+        
+        // Toggle LOB active status
+        window.toggleLob = function(lobId, activate) {
+            // TODO: Implement toggle functionality
+            console.log('Toggle LOB:', lobId, activate);
+            showAlert('Toggle functionality coming soon', 'info');
+        };
+        
+        // Download rater file
+        window.downloadRaterFile = async function() {
+            if (!window.currentEditLobId) {
+                showAlert('No LOB selected', 'danger');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/producer-admin/lines-of-business/${window.currentEditLobId}/rater-file?instanceId=${instanceId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const contentDisposition = response.headers.get('content-disposition');
+                    let filename = 'rater.xlsx';
+                    
+                    // Extract filename from content-disposition header
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                        if (filenameMatch) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+                    
+                    // Create download link
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                } else {
+                    const error = await response.json();
+                    showAlert('Failed to download file: ' + (error.error || 'Unknown error'), 'danger');
+                }
+            } catch (error) {
+                console.error('Error downloading file:', error);
+                showAlert('Failed to download file: ' + error.message, 'danger');
+            }
+        };
+        
+        // Load IMS companies for edit modal
+        async function loadEditImsCompanies() {
+            try {
+                const response = await fetchWithAuth(`/api/webui/forms/companies?instanceId=${instanceId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const companies = Array.isArray(data) ? data : (data.Table || []);
+                    const select = document.getElementById('editLobCompany');
+                    
+                    select.innerHTML = '<option value="">Select Company...</option>';
+                    companies.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.CompanyLocationGUID || company.CompanyGUID;
+                        option.textContent = company.LocationName || company.CompanyName;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load IMS companies:', error);
+            }
+        }
+        
+        // Load rating types for edit modal
+        async function loadEditRatingTypes() {
+            try {
+                const response = await fetchWithAuth(`/api/producer-admin/rating-types?instanceId=${instanceId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const ratingTypes = Array.isArray(data) ? data : (data.Table || data.RatingTypes || []);
+                    const select = document.getElementById('editLobRatingType');
+                    
+                    select.innerHTML = '<option value="">Select Rating Type...</option>';
+                    ratingTypes.forEach(ratingType => {
+                        const option = document.createElement('option');
+                        option.value = ratingType.RatingTypeID;
+                        option.textContent = ratingType.RatingType;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load rating types:', error);
+            }
+        }
+        
+        // Load lines for selected company in edit modal
+        async function loadEditLinesForCompany(companyGuid) {
+            try {
+                const response = await fetchWithAuth(`/api/webui/forms/lines?instanceId=${instanceId}&companyId=${companyGuid}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const lines = Array.isArray(data) ? data : (data.Table || []);
+                    const select = document.getElementById('editLobImsLine');
+                    
                     select.innerHTML = '<option value="">Select Line...</option>';
                     lines.forEach(line => {
                         const option = document.createElement('option');
@@ -1225,75 +1806,137 @@
             }
         }
         
-        // Save LOB button click handler
-        document.getElementById('saveLobBtn').addEventListener('click', saveLob);
+        // Load procedures for selected line in edit modal
+        async function loadEditProceduresForLine(lineGuid) {
+            try {
+                const select = document.getElementById('editLobImsProcedure');
+                select.innerHTML = '<option value="">Loading procedures...</option>';
+                select.disabled = true;
+                
+                const response = await fetchWithAuth(`/api/webui/forms/procedures?instanceId=${instanceId}&lineGuid=${lineGuid}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    const procedures = Array.isArray(data) ? data : (data.Table || []);
+                    
+                    select.innerHTML = '<option value="">Select Procedure...</option>';
+                    procedures.forEach(proc => {
+                        const option = document.createElement('option');
+                        // Store the full procedure name with _WS
+                        option.value = proc.ProcedureName || proc.procedurename;
+                        // Display without _WS for clarity
+                        const displayName = (proc.ProcedureName || proc.procedurename || '').replace(/_WS$/, '');
+                        option.textContent = displayName;
+                        select.appendChild(option);
+                    });
+                    
+                    select.disabled = false;
+                }
+            } catch (error) {
+                console.error('Failed to load procedures:', error);
+                const select = document.getElementById('editLobImsProcedure');
+                select.innerHTML = '<option value="">Failed to load procedures</option>';
+            }
+        }
         
-        // Edit LOB function
-        window.editLob = function(lobId) {
-            // TODO: Implement edit functionality
-            console.log('Edit LOB:', lobId);
-            showAlert('Edit functionality coming soon', 'info');
-        };
+        // Handle company selection in edit modal
+        document.getElementById('editLobCompany').addEventListener('change', async function(e) {
+            const companyGuid = e.target.value;
+            
+            // Reset dependent fields
+            document.getElementById('editLobImsLine').innerHTML = '<option value="">Select company first...</option>';
+            document.getElementById('editLobImsLine').disabled = true;
+            document.getElementById('editLobImsProcedure').innerHTML = '<option value="">Select line first...</option>';
+            document.getElementById('editLobImsProcedure').disabled = true;
+            
+            if (companyGuid) {
+                await loadEditLinesForCompany(companyGuid);
+            }
+        });
         
-        // Edit LOB form
-        window.editLobForm = async function(lobId, formSchemaId) {
-            console.log('🎯 editLobForm called');
-            console.log('  - lobId:', lobId);
-            console.log('  - formSchemaId:', formSchemaId);
-            console.log('  - instanceId:', instanceId);
+        // Handle line selection in edit modal
+        document.getElementById('editLobImsLine').addEventListener('change', async function(e) {
+            const lineGuid = e.target.value;
             
-            currentLobId = lobId;
+            // Reset procedure field
+            document.getElementById('editLobImsProcedure').innerHTML = '<option value="">Select line first...</option>';
+            document.getElementById('editLobImsProcedure').disabled = true;
             
-            // Open form builder
-            const width = 1400;
-            const height = 800;
-            const left = (screen.width - width) / 2;
-            const top = (screen.height - height) / 2;
+            if (lineGuid) {
+                await loadEditProceduresForLine(lineGuid);
+            }
+        });
+        
+        // Update LOB button click handler
+        document.getElementById('updateLobBtn').addEventListener('click', async function() {
+            const lobId = document.getElementById('editLobId').value;
+            const procedureName = document.getElementById('editLobImsProcedure').value.trim();
             
-            // Pass form_schema_id in URL if it exists
-            let url = '/form-builder.html';
-            if (formSchemaId && formSchemaId !== 'null' && formSchemaId !== 'undefined') {
-                url += `?form_schema_id=${formSchemaId}`;
+            // Get rating type selection
+            const ratingTypeSelect = document.getElementById('editLobRatingType');
+            const selectedRatingTypeId = ratingTypeSelect.value;
+            const selectedRatingTypeName = selectedRatingTypeId ? 
+                ratingTypeSelect.options[ratingTypeSelect.selectedIndex].text : null;
+            
+            // Create FormData for file upload
+            const formData = new FormData();
+            formData.append('line_name', document.getElementById('editLobName').value);
+            formData.append('line_code', document.getElementById('editLobCode').value);
+            formData.append('description', document.getElementById('editLobDescription').value);
+            formData.append('ims_line_guid', document.getElementById('editLobImsLine').value || '');
+            formData.append('ims_company_guid', document.getElementById('editLobCompany').value || '');
+            formData.append('ims_rating_type_id', selectedRatingTypeId || '0');
+            formData.append('ims_rating_type_name', selectedRatingTypeName || '');
+            formData.append('ims_procedure_name', procedureName || '');
+            formData.append('instanceId', instanceId);
+            
+            // Add Excel configuration
+            formData.append('excel_formula_calculation', document.getElementById('editExcelFormulaCalc').checked);
+            formData.append('formula_calc_method', document.getElementById('editFormulaCalcMethod').value);
+            
+            // Collect premium mappings
+            const sheets = document.querySelectorAll('input[name="premium_sheet[]"]');
+            const cells = document.querySelectorAll('input[name="premium_cell[]"]');
+            const priorities = document.querySelectorAll('input[name="premium_priority[]"]');
+            
+            const premiumMappings = [];
+            for (let i = 0; i < sheets.length; i++) {
+                if (sheets[i].value && cells[i].value) {
+                    premiumMappings.push({
+                        sheet_name: sheets[i].value,
+                        cell_reference: cells[i].value,
+                        priority: parseInt(priorities[i].value) || (i + 1)
+                    });
+                }
+            }
+            formData.append('premium_mappings', JSON.stringify(premiumMappings));
+            
+            // Add file if selected
+            const fileInput = document.getElementById('editLobRaterFile');
+            if (fileInput.files.length > 0) {
+                formData.append('rater_file', fileInput.files[0]);
             }
             
-            console.log('  - Opening URL:', url);
-            
-            // Make instanceId available to child window
-            window.instanceId = instanceId;
-            localStorage.setItem('instanceId', instanceId);
-            
-            formBuilderWindow = window.open(
-                url,
-                'formBuilder',
-                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
-            );
-            
-            // If there's an existing form schema, load it after window loads
-            if (formSchemaId && formSchemaId !== 'null') {
-                formBuilderWindow.addEventListener('load', async () => {
-                    try {
-                        const response = await fetchWithAuth(`/api/forms/schemas/${formSchemaId}`);
-                        if (response.ok) {
-                            const schemaData = await response.json();
-                            setTimeout(() => {
-                                if (formBuilderWindow.loadFormSchema) {
-                                    formBuilderWindow.loadFormSchema(schemaData.form_schema);
-                                }
-                            }, 500);
-                        }
-                    } catch (error) {
-                        console.error('Error loading form schema:', error);
-                    }
+            try {
+                const response = await fetch(`/api/producer-admin/lines-of-business/${lobId}?instanceId=${instanceId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: formData
                 });
+                
+                if (response.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('editLobModal')).hide();
+                    loadLinesOfBusiness();
+                    showAlert('Line of business updated successfully', 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert('Failed to update line of business: ' + (error.error || 'Unknown error'), 'danger');
+                }
+            } catch (error) {
+                showAlert('Error updating line of business: ' + error.message, 'danger');
             }
-        };
-        
-        // Toggle LOB active status
-        window.toggleLob = function(lobId, activate) {
-            // TODO: Implement toggle functionality
-            console.log('Toggle LOB:', lobId, activate);
-            showAlert('Toggle functionality coming soon', 'info');
-        };
+        });
     </script>
 </body>
 </html>

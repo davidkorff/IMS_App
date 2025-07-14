@@ -799,8 +799,8 @@ router.get('/forms/companies', auth, async (req, res) => {
 
 router.get('/forms/lines', auth, async (req, res) => {
     try {
-        const { instanceId } = req.query;
-        console.log('Getting lines for instance:', instanceId);
+        const { instanceId, companyId } = req.query;
+        console.log('Getting lines for instance:', instanceId, 'and company:', companyId);
         
         const instance = await pool.query(
             'SELECT * FROM ims_instances WHERE instance_id = $1 AND user_id = $2',
@@ -812,18 +812,37 @@ router.get('/forms/lines', auth, async (req, res) => {
             return res.status(404).json({ message: 'Instance not found' });
         }
 
-        console.log('Calling DK_GetLines_WS');
+        // If companyId is provided, get lines for that company
+        // Otherwise get all lines
+        if (companyId) {
+            console.log('Calling DK_GetLinesForCompany_WS with CompanyLocationGUID:', companyId);
+            
+            const result = await dataAccess.executeProc({
+                url: instance.rows[0].url,
+                username: instance.rows[0].username,
+                password: instance.rows[0].password,
+                procedure: 'DK_GetLinesForCompany_WS',
+                parameters: {
+                    CompanyLocationGUID: companyId
+                }
+            });
 
-        const result = await dataAccess.executeProc({
-            url: instance.rows[0].url,
-            username: instance.rows[0].username,
-            password: instance.rows[0].password,
-            procedure: 'DK_GetLines_WS',
-            parameters: {}  // No parameters needed
-        });
+            console.log('DK_GetLinesForCompany_WS result:', result);
+            res.json(result);
+        } else {
+            console.log('Calling DK_GetLines_WS');
 
-        console.log('DK_GetLines_WS result:', result);
-        res.json(result.Table || []);
+            const result = await dataAccess.executeProc({
+                url: instance.rows[0].url,
+                username: instance.rows[0].username,
+                password: instance.rows[0].password,
+                procedure: 'DK_GetLines_WS',
+                parameters: {}  // No parameters needed
+            });
+
+            console.log('DK_GetLines_WS result:', result);
+            res.json(result.Table || []);
+        }
     } catch (error) {
         console.error('Error getting lines:', error);
         console.error('Error stack:', error.stack);

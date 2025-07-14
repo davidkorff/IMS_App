@@ -40,6 +40,7 @@ router.get('/schemas/:formId', auth, async (req, res) => {
         
         console.log('  - Using instanceId:', instanceId);
         
+        // Get form schema regardless of LOB ID (it might be null)
         const result = await pool.query(`
             SELECT * FROM form_schemas 
             WHERE form_id = $1 AND instance_id = $2
@@ -68,8 +69,20 @@ router.get('/schemas/:formId', auth, async (req, res) => {
 // Create or update form schema
 router.post('/schemas', auth, async (req, res) => {
     try {
-        const instanceId = req.headers['x-instance-id'] || req.user.instance_id;
-        const userId = req.user.user_id;
+        // Get instance ID from header or user context
+        let instanceId = req.headers['x-instance-id'] || req.user.instance_id || req.user.instanceId;
+        
+        // Parse instance ID if it's a string number
+        if (instanceId && typeof instanceId === 'string' && /^\d+$/.test(instanceId)) {
+            instanceId = parseInt(instanceId, 10);
+        }
+        
+        // Validate instance ID
+        if (!instanceId || isNaN(instanceId)) {
+            return res.status(400).json({ error: 'Instance ID is required' });
+        }
+        
+        const userId = req.user.user_id || req.user.userId;
         const { form_id, lob_id, title, description, form_schema, is_template } = req.body;
         
         if (form_id) {
@@ -205,6 +218,30 @@ router.get('/submissions/:producerSubmissionId', auth, async (req, res) => {
     } catch (error) {
         console.error('Error fetching form submission:', error);
         res.status(500).json({ error: 'Failed to fetch form submission' });
+    }
+});
+
+// Update form schema LOB ID
+router.patch('/schemas/:formId/lob', auth, async (req, res) => {
+    try {
+        const { formId } = req.params;
+        const { lob_id } = req.body;
+        
+        const result = await pool.query(`
+            UPDATE form_schemas 
+            SET lob_id = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE form_id = $2
+            RETURNING *
+        `, [lob_id, formId]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Form schema not found' });
+        }
+        
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error updating form LOB ID:', error);
+        res.status(500).json({ error: 'Failed to update form schema' });
     }
 });
 

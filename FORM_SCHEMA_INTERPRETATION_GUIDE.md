@@ -104,6 +104,7 @@ This document provides comprehensive rules for interpreting the Form Schema JSON
 - `repeater`: Allow multiple instances (e.g., multiple addresses)
 - `grid`: Arrange fields in a grid layout
 - `conditional`: Show/hide based on conditions
+- `fieldset-repeater`: Dynamic field collections (special field type, not section type)
 
 **Rule 3.3**: Layout Rules:
 - `1-column`: Stack all fields vertically
@@ -184,6 +185,33 @@ This document provides comprehensive rules for interpreting the Form Schema JSON
 - `address`: Composite field with street, city, state, zip
 - `rating`: Star rating selector
 - `slider`: Range slider with min/max
+
+**Rule 5.5**: Fieldset Repeater Fields
+```json
+"type": "fieldset-repeater",
+"minItems": 0,
+"maxItems": 50,
+"defaultItems": 0,
+"addButtonText": "+ Add Item",
+"removeButtonText": "Remove",
+"itemLabel": "Item #{index}",
+"collapsible": true,
+"fields": [
+    {
+        "id": "field_id",
+        "type": "text",
+        "name": "field_name",
+        "label": "Field Label",
+        "required": true
+    }
+]
+```
+- Dynamic collection of fields that users can add/remove
+- Essential for insurance scenarios (vehicles, locations, additional insureds)
+- Renders with add/remove buttons within min/max limits
+- Each item contains the defined fields
+- Supports collapsible items for better organization
+- Use `{fieldName}` in itemLabel to display field values dynamically
 
 ### 6. Validation Rules
 
@@ -341,6 +369,20 @@ This document provides comprehensive rules for interpreting the Form Schema JSON
                 "state": "CA",
                 "zip": "12345"
             }
+        ],
+        "vehicles": [  // For fieldset-repeater fields
+            {
+                "year": 2020,
+                "make": "Ford",
+                "model": "F-150",
+                "vin": "1FTFW1ET5LFA12345"
+            },
+            {
+                "year": 2019,
+                "make": "Chevrolet",
+                "model": "Silverado",
+                "vin": "1GCUYDED6KZ123456"
+            }
         ]
     },
     "metadata": {
@@ -357,6 +399,15 @@ This document provides comprehensive rules for interpreting the Form Schema JSON
 - Generate unique field names: `{baseName}[{index}].{fieldName}`
 - Allow add/remove buttons within min/max limits
 - Validate each repetition independently
+
+**Rule 12.5**: Fieldset Repeater Fields
+- Handle as a special field type, not a section type
+- Store data as array of objects: `[{field1: value1, field2: value2}, ...]`
+- Preserve field event handlers when adding/removing items
+- Support nested validation for each item's fields
+- Enable/disable add button based on maxItems
+- Enable/disable remove button based on minItems
+- Update itemLabel dynamically if it contains field references
 
 **Rule 12.2**: File Uploads
 - Validate file type against `accept` attribute

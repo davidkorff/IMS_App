@@ -53,7 +53,7 @@ app.get('/producer/submissions/:id', (req, res) => {
 });
 
 app.get('/producer/new-submission/:lobId', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'producer-new-submission.html'));
+    res.sendFile(path.join(__dirname, 'public', 'producer-new-submission-enhanced.html'));
 });
 
 // Serve states.js

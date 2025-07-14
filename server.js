@@ -36,6 +36,15 @@ try {
     console.error('❌ Error loading form builder routes:', error);
 }
 
+// Form builder context routes (secure state management)
+try {
+    console.log('Loading form builder context routes...');
+    app.use('/api/form-builder-context', require('./routes/formBuilderContext'));
+    console.log('✅ Form builder context routes loaded successfully');
+} catch (error) {
+    console.error('❌ Error loading form builder context routes:', error);
+}
+
 // Add system settings routes directly
 try {
     console.log('Loading system settings routes directly...');
@@ -97,6 +106,42 @@ app.get('/', (req, res) => {
 
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Producer Portal Direct Access (for testing without subdomain)
+app.get('/producer-portal/:instanceId?', async (req, res) => {
+    const instanceId = req.params.instanceId || req.query.instance;
+    if (instanceId) {
+        // Store instance ID in session or pass to login page
+        res.redirect(`/producer-login?instance=${instanceId}`);
+    } else {
+        res.send('Please specify an instance ID');
+    }
+});
+
+// Producer Portal Routes
+app.get('/producer-login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-login.html'));
+});
+
+app.get('/producer-register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-register.html'));
+});
+
+app.get('/producer-dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-dashboard.html'));
+});
+
+app.get('/producer-submissions', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-submissions.html'));
+});
+
+app.get('/producer-submission/:id', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-submission-detail.html'));
+});
+
+app.get('/producer-new-submission/:lobId', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'producer-new-submission-enhanced.html'));
 });
 
 app.get('/dashboard', (req, res) => {
@@ -294,7 +339,7 @@ app.get('/producer/submissions/:id', (req, res) => {
 });
 
 app.get('/producer/new-submission/:lobId', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'producer-new-submission.html'));
+    res.sendFile(path.join(__dirname, 'public', 'producer-new-submission-enhanced.html'));
 });
 
 const PORT = process.env.PORT || 5000;

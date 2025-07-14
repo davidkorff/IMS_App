@@ -1,4 +1,26 @@
+
+> ims-application@1.0.0 start
+> node server.js
+
 Loading routes...
+GraphService initialized with:
+- Client ID: acc98a0b...
+- Client Secret: Set (hidden)
+- Tenant ID: b5a30a1b...
+- Redirect URI: https://ims-application.onrender.com/auth/graph/callback
+- Webhook URL: https://ims-application.onrender.com/webhooks/graph/email
+- Email Address: david@42consultingllc.com
+Loading form builder routes...
+✅ Form builder routes loaded successfully
+Loading form builder context routes...
+✅ Form builder context routes loaded successfully
+Loading system settings routes directly...
+✅ System settings routes loaded at /api/system-settings
+Loading custom routes...
+✅ Custom routes loaded successfully
+Loading producer portal routes...
+✅ Producer routes loaded at /api/producer
+✅ Producer admin routes loaded at /api/producer-admin
 Loading webui routes...
 Loading submission router in webui.js
 Loading submission router - START
@@ -13,66 +35,131 @@ Insured router loaded successfully
 Loading submission router - END
 Webui router loaded successfully
 Server running on port 5000
+Error updating email configurations schema: Error: connect ECONNREFUSED 127.0.0.1:5432
+    at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async EmailConfigService.initializeSchema (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailConfigService.js:50:13)
+    at async Server.<anonymous> (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/server.js:352:9) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 5432
+}
+Starting automatic catch-all email processing...
+Starting catch-all email processing every 5 minutes
+=== STARTING CATCH-ALL EMAIL PROCESSING ===
+✅ Catch-all email monitoring started - checking every 5 minutes
+📨 Processing emails from catch-all inbox: documents@42consultingllc.com
+Error in catch-all email processing: Error: connect ECONNREFUSED 127.0.0.1:5432
+    at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async CatchAllEmailProcessor.getLastProcessedTimestamp (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/catchAllEmailProcessor.js:523:24)
+    at async CatchAllEmailProcessor.processAllEmails (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/catchAllEmailProcessor.js:59:35) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 5432
+}
+=== CATCH-ALL EMAIL PROCESSING COMPLETE ===
+🔍 Subdomain Router - Hostname: localhost Path: /instance/4/producer-admin
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
+🔍 Subdomain Router - Hostname: localhost Path: /css/style.css
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
+🔍 Subdomain Router - Hostname: localhost Path: /js/auth-utils.js
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
+🔍 Subdomain Router - Hostname: localhost Path: /.well-known/appspecific/com.chrome.devtools.json
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
+🔍 Subdomain Router - Hostname: localhost Path: /api/producer-admin/statistics
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
+🔍 Subdomain Router - Hostname: localhost Path: /api/producer-admin/producers
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
 Auth middleware - checking token
-No token provided
-[o9jvf] Manual email processing request
-Error getting config by ID: Error: connect ECONNREFUSED 127.0.0.1:5432
+Decoded token: { user_id: 1, iat: 1751987547, exp: 1751991147 }
+🔍 Subdomain Router - Hostname: localhost Path: /api/producer-admin/config
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
+Auth middleware - checking token
+Decoded token: { user_id: 1, iat: 1751987547, exp: 1751991147 }
+🔍 Subdomain Router - Hostname: localhost Path: /api/producer-admin/lines-of-business
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
+Auth middleware - checking token
+Decoded token: { user_id: 1, iat: 1751987547, exp: 1751991147 }
+Token verification failed: Error: connect ECONNREFUSED 127.0.0.1:5432
     at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async EmailFilingService.getConfigById (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:621:28)
-    at async EmailFilingService.processIncomingEmail (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:77:28)
-    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/webhooks.js:189:24 {
+    at async module.exports (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/middleware/auth.js:21:24) {
   errno: -111,
   code: 'ECONNREFUSED',
   syscall: 'connect',
   address: '127.0.0.1',
   port: 5432
 }
-Error processing incoming email: Error: connect ECONNREFUSED 127.0.0.1:5432
+Auth middleware - checking token
+Decoded token: { user_id: 1, iat: 1751987547, exp: 1751991147 }
+Token verification failed: Error: connect ECONNREFUSED 127.0.0.1:5432
     at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async EmailFilingService.getConfigById (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:621:28)
-    at async EmailFilingService.processIncomingEmail (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:77:28)
-    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/webhooks.js:189:24 {
+    at async module.exports (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/middleware/auth.js:21:24) {
   errno: -111,
   code: 'ECONNREFUSED',
   syscall: 'connect',
   address: '127.0.0.1',
   port: 5432
 }
-Error getting config by ID: Error: connect ECONNREFUSED 127.0.0.1:5432
+Token verification failed: Error: connect ECONNREFUSED 127.0.0.1:5432
     at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async EmailFilingService.getConfigById (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:621:28)
-    at async EmailFilingService.processIncomingEmail (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:210:36)
-    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/webhooks.js:189:24 {
+    at async module.exports (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/middleware/auth.js:21:24) {
   errno: -111,
   code: 'ECONNREFUSED',
   syscall: 'connect',
   address: '127.0.0.1',
   port: 5432
 }
-Error tracking failed webhook: Error: connect ECONNREFUSED 127.0.0.1:5432
+Token verification failed: Error: connect ECONNREFUSED 127.0.0.1:5432
     at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async EmailFilingService.getConfigById (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:621:28)
-    at async EmailFilingService.processIncomingEmail (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:210:36)
-    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/webhooks.js:189:24 {
+    at async module.exports (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/middleware/auth.js:21:24) {
   errno: -111,
   code: 'ECONNREFUSED',
   syscall: 'connect',
   address: '127.0.0.1',
   port: 5432
 }
-[o9jvf] Manual processing error: Error: connect ECONNREFUSED 127.0.0.1:5432
+🔍 Subdomain Router - Hostname: localhost Path: /
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
+🔍 Subdomain Router - Hostname: localhost Path: /.well-known/appspecific/com.chrome.devtools.json
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
+🔍 Subdomain Router - Hostname: localhost Path: /api/auth/login
+🔍 Subdomain check - Parts: [ 'localhost' ] Has subdomain: false
+Login attempt for: davidkorff@gmail.com
+Login error: Error: connect ECONNREFUSED 127.0.0.1:5432
     at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async EmailFilingService.getConfigById (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:621:28)
-    at async EmailFilingService.processIncomingEmail (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/emailFilingService.js:77:28)
-    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/webhooks.js:189:24 {
+    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/auth.js:52:22 {
   errno: -111,
   code: 'ECONNREFUSED',
   syscall: 'connect',
   address: '127.0.0.1',
   port: 5432
 }
+Full error details: connect ECONNREFUSED 127.0.0.1:5432
+Stack trace: Error: connect ECONNREFUSED 127.0.0.1:5432
+    at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /mnt/c/Users/david/OneDrive/Documents/IMS_Application/routes/auth.js:52:22
+JWT_SECRET exists: true
+=== STARTING CATCH-ALL EMAIL PROCESSING ===
+Error in catch-all email processing: Error: connect ECONNREFUSED 127.0.0.1:5432
+    at /mnt/c/Users/david/OneDrive/Documents/IMS_Application/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async CatchAllEmailProcessor.getLastProcessedTimestamp (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/catchAllEmailProcessor.js:523:24)
+    at async CatchAllEmailProcessor.processAllEmails (/mnt/c/Users/david/OneDrive/Documents/IMS_Application/services/catchAllEmailProcessor.js:59:35) {
+  errno: -111,
+  code: 'ECONNREFUSED',
+  syscall: 'connect',
+  address: '127.0.0.1',
+  port: 5432
+}
+=== CATCH-ALL EMAIL PROCESSING COMPLETE ===

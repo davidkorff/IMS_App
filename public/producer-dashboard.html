@@ -21,8 +21,16 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
         .navbar-brand img {
             max-height: 40px;
+            width: auto;
+            object-fit: contain;
         }
         
         .dashboard-content {
@@ -113,7 +121,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand" href="/producer/dashboard">
-                <img src="" alt="Logo" id="navLogo" style="display: none;">
+                <img src="" alt="Logo" id="navLogo" style="display: none;" crossorigin="anonymous">
                 <span id="navTitle">Producer Portal</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -303,16 +311,48 @@
             
             if (config.logo_url) {
                 const logo = document.getElementById('navLogo');
+                // Add error handling for logo loading
+                logo.onerror = function() {
+                    console.error('Failed to load logo:', config.logo_url);
+                    logo.style.display = 'none';
+                    document.getElementById('navTitle').style.display = 'inline-block';
+                };
+                logo.onload = function() {
+                    logo.style.display = 'inline-block';
+                    // Hide title if logo loads successfully
+                    document.getElementById('navTitle').style.display = 'none';
+                };
                 logo.src = config.logo_url;
-                logo.style.display = 'inline-block';
             }
             
             if (config.primary_color) {
                 document.documentElement.style.setProperty('--primary-color', config.primary_color);
             }
             
+            if (config.secondary_color) {
+                document.documentElement.style.setProperty('--secondary-color', config.secondary_color);
+            }
+            
             if (config.custom_css) {
                 document.querySelector('.custom-styles').textContent = config.custom_css;
+            }
+            
+            // Execute custom JavaScript if provided
+            if (config.custom_js) {
+                try {
+                    // Create a function from the custom JS and execute it
+                    const customFunction = new Function(config.custom_js);
+                    // Execute after a small delay to ensure DOM is ready
+                    setTimeout(() => {
+                        try {
+                            customFunction();
+                        } catch (jsError) {
+                            console.error('Error executing custom JavaScript:', jsError);
+                        }
+                    }, 100);
+                } catch (error) {
+                    console.error('Error parsing custom JavaScript:', error);
+                }
             }
         }
         

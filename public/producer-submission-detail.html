@@ -246,6 +246,27 @@
                         </div>
                     </div>
                 </div>
+                <!-- IMS Reference Information -->
+                <div class="row mt-3" id="imsReferenceSection" style="display: none;">
+                    <div class="col-md-4">
+                        <div class="data-row">
+                            <div class="data-label">IMS Quote ID</div>
+                            <div id="imsQuoteGuid">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="data-row">
+                            <div class="data-label">IMS Control Number</div>
+                            <div id="imsControlNumber">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="data-row">
+                            <div class="data-label">Premium</div>
+                            <div id="quotePremium">-</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Form Data -->
@@ -347,6 +368,34 @@
                 submission.line_name || 'N/A';
             document.getElementById('policyNumber').textContent = 
                 submission.ims_policy_number || 'Not yet issued';
+            
+            // IMS Reference Information
+            if (submission.ims_quote_guid || submission.form_data?.imsResults) {
+                document.getElementById('imsReferenceSection').style.display = 'block';
+                
+                // Extract IMS results from form_data if available
+                const imsResults = submission.form_data?.imsResults || {};
+                
+                // Quote GUID
+                const quoteGuid = submission.ims_quote_guid || imsResults.quoteGuid;
+                if (quoteGuid) {
+                    // Display first 8 characters for readability, but store full GUID as title
+                    const quoteElement = document.getElementById('imsQuoteGuid');
+                    quoteElement.innerHTML = `<code title="${quoteGuid}">${quoteGuid.substring(0, 8)}...</code>`;
+                }
+                
+                // Control Number
+                const controlNumber = imsResults.controlNumber;
+                if (controlNumber) {
+                    document.getElementById('imsControlNumber').innerHTML = `<strong>${controlNumber}</strong>`;
+                }
+                
+                // Premium
+                const premium = imsResults.premium || submission.form_data?.raterResults?.premium;
+                if (premium) {
+                    document.getElementById('quotePremium').textContent = `$${parseFloat(premium).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                }
+            }
             
             // Form data
             displayFormData(submission.form_data || {});

@@ -5,7 +5,7 @@
 
 // Global state
 let formSchema = {
-    id: generateId(),
+    id: null, // Will be set by database when saved
     version: '1.0',
     metadata: {
         title: 'New Form',
@@ -50,34 +50,58 @@ let redoStack = [];
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Form Builder initializing...');
     
-    // Check for form_schema_id in URL
+    // Check for context ID in URL
     const urlParams = new URLSearchParams(window.location.search);
-    const formSchemaId = urlParams.get('form_schema_id');
+    const contextId = urlParams.get('context');
     
-    if (formSchemaId && window.fetchWithAuth) {
-        console.log('Loading form schema:', formSchemaId);
+    if (contextId && window.fetchWithAuth) {
+        console.log('Loading context:', contextId);
         try {
-            const response = await window.fetchWithAuth(`/api/forms/schemas/${formSchemaId}`);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('Form data loaded:', data);
+            // Retrieve context from secure API
+            const contextResponse = await window.fetchWithAuth(`/api/form-builder-context/context/${contextId}`);
+            if (contextResponse.ok) {
+                const context = await contextResponse.json();
+                console.log('Context loaded:', context);
                 
-                // Load the schema - handle both direct schema and database row format
-                if (data.form_schema) {
-                    window.loadFormSchema(data.form_schema);
-                } else if (data.pages && data.fields) {
-                    window.loadFormSchema(data);
-                } else {
-                    console.error('Unexpected data format:', data);
+                // Store context data in window for later use
+                window.formBuilderContext = {
+                    lobId: context.lobId,
+                    instanceId: context.instanceId,
+                    formSchemaId: context.formSchemaId
+                };
+                
+                // If there's a form schema ID, load it
+                if (context.formSchemaId && context.formSchemaId !== 'null' && context.formSchemaId !== 'undefined') {
+                    console.log('Loading form schema:', context.formSchemaId);
+                    const response = await window.fetchWithAuth(`/api/forms/schemas/${context.formSchemaId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Form data loaded:', data);
+                        
+                        // Load the schema - handle both direct schema and database row format
+                        if (data.form_schema) {
+                            // Pass the entire data object so we can extract the form_id
+                            window.loadFormSchema(data);
+                        } else if (data.pages && data.fields) {
+                            window.loadFormSchema(data);
+                        } else {
+                            console.error('Unexpected data format:', data);
+                        }
+                    } else {
+                        console.error('Failed to load form schema:', response.status);
+                    }
                 }
+            } else if (contextResponse.status === 410) {
+                console.error('Context expired');
+                alert('Session expired. Please close this window and try again.');
             } else {
-                console.error('Failed to load form schema:', response.status);
+                console.error('Failed to load context:', contextResponse.status);
             }
         } catch (error) {
-            console.error('Error loading form schema:', error);
+            console.error('Error loading context:', error);
         }
     } else {
-        console.log('No form_schema_id, using default form');
+        console.log('No context ID, using default form');
     }
     
     initializeDragDrop();
@@ -89,6 +113,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 // Utility function to generate unique IDs
 function generateId() {
     return 'id_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Validate UUID format
+function isValidUUID(uuid) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
 }
 
 // Initialize drag and drop functionality
@@ -1117,13 +1147,20 @@ window.saveForm = async function() {
     formSchema.metadata.updatedAt = new Date().toISOString();
     
     try {
-        // Get instance ID from parent window if in popup
-        const instanceId = window.opener ? 
-            window.opener.document.querySelector('[data-instance-id]')?.dataset.instanceId : 
-            document.querySelector('[data-instance-id]')?.dataset.instanceId;
-            
-        // Get LOB ID from parent window if available
-        const lobId = window.opener?.currentLobId || null;
+        // Get data from secure context
+        let instanceId = null;
+        let lobId = null;
+        
+        if (window.formBuilderContext) {
+            instanceId = window.formBuilderContext.instanceId;
+            lobId = window.formBuilderContext.lobId;
+            console.log('Using context data:', { instanceId, lobId });
+        } else {
+            console.warn('No form builder context found, form may not save correctly');
+        }
+        
+        console.log('Instance ID for save:', instanceId);
+        console.log('LOB ID for save:', lobId);
         
         const response = await fetch('/api/forms/schemas', {
             method: 'POST',
@@ -1133,7 +1170,8 @@ window.saveForm = async function() {
                 'X-Instance-ID': instanceId
             },
             body: JSON.stringify({
-                form_id: formSchema.id || null,
+                // Only send form_id if it's a valid UUID (existing form)
+                form_id: (formSchema.id && isValidUUID(formSchema.id)) ? formSchema.id : null,
                 lob_id: lobId,
                 title: formSchema.metadata.title,
                 description: formSchema.metadata.description,
@@ -1145,6 +1183,26 @@ window.saveForm = async function() {
         if (response.ok) {
             const savedSchema = await response.json();
             formSchema.id = savedSchema.form_id;
+            
+            // If we have a LOB ID, link the form to the LOB
+            if (lobId && savedSchema.form_id) {
+                const linkResponse = await fetch('/api/forms/link-to-lob', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'X-Instance-ID': instanceId
+                    },
+                    body: JSON.stringify({
+                        lob_id: lobId,
+                        form_schema_id: savedSchema.form_id
+                    })
+                });
+                
+                if (!linkResponse.ok) {
+                    console.error('Failed to link form to LOB');
+                }
+            }
             
             // If opened from parent window, send message back
             if (window.opener && window.opener.receiveFormSchema) {
@@ -1209,13 +1267,17 @@ window.getFormSchema = function() {
 };
 
 // Load schema (for editing existing forms)
-window.loadFormSchema = function(schema) {
-    console.log('loadFormSchema called with:', schema);
+window.loadFormSchema = function(schemaData) {
+    console.log('loadFormSchema called with:', schemaData);
     
-    // If schema is actually the database row, extract the form_schema
-    if (schema && schema.form_schema && !schema.pages) {
+    let schema = schemaData;
+    let databaseFormId = null;
+    
+    // If schema is actually the database row, extract the form_schema and preserve the database ID
+    if (schemaData && schemaData.form_schema && !schemaData.pages) {
         console.log('Extracting form_schema from database row');
-        schema = schema.form_schema;
+        schema = schemaData.form_schema;
+        databaseFormId = schemaData.form_id; // Preserve the database UUID
     }
     
     if (!schema || !schema.pages || !schema.fields) {
@@ -1224,6 +1286,12 @@ window.loadFormSchema = function(schema) {
     }
     
     formSchema = schema;
+    
+    // If we have a database form_id (UUID), use it instead of the generated ID
+    if (databaseFormId && isValidUUID(databaseFormId)) {
+        formSchema.id = databaseFormId;
+    }
+    
     currentPageIndex = 0;
     renderForm();
     renderPageTabs();

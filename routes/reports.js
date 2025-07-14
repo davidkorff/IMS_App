@@ -4,6 +4,7 @@ const auth = require('../middleware/auth');
 const reports = require('../config/reports');
 const xml2js = require('xml2js');
 const dataAccess = require('../services/dataAccess');
+const authService = require('../services/authService');
 
 // Add this helper function at the top of the file
 function createSoapEnvelope(procedureName, parameters = []) {
@@ -369,5 +370,72 @@ router.post('/', auth, async (req, res) => {
         res.status(500).json({ message: 'Failed to save report', error: err.message });
     }
 });
+
+// Query any IMS table dynamically
+router.post('/query-table', auth, async (req, res) => {
+    try {
+        const { instanceId, tableName, limit = 100, offset = 0 } = req.body;
+        
+        if (!instanceId || !tableName) {
+            return res.status(400).json({ message: 'Instance ID and table name are required' });
+        }
+        
+        // Get instance credentials
+        const instanceResult = await pool.query(
+            'SELECT url, username, password FROM ims_instances WHERE instance_id = $1',
+            [instanceId]
+        );
+        
+        if (instanceResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Instance not found' });
+        }
+        
+        const instance = instanceResult.rows[0];
+        
+        try {
+            // Use our simple stored procedure to query any table
+            const result = await dataAccess.executeProc({
+                url: instance.url,
+                username: instance.username,
+                password: instance.password,
+                procedure: 'DK_GetTableData_WS',
+                parameters: {
+                    TableName: tableName
+                }
+            });
+            
+            res.json({
+                success: true,
+                tableName,
+                data: result.Table || [],
+                recordCount: result.Table ? result.Table.length : 0
+            });
+            
+        } catch (imsError) {
+            // If the generic procedure doesn't exist, try a table-specific approach
+            // For lookup tables like lstBusinessTypes, there might be specific procedures
+            if (imsError.message && imsError.message.includes('could not find stored procedure')) {
+                // Since the main procedure failed, just return the error
+                res.status(400).json({
+                    success: false,
+                    message: 'Unable to query table. The stored procedure might not exist in IMS.',
+                    error: imsError.message,
+                    hint: 'Deploy DK_GetTableData_WS.sql to your IMS database first.'
+                });
+            } else {
+                throw imsError;
+            }
+        }
+        
+    } catch (err) {
+        console.error('Error querying IMS table:', err);
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to query IMS table', 
+            error: err.message 
+        });
+    }
+});
+
 
 module.exports = router; 

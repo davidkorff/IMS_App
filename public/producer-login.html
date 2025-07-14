@@ -154,21 +154,31 @@
         async function loadPortalConfig() {
             try {
                 const instanceId = getInstanceId();
+                console.log('🔍 Instance ID detected:', instanceId);
+                
+                // Store instance ID in sessionStorage for other pages
+                if (instanceId) {
+                    sessionStorage.setItem('instanceId', instanceId);
+                }
+                
                 let url = '/api/producer/portal/config';
                 if (instanceId) {
                     url += `?instanceId=${instanceId}`;
+                }
+                
+                // Always update the register link if we have an instance ID
+                if (instanceId) {
+                    const registerLink = document.getElementById('registerLink');
+                    if (registerLink) {
+                        registerLink.href = `/producer-register?instance=${instanceId}`;
+                        console.log('✅ Updated register link to:', registerLink.href);
+                    }
                 }
                 
                 const response = await fetch(url);
                 if (response.ok) {
                     const data = await response.json();
                     applyPortalBranding(data.config);
-                    
-                    // Update registration link with instance ID
-                    if (instanceId) {
-                        const registerLink = document.getElementById('registerLink');
-                        registerLink.href = `/producer-register?instance=${instanceId}`;
-                    }
                 }
             } catch (error) {
                 console.error('Failed to load portal config:', error);

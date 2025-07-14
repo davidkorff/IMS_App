@@ -1,0 +1,2 @@
+-- This migration was removed as we're using IMS stored procedures instead
+-- See StoredProcs/DK_GetTableData_WS.sql and DK_GetLookupTable_WS.sql
