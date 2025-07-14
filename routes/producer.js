@@ -210,16 +210,22 @@ router.post('/auth/login', async (req, res) => {
         // Determine instance ID
         let resolvedInstanceId = instanceId;
         
+        // First check if we have portal instance from subdomain middleware
+        if (!resolvedInstanceId && req.portalInstance && req.portalInstance.instanceId) {
+            resolvedInstanceId = req.portalInstance.instanceId;
+        }
+        
         if (!resolvedInstanceId) {
             // Try to get from subdomain if not provided
             const host = req.hostname || req.headers.host;
             const subdomain = host.split('.')[0];
             
-            if (subdomain && subdomain !== 'localhost' && subdomain !== 'www') {
+            if (subdomain && subdomain !== 'localhost' && subdomain !== 'www' && subdomain !== '42ims') {
                 try {
                     const result = await pool.query(`
                         SELECT instance_id FROM ims_instances 
-                        WHERE LOWER(subdomain) = LOWER($1)
+                        WHERE LOWER(custom_domain) = LOWER($1)
+                        AND is_custom_domain_approved = true
                     `, [subdomain]);
                     
                     if (result.rows.length > 0) {
