@@ -16,6 +16,14 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
+        /* Ensure procedure input fields are always enabled and editable */
+        #lobImsProcedure, #editLobImsProcedure {
+            background-color: #fff !important;
+            cursor: text !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        
         .status-badge {
             font-size: 0.875rem;
             padding: 0.25rem 0.75rem;
@@ -387,10 +395,13 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Data Processing Procedure (Optional)</label>
-                                    <input type="text" class="form-control" id="lobImsProcedure" placeholder="e.g., ProcessWorkerCompSubmission_WS">
+                                    <input type="text" class="form-control" id="lobImsProcedure" 
+                                           placeholder="e.g., ExcelRating_RateOption4_WS" 
+                                           value="ExcelRating_RateOption4_WS">
                                     <div class="form-text">
-                                        IMS stored procedure to process submission data and trigger form attachment. 
-                                        Include "_WS" suffix (it will be handled automatically).
+                                        IMS stored procedure to execute rating calculations. 
+                                        <strong>Default: ExcelRating_RateOption4_WS</strong><br>
+                                        <span class="text-warning">⚠️ Must include "_WS" suffix - this is required for webservice procedures.</span>
                                     </div>
                                 </div>
                                 
@@ -553,12 +564,12 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">IMS Procedure</label>
-                                    <select class="form-control" id="editLobImsProcedure" disabled>
-                                        <option value="">Select line first...</option>
-                                    </select>
+                                    <input type="text" class="form-control" id="editLobImsProcedure" 
+                                           placeholder="e.g., ExcelRating_RateOption4_WS">
                                     <div class="form-text">
-                                        IMS stored procedure to process submission data and trigger form attachment. 
-                                        Include "_WS" suffix (it will be handled automatically).
+                                        IMS stored procedure to execute rating calculations. 
+                                        <strong>Default: ExcelRating_RateOption4_WS</strong><br>
+                                        <span class="text-warning">⚠️ Must include "_WS" suffix - this is required for webservice procedures.</span>
                                     </div>
                                 </div>
                                 <div class="mb-3">
@@ -579,27 +590,17 @@
                             <!-- Excel Configuration Tab -->
                             <div class="tab-pane fade" id="edit-excel-content">
                                 <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i> Configure how Excel formulas are calculated and where to find the premium.
+                                    <i class="fas fa-info-circle"></i> Excel formula calculation is automatically handled using Excel COM automation.
                                 </div>
                                 
                                 <!-- Formula Calculation Settings -->
                                 <div class="mb-4">
                                     <h6 class="mb-3">Formula Calculation</h6>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="editExcelFormulaCalc" checked>
-                                        <label class="form-check-label" for="editExcelFormulaCalc">
-                                            Calculate Excel formulas before sending to IMS
-                                        </label>
-                                        <div class="form-text">IMS cannot calculate Excel formulas. Enable this to calculate them first.</div>
-                                    </div>
-                                    <div class="mt-2">
-                                        <label class="form-label">Calculation Method</label>
-                                        <select class="form-control" id="editFormulaCalcMethod">
-                                            <option value="none">None - No calculation (populate only)</option>
-                                            <option value="python">Python (openpyxl) - Cross-platform calculation</option>
-                                            <option value="excel_com">Excel COM - Windows only, most accurate</option>
-                                            <option value="libreoffice">LibreOffice - Cross-platform, Docker-friendly</option>
-                                        </select>
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-check-circle"></i> <strong>Automatic Formula Calculation Enabled</strong><br>
+                                        The system uses Excel COM automation (via Python script) to accurately calculate all formulas before sending to IMS.
+                                        <br><br>
+                                        <small>This method preserves Excel formatting and ensures accurate formula calculation.</small>
                                     </div>
                                 </div>
                                 
@@ -669,6 +670,14 @@
             
             // Set up event handlers after everything is loaded
             setupEventHandlers();
+            
+            // Ensure procedure fields are never disabled (they're text inputs now)
+            setTimeout(() => {
+                const lobProcField = document.getElementById('lobImsProcedure');
+                const editProcField = document.getElementById('editLobImsProcedure');
+                if (lobProcField) lobProcField.disabled = false;
+                if (editProcField) editProcField.disabled = false;
+            }, 100);
         });
         
         // Load statistics
@@ -1396,8 +1405,8 @@
             document.getElementById('lobImsLine').disabled = true;
             document.getElementById('lobRatingType').innerHTML = '<option value="">Select rating type...</option>';
             document.getElementById('lobRatingType').disabled = false;
-            document.getElementById('lobImsProcedure').innerHTML = '<option value="">Select line first...</option>';
-            document.getElementById('lobImsProcedure').disabled = true;
+            // Set default value for procedure after reset
+            document.getElementById('lobImsProcedure').value = 'ExcelRating_RateOption4_WS';
         });
         
         // Load IMS companies
@@ -1430,8 +1439,7 @@
             // Reset dependent fields
             document.getElementById('lobImsLine').innerHTML = '<option value="">Select company first...</option>';
             document.getElementById('lobImsLine').disabled = true;
-            document.getElementById('lobImsProcedure').innerHTML = '<option value="">Select line first...</option>';
-            document.getElementById('lobImsProcedure').disabled = true;
+            // Don't touch lobImsProcedure - it's a text input now
             
             if (companyGuid) {
                 await loadLinesForCompany(companyGuid);
@@ -1573,9 +1581,7 @@
                 document.getElementById('editLobCode').value = lob.line_code || '';
                 document.getElementById('editLobDescription').value = lob.description || '';
                 
-                // Populate Excel configuration
-                document.getElementById('editExcelFormulaCalc').checked = lob.excel_formula_calculation !== false;
-                document.getElementById('editFormulaCalcMethod').value = lob.formula_calc_method || 'none';
+                // Excel configuration is now hardcoded - no need to populate
                 
                 // Clear and populate premium mappings
                 document.getElementById('premiumMappingsContainer').innerHTML = '';
@@ -1605,11 +1611,15 @@
                     
                     if (lob.ims_line_guid) {
                         document.getElementById('editLobImsLine').value = lob.ims_line_guid;
-                        await loadEditProceduresForLine(lob.ims_line_guid);
-                        
-                        if (lob.ims_procedure_name) {
-                            document.getElementById('editLobImsProcedure').value = lob.ims_procedure_name;
-                        }
+                        // No need to load procedures anymore - it's a text field
+                    }
+                    
+                    // Set the procedure name directly in the text field
+                    if (lob.ims_procedure_name) {
+                        document.getElementById('editLobImsProcedure').value = lob.ims_procedure_name;
+                    } else {
+                        // Default to ExcelRating_RateOption4_WS if not set
+                        document.getElementById('editLobImsProcedure').value = 'ExcelRating_RateOption4_WS';
                     }
                 }
                 
@@ -1842,11 +1852,10 @@
         document.getElementById('editLobCompany').addEventListener('change', async function(e) {
             const companyGuid = e.target.value;
             
-            // Reset dependent fields
+            // Reset line field only
             document.getElementById('editLobImsLine').innerHTML = '<option value="">Select company first...</option>';
             document.getElementById('editLobImsLine').disabled = true;
-            document.getElementById('editLobImsProcedure').innerHTML = '<option value="">Select line first...</option>';
-            document.getElementById('editLobImsProcedure').disabled = true;
+            // Don't reset the procedure field - it's a text input now
             
             if (companyGuid) {
                 await loadEditLinesForCompany(companyGuid);
@@ -1856,14 +1865,7 @@
         // Handle line selection in edit modal
         document.getElementById('editLobImsLine').addEventListener('change', async function(e) {
             const lineGuid = e.target.value;
-            
-            // Reset procedure field
-            document.getElementById('editLobImsProcedure').innerHTML = '<option value="">Select line first...</option>';
-            document.getElementById('editLobImsProcedure').disabled = true;
-            
-            if (lineGuid) {
-                await loadEditProceduresForLine(lineGuid);
-            }
+            // No need to do anything with the procedure field anymore
         });
         
         // Update LOB button click handler
@@ -1889,9 +1891,9 @@
             formData.append('ims_procedure_name', procedureName || '');
             formData.append('instanceId', instanceId);
             
-            // Add Excel configuration
-            formData.append('excel_formula_calculation', document.getElementById('editExcelFormulaCalc').checked);
-            formData.append('formula_calc_method', document.getElementById('editFormulaCalcMethod').value);
+            // Excel configuration is now hardcoded
+            formData.append('excel_formula_calculation', true); // Always enabled
+            formData.append('formula_calc_method', 'python'); // Always use python/Excel COM
             
             // Collect premium mappings
             const sheets = document.querySelectorAll('input[name="premium_sheet[]"]');

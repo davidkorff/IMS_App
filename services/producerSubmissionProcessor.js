@@ -3,21 +3,16 @@ const IMSService = require('./imsService');
 const dataAccess = require('./dataAccess');
 const ExcelJS = require('exceljs');
 const ExcelFormulaExecutor = require('./excelFormulaExecutor');
-const XLSXCalcWrapper = require('./xlsxCalcWrapper');
 const ExcelMinimalEditor = require('./excelMinimalEditor');
-const ExcelComCalculator = require('./excelComCalculator');
-const LibreOfficeCalculator = require('./libreOfficeCalculator');
 
 class ProducerSubmissionProcessor {
     constructor() {
         // Will initialize IMS service with instance credentials later
         this.imsService = null;
         this.businessTypes = null; // Cache business types
-        this.formulaExecutor = new ExcelFormulaExecutor();
-        this.xlsxCalc = new XLSXCalcWrapper();
-        this.minimalEditor = new ExcelMinimalEditor();
-        this.excelComCalculator = new ExcelComCalculator();
-        this.libreOfficeCalculator = new LibreOfficeCalculator();
+        this.formulaExecutor = new ExcelFormulaExecutor(); // Python script that uses Excel COM
+        this.minimalEditor = new ExcelMinimalEditor(); // Preserves Excel formatting
+        // Removed unused calculators: xlsxCalc, excelComCalculator, libreOfficeCalculator
     }
 
     async processSubmission(submissionId, producerId) {
@@ -453,8 +448,9 @@ class ProducerSubmissionProcessor {
             
             // Step 8: If we still don't have premium, try to extract it from Excel
             if (!premium && processedExcelBuffer) {
-                console.log('\n=== Extracting Premium from Excel ===');
-                console.log('Premium not found from stored procedure, checking Excel file...');
+                console.log('\n=== PREMIUM EXTRACTION FROM EXCEL ===');
+                console.log('⚠️  Premium not found from stored procedure, trying to extract from Excel file...');
+                console.log('NOTE: This step may not be needed if stored proc returns premium');
                 console.log('LOB ID:', submission.lob_id);
                 
                 try {
@@ -534,6 +530,14 @@ class ProducerSubmissionProcessor {
                 console.log('- Premium Source:', raterResults.premiumSource || 'none');
                 console.log('- Method:', raterResults.method || 'unknown');
             }
+            
+            console.log('\n=== PROCESS FLOW SUMMARY ===');
+            console.log(`1. Excel Formula Calculation: ALWAYS ENABLED (Hardcoded)`);
+            console.log(`2. Formula Calc Method: Python → Excel COM (Hardcoded)`);
+            console.log(`3. Premium Cell Locations: ${raterResults && raterResults.extractedPremium ? 'USED to extract premium' : 'NOT USED'}`);
+            console.log(`4. Premium Extracted from Excel: ${raterResults && raterResults.extractedPremium ? `YES (${raterResults.extractedPremium})` : 'NO'}`);
+            console.log(`5. Stored Procedure: ${submission.ims_procedure_name || 'ExcelRating_RateOption4'}`);
+            console.log(`6. Final Premium Source: ${premium > 0 ? 'IMS GetPolicyInformation after stored proc' : 'NONE'}`);
             
             console.log('\n✓ Status: QUOTED');
             console.log('=====================================\n');
@@ -1305,6 +1309,9 @@ class ProducerSubmissionProcessor {
     }
     
     async getPremiumMappings(lobId, client) {
+        console.log(`\n=== PREMIUM MAPPINGS CHECK ===`);
+        console.log(`Checking for premium mappings for LOB ID: ${lobId}`);
+        
         try {
             const result = await client.query(`
                 SELECT sheet_name, cell_reference, mapping_type, description
@@ -1314,21 +1321,31 @@ class ProducerSubmissionProcessor {
             `, [lobId]);
             
             if (result.rows.length > 0) {
-                console.log(`Found ${result.rows.length} premium mappings for LOB ${lobId}`);
+                console.log(`✓ Found ${result.rows.length} custom premium mappings in database:`);
+                result.rows.forEach((mapping, idx) => {
+                    console.log(`  ${idx + 1}. ${mapping.sheet_name}!${mapping.cell_reference} - ${mapping.description || 'no description'}`);
+                });
                 return result.rows;
+            } else {
+                console.log('✗ No custom premium mappings found in database');
             }
         } catch (error) {
-            console.warn('Could not fetch premium mappings:', error.message);
+            console.warn('✗ Could not fetch premium mappings from database:', error.message);
         }
         
         // Return default mappings if none found or error
-        return [
+        console.log('Using DEFAULT premium mappings:');
+        const defaults = [
             { sheet_name: 'IMS_TAGS', cell_reference: 'B6' },
             { sheet_name: 'Summary', cell_reference: 'B6' },
             { sheet_name: 'Premium', cell_reference: 'B10' },
             { sheet_name: 'Rating', cell_reference: 'E15' },
             { sheet_name: 'submission_data', cell_reference: 'B50' }
         ];
+        defaults.forEach((mapping, idx) => {
+            console.log(`  ${idx + 1}. ${mapping.sheet_name}!${mapping.cell_reference}`);
+        });
+        return defaults;
     }
     
     async populateAndSaveExcelRater(submission, quoteGuid, imsData, customData) {
@@ -1358,50 +1375,28 @@ class ProducerSubmissionProcessor {
                 'submission_data'
             );
             
-            // Now handle formula calculation based on selected method
-            const calcMethod = submission.formula_calc_method || 'none';
-            console.log(`\nFormula calculation method: ${calcMethod}`);
+            // HARDCODED: Always use python/Excel COM for formula calculation
+            const calcMethod = 'python'; // Always use python method (which uses Excel COM on Windows)
+            console.log(`\n=== FORMULA CALCULATION (HARDCODED) ===`);
+            console.log(`Method: Python script → Excel COM automation`);
+            console.log(`This provides the most accurate formula calculation`);
             
-            if (calcMethod !== 'none') {
-                try {
-                    switch (calcMethod) {
-                        case 'python':
-                            console.log('Using Python/openpyxl for formula calculation...');
-                            processedBuffer = await this.formulaExecutor.calculateFormulas(processedBuffer, {
+            // Always calculate formulas (hardcoded)
+            try {
+                // Only use python method now
+                console.log('Executing Python script for formula calculation...');
+                console.log('This will use Excel COM automation (win32com) on Windows');
+                processedBuffer = await this.formulaExecutor.calculateFormulas(processedBuffer, {
                                 ...imsData,
                                 ...customData,
                                 effectiveDate,
                                 expirationDate,
                                 cell_mappings: cellMapping
                             });
-                            break;
-                            
-                        case 'excel_com':
-                            console.log('Using Excel COM automation for formula calculation...');
-                            if (await this.excelComCalculator.checkAvailability()) {
-                                processedBuffer = await this.excelComCalculator.calculateFormulas(processedBuffer, cellMapping);
-                            } else {
-                                console.warn('Excel COM not available, skipping formula calculation');
-                            }
-                            break;
-                            
-                        case 'libreoffice':
-                            console.log('Using LibreOffice for formula calculation...');
-                            if (await this.libreOfficeCalculator.checkAvailability()) {
-                                processedBuffer = await this.libreOfficeCalculator.calculateFormulas(processedBuffer, cellMapping);
-                            } else {
-                                console.warn('LibreOffice not available, skipping formula calculation');
-                                console.log(this.libreOfficeCalculator.getInstallInstructions());
-                            }
-                            break;
-                            
-                        default:
-                            console.warn(`Unknown calculation method: ${calcMethod}`);
-                    }
-                } catch (calcError) {
-                    console.error(`Formula calculation failed (${calcMethod}):`, calcError.message);
-                    console.log('Continuing with uncalculated formulas...');
-                }
+                console.log('Formula calculation completed successfully');
+            } catch (calcError) {
+                console.error('Formula calculation failed:', calcError.message);
+                console.log('Continuing with uncalculated formulas...');
             }
             
             // Convert to base64 for IMS
@@ -1566,50 +1561,28 @@ class ProducerSubmissionProcessor {
                 'submission_data'
             );
             
-            // Now handle formula calculation based on selected method
-            const calcMethod = submission.formula_calc_method || 'none';
-            console.log(`\nFormula calculation method: ${calcMethod}`);
+            // HARDCODED: Always use python/Excel COM for formula calculation
+            const calcMethod = 'python'; // Always use python method (which uses Excel COM on Windows)
+            console.log(`\n=== FORMULA CALCULATION (HARDCODED) ===`);
+            console.log(`Method: Python script → Excel COM automation`);
+            console.log(`This provides the most accurate formula calculation`);
             
-            if (calcMethod !== 'none') {
-                try {
-                    switch (calcMethod) {
-                        case 'python':
-                            console.log('Using Python/openpyxl for formula calculation...');
-                            processedBuffer = await this.formulaExecutor.calculateFormulas(processedBuffer, {
+            // Always calculate formulas (hardcoded)
+            try {
+                // Only use python method now
+                console.log('Executing Python script for formula calculation...');
+                console.log('This will use Excel COM automation (win32com) on Windows');
+                processedBuffer = await this.formulaExecutor.calculateFormulas(processedBuffer, {
                                 ...imsData,
                                 ...customData,
                                 effectiveDate,
                                 expirationDate,
                                 cell_mappings: cellMapping
                             });
-                            break;
-                            
-                        case 'excel_com':
-                            console.log('Using Excel COM automation for formula calculation...');
-                            if (await this.excelComCalculator.checkAvailability()) {
-                                processedBuffer = await this.excelComCalculator.calculateFormulas(processedBuffer, cellMapping);
-                            } else {
-                                console.warn('Excel COM not available, skipping formula calculation');
-                            }
-                            break;
-                            
-                        case 'libreoffice':
-                            console.log('Using LibreOffice for formula calculation...');
-                            if (await this.libreOfficeCalculator.checkAvailability()) {
-                                processedBuffer = await this.libreOfficeCalculator.calculateFormulas(processedBuffer, cellMapping);
-                            } else {
-                                console.warn('LibreOffice not available, skipping formula calculation');
-                                console.log(this.libreOfficeCalculator.getInstallInstructions());
-                            }
-                            break;
-                            
-                        default:
-                            console.warn(`Unknown calculation method: ${calcMethod}`);
-                    }
-                } catch (calcError) {
-                    console.error(`Formula calculation failed (${calcMethod}):`, calcError.message);
-                    console.log('Continuing with uncalculated formulas...');
-                }
+                console.log('Formula calculation completed successfully');
+            } catch (calcError) {
+                console.error('Formula calculation failed:', calcError.message);
+                console.log('Continuing with uncalculated formulas...');
             }
             
             // Convert to base64 for IMS
@@ -1617,9 +1590,14 @@ class ProducerSubmissionProcessor {
             
             // Try to extract the premium from the calculated Excel
             let extractedPremium = null;
+            console.log('\n=== PREMIUM EXTRACTION FROM CALCULATED EXCEL ===');
+            console.log(`Should extract? calcMethod !== 'none': ${calcMethod !== 'none'}`);
+            console.log(`Current calcMethod: ${calcMethod}`);
+            
             if (calcMethod !== 'none') {
                 try {
-                    console.log('\nExtracting premium from calculated Excel...');
+                    console.log('✓ Attempting to extract premium from calculated Excel...');
+                    console.log('NOTE: This happens AFTER formula calculation but BEFORE sending to IMS');
                     
                     // Get premium mappings for this LOB
                     const client = await pool.connect();
@@ -1630,24 +1608,35 @@ class ProducerSubmissionProcessor {
                         const XLSX = require('xlsx');
                         const workbook = XLSX.read(processedBuffer, { type: 'buffer' });
                         
+                        console.log('\nChecking premium locations in calculated Excel:');
                         // Check each configured location
                         for (const mapping of premiumMappings) {
                             if (workbook.Sheets[mapping.sheet_name]) {
                                 const sheet = workbook.Sheets[mapping.sheet_name];
                                 const cell = sheet[mapping.cell_reference];
+                                console.log(`  Checking ${mapping.sheet_name}!${mapping.cell_reference}...`);
                                 if (cell && cell.v !== undefined) {
                                     const value = parseFloat(cell.v);
+                                    console.log(`    Value: ${cell.v}, Parsed: ${value}`);
                                     if (!isNaN(value) && value > 0) {
-                                        console.log(`Found premium ${value} in ${mapping.sheet_name}!${mapping.cell_reference}`);
+                                        console.log(`    ✓ Found valid premium: ${value}`);
                                         extractedPremium = value;
                                         break;
+                                    } else {
+                                        console.log(`    ✗ Invalid value (NaN or <= 0)`);
                                     }
+                                } else {
+                                    console.log(`    ✗ Cell is empty or undefined`);
                                 }
+                            } else {
+                                console.log(`  ✗ Sheet "${mapping.sheet_name}" not found in workbook`);
                             }
                         }
                         
                         if (!extractedPremium) {
-                            console.warn('No premium found in configured locations');
+                            console.warn('✗ No premium found in any configured location');
+                        } else {
+                            console.log(`\n✓ EXTRACTED PREMIUM FROM EXCEL: ${extractedPremium}`);
                         }
                     } finally {
                         client.release();
@@ -1655,6 +1644,9 @@ class ProducerSubmissionProcessor {
                 } catch (extractError) {
                     console.error('Error extracting premium:', extractError.message);
                 }
+            } else {
+                console.log('✗ Skipping premium extraction (calcMethod is "none")');
+                console.log('Premium will come from IMS stored procedure instead');
             }
             
             // Save the rating sheet

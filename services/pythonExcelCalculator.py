@@ -89,6 +89,7 @@ def calculate_excel_with_com(excel_path, data_path):
             
     except ImportError:
         print("Excel COM not available (Windows with Excel required)", file=sys.stderr)
+        print("Falling back to xlwings...", file=sys.stderr)
         return calculate_excel_with_xlwings(excel_path, data_path)
 
 def calculate_excel_with_xlwings(excel_path, data_path):
@@ -147,6 +148,7 @@ def calculate_excel_with_xlwings(excel_path, data_path):
             
     except ImportError:
         print("xlwings not available. Install with: pip install xlwings", file=sys.stderr)
+        print("Falling back to openpyxl (WARNING: NO FORMULA CALCULATION)", file=sys.stderr)
         return calculate_excel_fallback(excel_path, data_path)
 
 def calculate_excel_fallback(excel_path, data_path):
