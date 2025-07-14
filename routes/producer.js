@@ -15,22 +15,31 @@ router.get('/portal/config', async (req, res) => {
     try {
         let instanceId;
         
-        // First check if instanceId is provided as query param
-        if (req.query.instanceId) {
+        // First check if we have portal instance from subdomain middleware
+        if (req.portalInstance && req.portalInstance.instanceId) {
+            instanceId = req.portalInstance.instanceId;
+        } else if (req.query.instanceId) {
+            // Fall back to query param if provided
             instanceId = req.query.instanceId;
         } else {
             // Try to get from subdomain
-            try {
-                const middleware = getInstanceFromSubdomain;
-                await new Promise((resolve, reject) => {
-                    middleware(req, res, (err) => {
-                        if (err) reject(err);
-                        else resolve();
-                    });
-                });
-                instanceId = req.instanceId;
-            } catch (error) {
-                return res.status(400).json({ error: 'Could not determine instance' });
+            const host = req.hostname || req.headers.host;
+            const subdomain = host.split('.')[0];
+            
+            if (subdomain && subdomain !== 'localhost' && subdomain !== 'www' && subdomain !== '42ims') {
+                try {
+                    const result = await pool.query(`
+                        SELECT instance_id FROM ims_instances 
+                        WHERE LOWER(custom_domain) = LOWER($1)
+                        AND is_custom_domain_approved = true
+                    `, [subdomain]);
+                    
+                    if (result.rows.length > 0) {
+                        instanceId = result.rows[0].instance_id;
+                    }
+                } catch (error) {
+                    console.error('Subdomain lookup error:', error);
+                }
             }
         }
         
@@ -78,19 +87,23 @@ router.post('/auth/register', async (req, res) => {
         // Determine instance ID
         let instanceId;
         
-        // First check if instanceId is provided in the request body
-        if (req.body.instanceId) {
+        // First check if we have portal instance from subdomain middleware
+        if (req.portalInstance && req.portalInstance.instanceId) {
+            instanceId = req.portalInstance.instanceId;
+        } else if (req.body.instanceId) {
+            // Fall back to request body if provided
             instanceId = req.body.instanceId;
         } else {
-            // Try to get from subdomain if not localhost
+            // Try to get from subdomain if not set by middleware
             const host = req.hostname || req.headers.host;
             const subdomain = host.split('.')[0];
             
-            if (subdomain && subdomain !== 'localhost' && subdomain !== 'www') {
+            if (subdomain && subdomain !== 'localhost' && subdomain !== 'www' && subdomain !== '42ims') {
                 try {
                     const result = await pool.query(`
                         SELECT instance_id FROM ims_instances 
-                        WHERE LOWER(subdomain) = LOWER($1)
+                        WHERE LOWER(custom_domain) = LOWER($1)
+                        AND is_custom_domain_approved = true
                     `, [subdomain]);
                     
                     if (result.rows.length > 0) {
