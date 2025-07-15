@@ -110,6 +110,10 @@
             background-color: #dc3545;
         }
         
+        .badge-draft {
+            background-color: #6c757d;
+        }
+        
         .custom-styles {
             /* Custom CSS will be injected here */
         }
@@ -387,13 +391,23 @@
                 <tr>
                     <td>${new Date(sub.submitted_at).toLocaleDateString()}</td>
                     <td>${sub.submission_uuid.substring(0, 8)}</td>
-                    <td>${sub.form_data?.insuredName || 'N/A'}</td>
+                    <td>${sub.form_data?.insuredName || sub.form_data?.imsData?.firstName || sub.form_data?.imsData?.corporationName || 'N/A'}</td>
                     <td>${sub.line_name || 'N/A'}</td>
-                    <td><span class="badge badge-${sub.status}">${sub.status}</span></td>
+                    <td><span class="badge badge-${sub.status}">${sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}</span></td>
                     <td>
-                        <a href="/producer/submissions/${sub.submission_id}" class="btn btn-sm btn-outline-primary">
-                            View
-                        </a>
+                        ${sub.status === 'draft' ? 
+                            `<div class="btn-group" role="group">
+                                <a href="/producer/new-submission/${sub.form_data?.lobId || sub.lob_id}?draft=${sub.submission_id}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i> Continue
+                                </a>
+                                <button onclick="deleteDraft(${sub.submission_id}, '${sub.submission_uuid}')" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>` :
+                            `<a href="/producer/submissions/${sub.submission_id}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i> View
+                            </a>`
+                        }
                     </td>
                 </tr>
             `).join('');
@@ -417,7 +431,7 @@
                     document.getElementById('boundPolicies').textContent = 
                         submissions.filter(s => s.ims_policy_number).length;
                     document.getElementById('pendingSubmissions').textContent = 
-                        submissions.filter(s => s.status === 'pending' || s.status === 'processing').length;
+                        submissions.filter(s => s.status === 'pending' || s.status === 'processing' || s.status === 'draft').length;
                 }
             } catch (error) {
                 console.error('Failed to load statistics:', error);
@@ -483,6 +497,48 @@
             modal.show();
             loadLinesOfBusiness();
         });
+        
+        // Delete draft submission
+        async function deleteDraft(submissionId, submissionUuid) {
+            const confirmDelete = confirm(`Are you sure you want to delete this draft submission?\n\nReference: ${submissionUuid.substring(0, 8)}\n\nThis action cannot be undone.`);
+            
+            if (!confirmDelete) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/producer/submissions/${submissionId}`, {
+                    method: 'DELETE',
+                    headers: authHeaders
+                });
+                
+                if (response.ok) {
+                    // Show success message
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+                    alert.style.zIndex = '9999';
+                    alert.innerHTML = `
+                        <i class="fas fa-check-circle"></i> Draft submission deleted successfully.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    document.body.appendChild(alert);
+                    
+                    // Auto-dismiss after 3 seconds
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 3000);
+                    
+                    // Reload dashboard data
+                    loadDashboard();
+                } else {
+                    const error = await response.json();
+                    alert('Failed to delete draft: ' + (error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error deleting draft:', error);
+                alert('Failed to delete draft. Please try again.');
+            }
+        }
         
         // Initialize
         loadPortalConfig();

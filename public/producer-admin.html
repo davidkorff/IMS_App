@@ -511,11 +511,6 @@
                                     IMS Integration
                                 </button>
                             </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="edit-excel-tab" data-bs-toggle="tab" data-bs-target="#edit-excel-content" type="button">
-                                    Excel Configuration
-                                </button>
-                            </li>
                         </ul>
 
                         <!-- Tab content -->
@@ -583,49 +578,6 @@
                                         <button type="button" class="btn btn-sm btn-link" onclick="downloadRaterFile()">
                                             <i class="fas fa-download"></i> Download
                                         </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Excel Configuration Tab -->
-                            <div class="tab-pane fade" id="edit-excel-content">
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle"></i> Excel formula calculation is automatically handled using Excel COM automation.
-                                </div>
-                                
-                                <!-- Formula Calculation Settings -->
-                                <div class="mb-4">
-                                    <h6 class="mb-3">Formula Calculation</h6>
-                                    <div class="alert alert-success">
-                                        <i class="fas fa-check-circle"></i> <strong>Automatic Formula Calculation Enabled</strong><br>
-                                        The system uses Excel COM automation (via Python script) to accurately calculate all formulas before sending to IMS.
-                                        <br><br>
-                                        <small>This method preserves Excel formatting and ensures accurate formula calculation.</small>
-                                    </div>
-                                </div>
-                                
-                                <!-- Premium Cell Mappings -->
-                                <div class="mb-3">
-                                    <h6 class="mb-3">Premium Cell Locations</h6>
-                                    <p class="text-muted">Specify where to find the calculated premium in the Excel file. The system will check each location in priority order.</p>
-                                    
-                                    <div id="premiumMappingsContainer">
-                                        <!-- Premium mappings will be added here dynamically -->
-                                    </div>
-                                    
-                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addPremiumMapping()">
-                                        <i class="fas fa-plus"></i> Add Premium Location
-                                    </button>
-                                </div>
-                                
-                                <!-- Common Templates -->
-                                <div class="mt-4">
-                                    <h6 class="mb-2">Common Premium Locations</h6>
-                                    <div class="small text-muted">
-                                        <div><code>IMS_TAGS!B6</code> - Standard IMS location</div>
-                                        <div><code>Summary!B10</code> - Common summary sheet</div>
-                                        <div><code>Premium!B15</code> - Premium calculation sheet</div>
-                                        <div><code>Rating!E15</code> - Rating result cell</div>
                                     </div>
                                 </div>
                             </div>
@@ -1523,47 +1475,6 @@
         document.getElementById('saveLobBtn').addEventListener('click', saveLob);
         
         // Edit LOB function
-        // Premium mapping management
-        let premiumMappingCounter = 0;
-        
-        window.addPremiumMapping = function(sheet = '', cell = '', priority = '') {
-            const container = document.getElementById('premiumMappingsContainer');
-            const mappingId = `mapping_${premiumMappingCounter++}`;
-            
-            const mappingHtml = `
-                <div class="premium-mapping-row mb-2" id="${mappingId}">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <input type="text" class="form-control" 
-                                   placeholder="Sheet name (e.g., IMS_TAGS)" 
-                                   name="premium_sheet[]" 
-                                   value="${sheet}">
-                        </div>
-                        <div class="col-md-3">
-                            <input type="text" class="form-control" 
-                                   placeholder="Cell (e.g., B6)" 
-                                   name="premium_cell[]" 
-                                   value="${cell}">
-                        </div>
-                        <div class="col-md-3">
-                            <input type="number" class="form-control" 
-                                   placeholder="Priority" 
-                                   name="premium_priority[]" 
-                                   value="${priority || premiumMappingCounter}" 
-                                   min="1">
-                        </div>
-                        <div class="col-md-2">
-                            <button type="button" class="btn btn-sm btn-outline-danger" 
-                                    onclick="document.getElementById('${mappingId}').remove()">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            container.insertAdjacentHTML('beforeend', mappingHtml);
-        };
         
         window.editLob = async function(lobId) {
             try {
@@ -1581,21 +1492,6 @@
                 document.getElementById('editLobCode').value = lob.line_code || '';
                 document.getElementById('editLobDescription').value = lob.description || '';
                 
-                // Excel configuration is now hardcoded - no need to populate
-                
-                // Clear and populate premium mappings
-                document.getElementById('premiumMappingsContainer').innerHTML = '';
-                premiumMappingCounter = 0;
-                
-                if (lob.premium_mappings && lob.premium_mappings.length > 0) {
-                    lob.premium_mappings.forEach(mapping => {
-                        addPremiumMapping(mapping.sheet_name, mapping.cell_reference, mapping.priority);
-                    });
-                } else {
-                    // Add default mappings
-                    addPremiumMapping('IMS_TAGS', 'B6', 1);
-                    addPremiumMapping('Summary', 'B6', 2);
-                }
                 
                 // Store LOB ID for download function
                 window.currentEditLobId = lob.lob_id;
@@ -1891,26 +1787,7 @@
             formData.append('ims_procedure_name', procedureName || '');
             formData.append('instanceId', instanceId);
             
-            // Excel configuration is now hardcoded
-            formData.append('excel_formula_calculation', true); // Always enabled
-            formData.append('formula_calc_method', 'python'); // Always use python/Excel COM
-            
-            // Collect premium mappings
-            const sheets = document.querySelectorAll('input[name="premium_sheet[]"]');
-            const cells = document.querySelectorAll('input[name="premium_cell[]"]');
-            const priorities = document.querySelectorAll('input[name="premium_priority[]"]');
-            
-            const premiumMappings = [];
-            for (let i = 0; i < sheets.length; i++) {
-                if (sheets[i].value && cells[i].value) {
-                    premiumMappings.push({
-                        sheet_name: sheets[i].value,
-                        cell_reference: cells[i].value,
-                        priority: parseInt(priorities[i].value) || (i + 1)
-                    });
-                }
-            }
-            formData.append('premium_mappings', JSON.stringify(premiumMappings));
+            // Excel configuration has been removed - formulas are always calculated
             
             // Add file if selected
             const fileInput = document.getElementById('editLobRaterFile');

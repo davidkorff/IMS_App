@@ -382,6 +382,8 @@
         let formRenderer = null;
         window.formRenderer = null; // Make it globally accessible
         let useSchemaForm = false;
+        let draftSubmissionId = null; // Track draft submission ID
+        let autoSaveTimer = null; // Timer for auto-save
         
         // Load LOB configuration
         async function loadLOBConfiguration() {
@@ -423,7 +425,14 @@
                 if (response.ok) {
                     const schemaData = await response.json();
                     useSchemaForm = true;
-                    renderSchemaForm(schemaData.form_schema);
+                    
+                    // Check if we have a saved form state to use
+                    let savedFormState = null;
+                    if (formData.customFormData && formData.customFormData.schema) {
+                        savedFormState = formData.customFormData;
+                    }
+                    
+                    renderSchemaForm(schemaData.form_schema, savedFormState);
                     document.getElementById('loadingSpinner').style.display = 'none';
                 } else {
                     // Fallback to traditional form
@@ -441,7 +450,7 @@
         }
         
         // Render form using schema
-        function renderSchemaForm(schema) {
+        function renderSchemaForm(schema, savedFormState = null) {
             // Hide the traditional form container
             document.getElementById('formContainer').style.display = 'none';
             
@@ -451,44 +460,69 @@
             schemaFormContainer.className = 'form-section';
             document.querySelector('.submission-content').appendChild(schemaFormContainer);
             
-            // Initialize form renderer
-            formRenderer = new FormRenderer(schema, schemaFormContainer, {
+            // Use saved form state if available, otherwise use initial data
+            let schemaToUse = schema;
+            let initialData = {};
+            let initialState = null;
+            
+            if (savedFormState && savedFormState.schema) {
+                // Use the saved schema which includes all runtime modifications
+                schemaToUse = savedFormState.schema;
+                initialData = savedFormState.state?.data || {};
+                initialState = savedFormState.state;
+                console.log('Using saved form schema and state');
+            } else if (formData.customFormData && formData.customFormData.state) {
+                // Legacy support for old format
+                initialData = formData.customFormData.state.data || formData.customFormData;
+            }
+            
+            formRenderer = new FormRenderer(schemaToUse, schemaFormContainer, {
                 mode: 'fill',
                 showProgress: true,
                 autoSave: true,
+                autoSaveInterval: 30000, // Auto-save every 30 seconds
+                initialData: initialData, // Pass saved data to FormRenderer
                 onFieldChange: (field, value) => {
-                    console.log('Field changed:', field.name, value);
+                    console.log('Field changed:', field.id || field.name, value);
+                    // Trigger our unified auto-save
+                    setupAutoSave();
                 },
                 onPageChange: (pageIndex) => {
                     console.log('Page changed:', pageIndex);
                     window.scrollTo(0, 0);
+                    // Save when changing pages
+                    autoSaveDraft();
                 },
                 onSave: async (state) => {
-                    try {
-                        const response = await fetch('/api/forms/submissions', {
-                            method: 'POST',
-                            headers: authHeaders,
-                            body: JSON.stringify({
-                                form_id: schema.id,
-                                submission_guid: null, // Will be created when submission is created
-                                form_data: state.data,
-                                form_state: state,
-                                is_draft: true
-                            })
-                        });
-                        
-                        if (!response.ok) {
-                            throw new Error('Failed to save draft');
-                        }
-                    } catch (error) {
-                        console.error('Error saving draft:', error);
-                        alert('Failed to save draft. Please try again.');
-                    }
+                    // This is called by FormRenderer's auto-save
+                    // We'll use our unified auto-save instead
+                    await autoSaveDraft();
                 },
                 onSubmit: async (formData) => {
                     await submitSchemaForm(formData);
                 }
             });
+            
+            // If we have saved data, apply it to the FormRenderer
+            if (Object.keys(initialData).length > 0) {
+                console.log('Restoring FormRenderer data:', initialData);
+                formRenderer.setFormData(initialData);
+            }
+            
+            // If we have a complete saved state, restore all aspects
+            if (savedFormState && savedFormState.state) {
+                console.log('Restoring complete form state');
+                formRenderer.restoreCompleteState(savedFormState);
+            } else if (initialState) {
+                // Legacy support
+                formRenderer.currentPage = initialState.currentPage || 0;
+                formRenderer.errors = initialState.errors || {};
+                formRenderer.touched = initialState.touched || {};
+                formRenderer.completedPages = initialState.completedPages || [];
+                
+                // Re-render to apply the restored state
+                formRenderer.render();
+            }
             
             // Make formRenderer globally accessible for repeater buttons
             window.formRenderer = formRenderer;
@@ -779,6 +813,27 @@
                 updateProgressIndicator(2);
                 currentStep = 2;
                 
+                // Restore FormRenderer data if we have it
+                if (useSchemaForm && formRenderer && formData.customFormData) {
+                    if (formData.customFormData.state && formData.customFormData.state.data) {
+                        // New format with complete state
+                        console.log('Restoring complete form state on step 2 navigation:', formData.customFormData);
+                        formRenderer.setFormData(formData.customFormData.state.data);
+                        
+                        // Restore other state properties
+                        if (formData.customFormData.state.currentPage !== undefined) {
+                            formRenderer.currentPage = formData.customFormData.state.currentPage;
+                        }
+                        if (formData.customFormData.state.touched) {
+                            formRenderer.touched = formData.customFormData.state.touched;
+                        }
+                    } else {
+                        // Legacy format
+                        console.log('Restoring FormRenderer data on step 2 navigation:', formData.customFormData);
+                        formRenderer.setFormData(formData.customFormData);
+                    }
+                }
+                
             } else if (currentStep === 2) {
                 // Validate step 2
                 const section2Fields = document.querySelectorAll('#section2 input[required], #section2 select[required], #section2 textarea[required]');
@@ -814,15 +869,32 @@
         
         function previousStep() {
             if (currentStep === 2) {
+                // Save complete form state if using schema form
+                if (useSchemaForm && formRenderer) {
+                    formData.customFormData = formRenderer.getCompleteState();
+                    console.log('Saving complete form state on navigation back');
+                }
+                
                 document.getElementById('section2').style.display = 'none';
                 document.getElementById('section1').style.display = 'block';
                 updateProgressIndicator(1);
                 currentStep = 1;
+                
+                // Restore section 1 data
+                restoreFormData('section1');
+                
             } else if (currentStep === 3) {
                 document.getElementById('section3').style.display = 'none';
                 document.getElementById('section2').style.display = 'block';
                 updateProgressIndicator(2);
                 currentStep = 2;
+                
+                // Restore custom form data if using schema form
+                if (useSchemaForm && formRenderer && formData.customFormData) {
+                    // FormRenderer maintains its state, but we need to ensure
+                    // the data is preserved when navigating back
+                    // The FormRenderer already has the data in memory
+                }
             }
         }
         
@@ -856,6 +928,26 @@
                     }
                 } else {
                     formData[input.name] = input.value;
+                }
+            });
+        }
+        
+        // Restore form data to a section
+        function restoreFormData(sectionId) {
+            const section = document.getElementById(sectionId);
+            const inputs = section.querySelectorAll('input, select, textarea');
+            
+            inputs.forEach(input => {
+                if (formData.hasOwnProperty(input.name)) {
+                    if (input.type === 'checkbox') {
+                        input.checked = formData[input.name];
+                    } else if (input.type === 'radio') {
+                        if (input.value === formData[input.name]) {
+                            input.checked = true;
+                        }
+                    } else {
+                        input.value = formData[input.name];
+                    }
                 }
             });
         }
@@ -1010,9 +1102,288 @@
             }
         }
         
-        // Initialize
+        // Auto-save draft functionality
+        async function autoSaveDraft() {
+            try {
+                // Make sure we have the latest form data from section 1
+                if (currentStep === 1) {
+                    collectFormData('section1');
+                }
+                
+                // Collect current form data
+                const currentFormData = {
+                    ...formData,
+                    currentStep: currentStep,
+                    lobId: lobId
+                };
+                
+                // If we're on step 2 with a schema form, include complete form state
+                if (currentStep === 2 && useSchemaForm && formRenderer) {
+                    // Use the new getCompleteState method
+                    const completeFormState = formRenderer.getCompleteState();
+                    currentFormData.customFormData = completeFormState;
+                    console.log('Saving complete form state:', completeFormState);
+                }
+                
+                // Prepare submission data
+                const submissionData = {
+                    lob_id: lobId,
+                    status: 'draft',
+                    form_data: currentFormData,
+                    is_draft: true
+                };
+                
+                console.log('Saving draft with data:', submissionData);
+                
+                let response;
+                if (draftSubmissionId) {
+                    console.log('Updating existing draft:', draftSubmissionId);
+                    // Update existing draft
+                    response = await fetch(`/api/producer/submissions/${draftSubmissionId}`, {
+                        method: 'PUT',
+                        headers: authHeaders,
+                        body: JSON.stringify(submissionData)
+                    });
+                } else {
+                    console.log('Creating new draft submission');
+                    // Create new draft
+                    response = await fetch('/api/producer/submissions', {
+                        method: 'POST',
+                        headers: authHeaders,
+                        body: JSON.stringify(submissionData)
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        draftSubmissionId = result.submission_id || result.submission_uuid;
+                        console.log('Created new draft with ID:', draftSubmissionId);
+                    }
+                }
+                
+                if (response.ok) {
+                    console.log('Draft saved successfully');
+                    showAutoSaveIndicator();
+                } else {
+                    console.error('Failed to save draft:', response.status, response.statusText);
+                    const errorText = await response.text();
+                    console.error('Error details:', errorText);
+                }
+            } catch (error) {
+                console.error('Error saving draft:', error);
+            }
+        }
+        
+        // Show auto-save indicator
+        function showAutoSaveIndicator() {
+            const indicator = document.getElementById('autoSaveIndicator');
+            if (!indicator) {
+                const div = document.createElement('div');
+                div.id = 'autoSaveIndicator';
+                div.className = 'auto-save-indicator';
+                div.innerHTML = '<i class="fas fa-check-circle"></i> Draft saved';
+                div.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 10px 20px; border-radius: 5px; display: none; z-index: 1000;';
+                document.body.appendChild(div);
+            }
+            
+            const indicatorEl = document.getElementById('autoSaveIndicator');
+            indicatorEl.style.display = 'block';
+            setTimeout(() => {
+                indicatorEl.style.display = 'none';
+            }, 2000);
+        }
+        
+        // Set up auto-save on input changes
+        function setupAutoSave() {
+            // Clear any existing timer
+            if (autoSaveTimer) {
+                clearTimeout(autoSaveTimer);
+            }
+            
+            // Set timer to save after 2 seconds of inactivity
+            autoSaveTimer = setTimeout(() => {
+                autoSaveDraft();
+            }, 2000);
+        }
+        
+        // Save draft immediately (synchronous as much as possible)
+        async function saveImmediately() {
+            // Clear any pending auto-save timer
+            if (autoSaveTimer) {
+                clearTimeout(autoSaveTimer);
+            }
+            
+            // Save immediately
+            console.log('Saving draft immediately before navigation');
+            await autoSaveDraft();
+        }
+        
+        // Add navigation interception
+        function interceptNavigation() {
+            // Intercept all navigation links
+            document.addEventListener('click', async (event) => {
+                const link = event.target.closest('a');
+                if (link && link.href && !link.href.includes('#') && link.href !== window.location.href) {
+                    // Check if we have unsaved changes
+                    if (hasUnsavedChanges()) {
+                        event.preventDefault();
+                        await saveImmediately();
+                        // Navigate after save
+                        window.location.href = link.href;
+                    }
+                }
+            }, true);
+            
+            // Handle browser back/forward buttons and page refresh
+            window.addEventListener('beforeunload', (event) => {
+                if (hasUnsavedChanges()) {
+                    // Try to save (though this might not complete)
+                    saveImmediately();
+                    
+                    // Show browser warning
+                    event.preventDefault();
+                    event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                }
+            });
+        }
+        
+        // Check if there are unsaved changes
+        function hasUnsavedChanges() {
+            // Check if any form data has been entered
+            if (currentStep === 1) {
+                // Check our formData object
+                for (let key in formData) {
+                    if (formData[key] && formData[key] !== '' && key !== 'currentStep' && key !== 'lobId') {
+                        console.log('Has unsaved changes in field:', key, formData[key]);
+                        return true;
+                    }
+                }
+            } else if (currentStep === 2 && useSchemaForm && formRenderer) {
+                const data = formRenderer.getFormData();
+                if (Object.keys(data).length > 0) {
+                    console.log('Has unsaved FormRenderer data:', data);
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        // Add event listeners for auto-save on step 1
+        function attachAutoSaveListeners() {
+            const section1 = document.getElementById('section1');
+            if (section1) {
+                section1.addEventListener('input', (event) => {
+                    // Update formData immediately
+                    const input = event.target;
+                    if (input.name) {  // Only process inputs with name attribute
+                        if (input.type === 'checkbox') {
+                            formData[input.name] = input.checked;
+                        } else if (input.type === 'radio') {
+                            if (input.checked) {
+                                formData[input.name] = input.value;
+                            }
+                        } else {
+                            formData[input.name] = input.value;
+                        }
+                        
+                        console.log('Input changed:', input.name, '=', formData[input.name]);
+                        
+                        // Trigger auto-save
+                        setupAutoSave();
+                    }
+                });
+                
+                section1.addEventListener('change', (event) => {
+                    // Handle select changes
+                    const input = event.target;
+                    if (input.name) {
+                        formData[input.name] = input.value;
+                        console.log('Select/change event:', input.name, '=', formData[input.name]);
+                        setupAutoSave();
+                    }
+                });
+            }
+        }
+        
+        // Load existing draft if available
+        async function loadDraft() {
+            console.log('Loading draft for LOB:', lobId);
+            try {
+                const response = await fetch(`/api/producer/submissions/drafts/${lobId}`, {
+                    headers: authHeaders
+                });
+                
+                if (response.ok) {
+                    let draft = null;
+                    const responseText = await response.text();
+                    try {
+                        draft = responseText ? JSON.parse(responseText) : null;
+                    } catch (e) {
+                        console.error('Failed to parse draft response:', responseText);
+                        draft = null;
+                    }
+                    console.log('Draft response:', draft);
+                    if (draft && draft !== null && draft.form_data) {
+                        draftSubmissionId = draft.submission_id;
+                        formData = draft.form_data;
+                        console.log('Loaded draft formData:', formData);
+                        
+                        // Restore to the step they were on
+                        if (draft.form_data.currentStep) {
+                            currentStep = draft.form_data.currentStep;
+                            
+                            // Show the appropriate section
+                            for (let i = 1; i <= 3; i++) {
+                                document.getElementById(`section${i}`).style.display = i === currentStep ? 'block' : 'none';
+                            }
+                            updateProgressIndicator(currentStep);
+                        }
+                        
+                        // Restore form data
+                        restoreFormData('section1');
+                        
+                        // If we're on step 2 and have custom form data, note that FormRenderer 
+                        // will be initialized with this data when renderSchemaForm is called
+                        if (currentStep === 2 && formData.customFormData) {
+                            console.log('Draft contains custom form data, will be restored when form is rendered');
+                        }
+                        
+                        // Show notification
+                        const notification = document.createElement('div');
+                        notification.className = 'alert alert-info alert-dismissible fade show mt-3';
+                        notification.innerHTML = `
+                            <i class="fas fa-info-circle"></i> We found a saved draft of your application. Your progress has been restored.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.querySelector('.submission-content').insertBefore(notification, document.querySelector('.submission-content').firstChild);
+                    } else {
+                        console.log('Server returned ok but no draft data');
+                    }
+                } else {
+                    console.log('No draft found (non-200 response)');
+                }
+            } catch (error) {
+                console.error('Error loading draft:', error);
+            }
+        }
+        
+        // Initialize - Load configuration first, then draft (since draft needs LOB ID)
         loadPortalConfig();
-        loadLOBConfiguration();
+        loadLOBConfiguration().then(() => {
+            // Now that we have LOB ID, load any existing draft
+            loadDraft().then(() => {
+                attachAutoSaveListeners();
+                interceptNavigation(); // Set up navigation interception
+                
+                // If we loaded a draft and we're on step 2, ensure FormRenderer has the data
+                if (currentStep === 2 && useSchemaForm && formRenderer && formData.customFormData) {
+                    if (formData.customFormData.state) {
+                        formRenderer.restoreCompleteState(formData.customFormData);
+                    } else {
+                        formRenderer.setFormData(formData.customFormData);
+                    }
+                }
+            });
+        });
     </script>
 </body>
 </html>

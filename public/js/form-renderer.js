@@ -710,26 +710,35 @@ class FormRenderer {
     renderNavigation(page) {
         let html = '<div class="d-flex justify-content-between">';
         
+        // Default navigation settings if not specified
+        const nav = page.navigation || {
+            showPrevious: true,
+            showNext: true,
+            showSave: true,
+            nextButtonText: 'Continue',
+            previousButtonText: 'Back'
+        };
+        
         // Previous button
-        if (this.currentPage > 0 && page.navigation.showPrevious) {
+        if (this.currentPage > 0 && nav.showPrevious !== false) {
             html += `<button type="button" class="btn btn-secondary" onclick="formRenderer.previousPage()">
-                <i class="fas fa-arrow-left"></i> ${page.navigation.previousButtonText || 'Back'}
+                <i class="fas fa-arrow-left"></i> ${nav.previousButtonText || 'Back'}
             </button>`;
         } else {
             html += '<div></div>';
         }
         
         // Save draft button
-        if (page.navigation.showSave && this.schema.settings.allowSaveDraft) {
+        if (nav.showSave !== false && this.schema.settings.allowSaveDraft) {
             html += `<button type="button" class="btn btn-outline-primary" onclick="formRenderer.saveDraft()">
                 <i class="fas fa-save"></i> ${this.schema.settings.saveButtonText || 'Save Draft'}
             </button>`;
         }
         
         // Next/Submit button
-        if (this.currentPage < this.schema.pages.length - 1 && page.navigation.showNext) {
+        if (this.currentPage < this.schema.pages.length - 1 && nav.showNext !== false) {
             html += `<button type="button" class="btn btn-primary" onclick="formRenderer.nextPage()">
-                ${page.navigation.nextButtonText || 'Continue'} <i class="fas fa-arrow-right"></i>
+                ${nav.nextButtonText || 'Continue'} <i class="fas fa-arrow-right"></i>
             </button>`;
         } else if (this.currentPage === this.schema.pages.length - 1) {
             html += `<button type="button" class="btn btn-success" onclick="formRenderer.submit()">
@@ -1040,6 +1049,53 @@ class FormRenderer {
     hasUnsavedChanges() {
         // Implementation to check if there are unsaved changes
         return Object.keys(this.touched).length > 0;
+    }
+    
+    getFormData() {
+        return this.formData;
+    }
+    
+    setFormData(data) {
+        if (data) {
+            this.formData = { ...this.formData, ...data };
+            this.render();
+        }
+    }
+    
+    getCompleteState() {
+        return {
+            schema: this.schema,
+            state: {
+                currentPage: this.currentPage,
+                data: this.formData,
+                errors: this.errors,
+                touched: this.touched,
+                submitted: false,
+                savedAt: new Date().toISOString(),
+                completedPages: this.completedPages || []
+            },
+            visibilityState: this.visibilityState || {},
+            calculatedValues: this.calculatedValues || {}
+        };
+    }
+    
+    restoreCompleteState(savedState) {
+        if (savedState && savedState.state) {
+            this.formData = savedState.state.data || {};
+            this.currentPage = savedState.state.currentPage || 0;
+            this.errors = savedState.state.errors || {};
+            this.touched = savedState.state.touched || {};
+            this.completedPages = savedState.state.completedPages || [];
+            
+            if (savedState.visibilityState) {
+                this.visibilityState = savedState.visibilityState;
+            }
+            if (savedState.calculatedValues) {
+                this.calculatedValues = savedState.calculatedValues;
+            }
+            
+            this.render();
+        }
     }
     
     getFieldByElement(element) {

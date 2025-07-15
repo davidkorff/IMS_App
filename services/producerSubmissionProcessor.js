@@ -38,8 +38,6 @@ class ProducerSubmissionProcessor {
                     lob.ims_rating_type_id,
                     lob.rater_file_data,
                     lob.rater_file_name,
-                    lob.excel_formula_calculation,
-                    lob.formula_calc_method,
                     p.email as producer_email,
                     p.first_name as producer_first_name,
                     p.last_name as producer_last_name,
@@ -227,11 +225,10 @@ class ProducerSubmissionProcessor {
             }
             
             // Step 7: Execute stored procedure with Quote Option GUID (after creating options)
-            if ((submission.ims_procedure_name || submission.formula_calc_method !== 'none') && quoteOptionGuid) {
+            if (submission.ims_procedure_name && quoteOptionGuid) {
                 console.log('\n=== Executing Rating Stored Procedure ===');
                 console.log('Decision to execute procedure:');
                 console.log('- ims_procedure_name:', submission.ims_procedure_name || 'not set');
-                console.log('- formula_calc_method:', submission.formula_calc_method || 'not set');
                 console.log('- processedExcelBuffer available:', !!processedExcelBuffer);
                 console.log('- quoteOptions available:', quoteOptions.length);
                 
@@ -446,39 +443,12 @@ class ProducerSubmissionProcessor {
                 }
             }
             
-            // Step 8: If we still don't have premium, try to extract it from Excel
-            if (!premium && processedExcelBuffer) {
-                console.log('\n=== PREMIUM EXTRACTION FROM EXCEL ===');
-                console.log('⚠️  Premium not found from stored procedure, trying to extract from Excel file...');
-                console.log('NOTE: This step may not be needed if stored proc returns premium');
-                console.log('LOB ID:', submission.lob_id);
-                
-                try {
-                    premium = await this.extractPremiumFromExcel(processedExcelBuffer, submission.lob_id);
-                    if (premium) {
-                        console.log(`✓ Successfully extracted premium from Excel: ${premium}`);
-                        
-                        // Update rater results
-                        raterResults = {
-                            ...raterResults,
-                            extractedPremium: premium,
-                            premiumSource: 'excel_extraction'
-                        };
-                    } else {
-                        console.log('✗ No premium found in Excel file');
-                        console.log('Check that:');
-                        console.log('- Formula calculation method is set correctly');
-                        console.log('- Excel formulas are calculating properly');
-                        console.log('- Premium mapping is configured for LOB', submission.lob_id);
-                    }
-                } catch (extractError) {
-                    console.error('Error during Excel premium extraction:', extractError.message);
-                    console.error('Extract error stack:', extractError.stack);
-                }
-            } else if (premium) {
-                console.log(`\n✓ Premium already obtained: ${premium}`);
+            // Step 8: Premium extraction from Excel has been removed - premiums come from IMS stored procedures
+            if (!premium) {
+                console.log('\n⚠️  No premium returned from stored procedure');
+                console.log('Check that the IMS stored procedure is configured correctly');
             } else {
-                console.log('\n✗ No processed Excel buffer available for premium extraction');
+                console.log(`\n✓ Premium obtained from IMS: ${premium}`);
             }
             
 
@@ -1060,15 +1030,14 @@ class ProducerSubmissionProcessor {
         const originalFormattedBuffer = processedBuffer;
         
         // Check if formula calculation is enabled for this LOB
-        const shouldCalculateFormulas = submission.excel_formula_calculation !== false;
-        const calcMethod = submission.formula_calc_method || 'none'; // Default to 'none' to avoid SheetJS issues
+        const shouldCalculateFormulas = true;
+        const calcMethod = 'python'; // Always use python method for formula calculation
         
         if (!shouldCalculateFormulas || calcMethod === 'none') {
             console.log('Formula calculation disabled - IMS will handle it');
             console.log('This preserves Excel formatting and complex formulas.');
         } else if (calcMethod === 'xlsx-calc') {
             console.warn('\n⚠️  WARNING: xlsx-calc uses SheetJS which destroys Excel formatting!');
-            console.warn('Recommend setting formula_calc_method to "none" in LOB configuration.');
             console.warn('Skipping formula calculation to preserve Excel integrity.\n');
             // DO NOT use xlsx-calc - it ruins the Excel file
                 
@@ -1308,46 +1277,6 @@ class ProducerSubmissionProcessor {
         return flattened;
     }
     
-    async getPremiumMappings(lobId, client) {
-        console.log(`\n=== PREMIUM MAPPINGS CHECK ===`);
-        console.log(`Checking for premium mappings for LOB ID: ${lobId}`);
-        
-        try {
-            const result = await client.query(`
-                SELECT sheet_name, cell_reference, mapping_type, description
-                FROM excel_premium_mappings
-                WHERE lob_id = $1 AND mapping_type = 'premium'
-                ORDER BY priority ASC
-            `, [lobId]);
-            
-            if (result.rows.length > 0) {
-                console.log(`✓ Found ${result.rows.length} custom premium mappings in database:`);
-                result.rows.forEach((mapping, idx) => {
-                    console.log(`  ${idx + 1}. ${mapping.sheet_name}!${mapping.cell_reference} - ${mapping.description || 'no description'}`);
-                });
-                return result.rows;
-            } else {
-                console.log('✗ No custom premium mappings found in database');
-            }
-        } catch (error) {
-            console.warn('✗ Could not fetch premium mappings from database:', error.message);
-        }
-        
-        // Return default mappings if none found or error
-        console.log('Using DEFAULT premium mappings:');
-        const defaults = [
-            { sheet_name: 'IMS_TAGS', cell_reference: 'B6' },
-            { sheet_name: 'Summary', cell_reference: 'B6' },
-            { sheet_name: 'Premium', cell_reference: 'B10' },
-            { sheet_name: 'Rating', cell_reference: 'E15' },
-            { sheet_name: 'submission_data', cell_reference: 'B50' }
-        ];
-        defaults.forEach((mapping, idx) => {
-            console.log(`  ${idx + 1}. ${mapping.sheet_name}!${mapping.cell_reference}`);
-        });
-        return defaults;
-    }
-    
     async populateAndSaveExcelRater(submission, quoteGuid, imsData, customData) {
         console.log('\n=== Populating and Saving Excel Rater ===');
         
@@ -1467,74 +1396,6 @@ class ProducerSubmissionProcessor {
             throw error;
         }
     }
-    
-    async extractPremiumFromExcel(processedBuffer, lobId) {
-        console.log('\n--- Premium Extraction Details ---');
-        console.log('LOB ID:', lobId);
-        
-        try {
-            const client = await pool.connect();
-            try {
-                // Get premium mappings for this LOB
-                const premiumMappings = await this.getPremiumMappings(lobId, client);
-                console.log('Premium mappings found:', premiumMappings.length);
-                premiumMappings.forEach((mapping, index) => {
-                    console.log(`Mapping ${index + 1}: ${mapping.sheet_name}!${mapping.cell_reference} (priority: ${mapping.priority})`);
-                });
-                
-                // Use xlsx to read the calculated file and extract premium
-                const XLSX = require('xlsx');
-                const workbook = XLSX.read(processedBuffer, { type: 'buffer' });
-                console.log('\\nWorkbook sheets:', Object.keys(workbook.Sheets));
-                
-                // Check each configured location
-                for (const mapping of premiumMappings) {
-                    console.log(`\\nChecking ${mapping.sheet_name}!${mapping.cell_reference}...`);
-                    
-                    if (workbook.Sheets[mapping.sheet_name]) {
-                        const sheet = workbook.Sheets[mapping.sheet_name];
-                        const cell = sheet[mapping.cell_reference];
-                        
-                        if (cell) {
-                            console.log(`Cell found:`, {
-                                value: cell.v,
-                                type: cell.t,
-                                formula: cell.f,
-                                raw: cell.w
-                            });
-                            
-                            if (cell.v !== undefined) {
-                                const value = parseFloat(cell.v);
-                                console.log(`Parsed value: ${value}, isNaN: ${isNaN(value)}, > 0: ${value > 0}`);
-                                
-                                if (!isNaN(value) && value > 0) {
-                                    console.log(`✓ Found valid premium: ${value} in ${mapping.sheet_name}!${mapping.cell_reference}`);
-                                    return value;
-                                }
-                            } else {
-                                console.log('Cell has no value (v) property');
-                            }
-                        } else {
-                            console.log(`Cell ${mapping.cell_reference} not found in sheet`);
-                        }
-                    } else {
-                        console.log(`Sheet '${mapping.sheet_name}' not found in workbook`);
-                    }
-                }
-                
-                console.warn('\\n✗ No premium found in any configured location');
-                console.log('--- End Premium Extraction ---\\n');
-                return null;
-            } finally {
-                client.release();
-            }
-        } catch (extractError) {
-            console.error('\\n✗ Error extracting premium:', extractError.message);
-            console.error('Stack:', extractError.stack);
-            console.log('--- End Premium Extraction (Error) ---\\n');
-            return null;
-        }
-    }
 
     async processExcelRaterMinimal(submission, quoteGuid, quoteOptions, imsData, customData, originalBuffer) {
         console.log('\n=== Using Minimal Excel Editor (preserves file integrity) ===');
@@ -1588,66 +1449,10 @@ class ProducerSubmissionProcessor {
             // Convert to base64 for IMS
             const processedBase64 = processedBuffer.toString('base64');
             
-            // Try to extract the premium from the calculated Excel
-            let extractedPremium = null;
-            console.log('\n=== PREMIUM EXTRACTION FROM CALCULATED EXCEL ===');
-            console.log(`Should extract? calcMethod !== 'none': ${calcMethod !== 'none'}`);
-            console.log(`Current calcMethod: ${calcMethod}`);
-            
-            if (calcMethod !== 'none') {
-                try {
-                    console.log('✓ Attempting to extract premium from calculated Excel...');
-                    console.log('NOTE: This happens AFTER formula calculation but BEFORE sending to IMS');
-                    
-                    // Get premium mappings for this LOB
-                    const client = await pool.connect();
-                    try {
-                        const premiumMappings = await this.getPremiumMappings(submission.lob_id, client);
-                        
-                        // Use xlsx to read the calculated file and extract premium
-                        const XLSX = require('xlsx');
-                        const workbook = XLSX.read(processedBuffer, { type: 'buffer' });
-                        
-                        console.log('\nChecking premium locations in calculated Excel:');
-                        // Check each configured location
-                        for (const mapping of premiumMappings) {
-                            if (workbook.Sheets[mapping.sheet_name]) {
-                                const sheet = workbook.Sheets[mapping.sheet_name];
-                                const cell = sheet[mapping.cell_reference];
-                                console.log(`  Checking ${mapping.sheet_name}!${mapping.cell_reference}...`);
-                                if (cell && cell.v !== undefined) {
-                                    const value = parseFloat(cell.v);
-                                    console.log(`    Value: ${cell.v}, Parsed: ${value}`);
-                                    if (!isNaN(value) && value > 0) {
-                                        console.log(`    ✓ Found valid premium: ${value}`);
-                                        extractedPremium = value;
-                                        break;
-                                    } else {
-                                        console.log(`    ✗ Invalid value (NaN or <= 0)`);
-                                    }
-                                } else {
-                                    console.log(`    ✗ Cell is empty or undefined`);
-                                }
-                            } else {
-                                console.log(`  ✗ Sheet "${mapping.sheet_name}" not found in workbook`);
-                            }
-                        }
-                        
-                        if (!extractedPremium) {
-                            console.warn('✗ No premium found in any configured location');
-                        } else {
-                            console.log(`\n✓ EXTRACTED PREMIUM FROM EXCEL: ${extractedPremium}`);
-                        }
-                    } finally {
-                        client.release();
-                    }
-                } catch (extractError) {
-                    console.error('Error extracting premium:', extractError.message);
-                }
-            } else {
-                console.log('✗ Skipping premium extraction (calcMethod is "none")');
-                console.log('Premium will come from IMS stored procedure instead');
-            }
+            // Premium extraction has been removed - premiums come from IMS stored procedures
+            console.log('\n=== PREMIUM SOURCE ===');
+            console.log('Premiums will be obtained from IMS stored procedures');
+            console.log('Excel Configuration and premium mapping have been removed');
             
             // Save the rating sheet
             console.log('\nSaving populated Excel rating sheet to IMS...');
@@ -1685,36 +1490,13 @@ class ProducerSubmissionProcessor {
                     });
                 }
                 
-                // If ImportExcelRater failed but we extracted a premium, use that
-                if (!importResult.Success && extractedPremium) {
-                    console.log(`ImportExcelRater failed, but we extracted premium: ${extractedPremium}`);
-                    totalPremium = extractedPremium;
-                    
-                    // If we have quote options, try to add the premium manually
-                    if (quoteOptions && quoteOptions.length > 0) {
-                        try {
-                            console.log('Attempting to add premium manually to first quote option...');
-                            const firstOption = quoteOptions[0];
-                            await this.imsService.addPremium(
-                                firstOption.QuoteOptionGuid,
-                                extractedPremium,
-                                -1, // Use default office
-                                1   // Default charge code
-                            );
-                            console.log('Premium added successfully');
-                        } catch (addPremiumError) {
-                            console.error('Failed to add premium manually:', addPremiumError.message);
-                        }
-                    }
-                }
                 
                 return {
-                    premium: totalPremium || extractedPremium || 0,
+                    premium: totalPremium || 0,
                     raterResults: {
-                        success: importResult.Success || (extractedPremium > 0),
-                        premium: totalPremium || extractedPremium || 0,
+                        success: importResult.Success,
+                        premium: totalPremium || 0,
                         premiums: importResult.Premiums,
-                        extractedPremium: extractedPremium,
                         calculatedAt: new Date().toISOString(),
                         method: `MinimalEditor + ${calcMethod}`,
                         preservedFormatting: true,
@@ -1743,37 +1525,6 @@ class ProducerSubmissionProcessor {
             console.error('Minimal editor processing failed:', error);
             throw error;
         }
-    }
-    
-    // DEPRECATED - DO NOT USE - This is the old method
-    extractPremiumFromExcelOLD(workbook, premiumMappings = null) {
-        // Use provided mappings or default common locations
-        const locations = premiumMappings || [
-            { sheet_name: 'IMS_TAGS', cell_reference: 'B6' },
-            { sheet_name: 'Summary', cell_reference: 'B6' },
-            { sheet_name: 'Premium', cell_reference: 'B10' },
-            { sheet_name: 'Rating', cell_reference: 'E15' },
-            { sheet_name: 'submission_data', cell_reference: 'B50' }
-        ];
-        
-        console.log('Checking for premium in Excel:');
-        for (const location of locations) {
-            const sheet = workbook.getWorksheet(location.sheet_name);
-            if (sheet) {
-                const cell = sheet.getCell(location.cell_reference);
-                if (cell && cell.value) {
-                    const value = parseFloat(cell.value);
-                    console.log(`  ${location.sheet_name}!${location.cell_reference}: ${cell.value}`);
-                    if (!isNaN(value) && value > 0) {
-                        console.log(`Found premium ${value} in ${location.sheet_name}!${location.cell_reference}`);
-                        return value;
-                    }
-                }
-            }
-        }
-        
-        console.warn('Could not extract premium from Excel file');
-        return null;
     }
 }
 

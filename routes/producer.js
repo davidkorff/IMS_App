@@ -499,6 +499,7 @@ router.get('/submissions', authenticateProducer, async (req, res) => {
                 s.submitted_at,
                 s.processed_at,
                 r.name as route_name,
+                r.lob_id,
                 lob.line_name
             FROM custom_route_submissions s
             JOIN producer_submissions ps ON s.submission_id = ps.submission_id
@@ -658,12 +659,88 @@ router.get('/form-schemas/:formId', authenticateProducer, async (req, res) => {
     }
 });
 
+// Get draft submission for a specific LOB
+router.get('/submissions/drafts/:lobId', authenticateProducer, async (req, res) => {
+    try {
+        const { lobId } = req.params;
+        
+        // Find the most recent draft for this producer and LOB
+        const result = await pool.query(`
+            SELECT 
+                crs.*,
+                cr.lob_id,
+                plob.line_name,
+                plob.line_code,
+                ps.producer_id
+            FROM custom_route_submissions crs
+            JOIN custom_routes cr ON crs.route_id = cr.route_id
+            JOIN producer_submissions ps ON crs.submission_id = ps.submission_id
+            JOIN portal_lines_of_business plob ON cr.lob_id = plob.lob_id
+            WHERE ps.producer_id = $1 
+                AND cr.lob_id = $2 
+                AND crs.status = 'draft'
+                AND cr.instance_id = $3
+            ORDER BY crs.created_at DESC
+            LIMIT 1
+        `, [req.producer.producerId, lobId, req.instanceId]);
+        
+        if (result.rows.length > 0) {
+            res.json(result.rows[0]);
+        } else {
+            res.json(null);
+        }
+    } catch (error) {
+        console.error('Error fetching draft:', error);
+        res.status(500).json({ error: 'Failed to fetch draft submission' });
+    }
+});
+
+// Update existing submission (for drafts)
+router.put('/submissions/:submissionId', authenticateProducer, async (req, res) => {
+    try {
+        const { submissionId } = req.params;
+        const { form_data, status } = req.body;
+        
+        console.log('Updating draft submission:', submissionId, 'with status:', status);
+        
+        // Verify producer owns this submission
+        const ownerCheck = await pool.query(
+            'SELECT submission_id FROM producer_submissions WHERE submission_id = $1 AND producer_id = $2',
+            [submissionId, req.producer.producerId]
+        );
+        
+        if (ownerCheck.rows.length === 0) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        // Update the submission in custom_route_submissions
+        const result = await pool.query(`
+            UPDATE custom_route_submissions 
+            SET form_data = $1,
+                status = COALESCE($2, status)
+            WHERE submission_id = $3
+            RETURNING submission_id
+        `, [form_data, status, submissionId]);
+        
+        res.json({ 
+            success: true, 
+            submission_id: result.rows[0].submission_id 
+        });
+        
+    } catch (error) {
+        console.error('Error updating submission:', error);
+        res.status(500).json({ error: 'Failed to update submission' });
+    }
+});
+
 // Create new submission
 router.post('/submissions', authenticateProducer, async (req, res) => {
     let submissionId = null;
     
     try {
-        const { lob_id, form_data, status = 'pending' } = req.body;
+        const { lob_id, form_data, status = 'pending', is_draft = false } = req.body;
+        
+        console.log('Creating new submission - LOB:', lob_id, 'Status:', status, 'Is Draft:', is_draft);
         
         if (!lob_id || !form_data) {
             return res.status(400).json({ error: 'Line of business and form data are required' });
@@ -784,7 +861,8 @@ router.post('/submissions', authenticateProducer, async (req, res) => {
         }
         
         // Process submission asynchronously AFTER sending response
-        if (submissionId) {
+        // Only process if NOT a draft
+        if (submissionId && status !== 'draft') {
             try {
                 const ProducerSubmissionProcessor = require('../services/producerSubmissionProcessor');
                 const processor = new ProducerSubmissionProcessor();
@@ -809,6 +887,80 @@ router.post('/submissions', authenticateProducer, async (req, res) => {
     } catch (error) {
         console.error('Error creating submission:', error);
         res.status(500).json({ error: 'Failed to create submission' });
+    }
+});
+
+// Delete draft submission
+router.delete('/submissions/:submissionId', authenticateProducer, async (req, res) => {
+    try {
+        const { submissionId } = req.params;
+        
+        // First, verify the submission exists and is owned by this producer
+        const checkResult = await pool.query(`
+            SELECT s.status, s.submission_uuid
+            FROM custom_route_submissions s
+            JOIN producer_submissions ps ON s.submission_id = ps.submission_id
+            WHERE s.submission_id = $1 AND ps.producer_id = $2
+        `, [submissionId, req.producer.producerId]);
+        
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Submission not found' });
+        }
+        
+        const submission = checkResult.rows[0];
+        
+        // Only allow deletion of draft submissions
+        if (submission.status !== 'draft') {
+            return res.status(403).json({ error: 'Only draft submissions can be deleted' });
+        }
+        
+        // Use a transaction to delete from both tables
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            // Delete from producer_submissions first (foreign key constraint)
+            await client.query(
+                'DELETE FROM producer_submissions WHERE submission_id = $1',
+                [submissionId]
+            );
+            
+            // Delete from custom_route_submissions
+            await client.query(
+                'DELETE FROM custom_route_submissions WHERE submission_id = $1',
+                [submissionId]
+            );
+            
+            // Log the deletion
+            await client.query(`
+                INSERT INTO producer_audit_log (producer_id, action, details, created_at)
+                VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+            `, [
+                req.producer.producerId,
+                'draft_deleted',
+                JSON.stringify({
+                    submission_id: submissionId,
+                    submission_uuid: submission.submission_uuid
+                })
+            ]);
+            
+            await client.query('COMMIT');
+            
+            res.json({ 
+                success: true, 
+                message: 'Draft submission deleted successfully' 
+            });
+            
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+        
+    } catch (error) {
+        console.error('Error deleting submission:', error);
+        res.status(500).json({ error: 'Failed to delete submission' });
     }
 });
 

@@ -19,6 +19,13 @@ let formSchema = {
             title: 'Basic Information',
             description: 'Collect primary insured details',
             order: 1,
+            navigation: {
+                showPrevious: false,
+                showNext: true,
+                showSave: true,
+                nextButtonText: 'Continue',
+                previousButtonText: 'Back'
+            },
             sections: [
                 {
                     id: 'section1',
@@ -678,6 +685,13 @@ window.addPage = function() {
         title: `Page ${formSchema.pages.length + 1}`,
         description: '',
         order: formSchema.pages.length + 1,
+        navigation: {
+            showPrevious: true,
+            showNext: true,
+            showSave: true,
+            nextButtonText: 'Continue',
+            previousButtonText: 'Back'
+        },
         sections: [{
             id: generateId(),
             type: 'fieldset',
@@ -1291,6 +1305,20 @@ window.loadFormSchema = function(schemaData) {
     if (databaseFormId && isValidUUID(databaseFormId)) {
         formSchema.id = databaseFormId;
     }
+    
+    // Ensure all pages have navigation properties (for backward compatibility)
+    formSchema.pages = formSchema.pages.map((page, index) => {
+        if (!page.navigation) {
+            page.navigation = {
+                showPrevious: index > 0,
+                showNext: true,
+                showSave: true,
+                nextButtonText: 'Continue',
+                previousButtonText: 'Back'
+            };
+        }
+        return page;
+    });
     
     currentPageIndex = 0;
     renderForm();

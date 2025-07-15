@@ -494,16 +494,7 @@ router.get('/lines-of-business/:lobId', requirePermission('producer_portal.view'
             return res.status(404).json({ error: 'Line of business not found' });
         }
         
-        // Get premium mappings
-        const mappingsResult = await pool.query(`
-            SELECT sheet_name, cell_reference, priority
-            FROM excel_premium_mappings
-            WHERE lob_id = $1 AND mapping_type = 'premium'
-            ORDER BY priority ASC
-        `, [lobId]);
-        
         const lob = result.rows[0];
-        lob.premium_mappings = mappingsResult.rows;
 
         res.json(lob);
     } catch (error) {
@@ -526,9 +517,6 @@ router.put('/lines-of-business/:lobId', requirePermission('producer_portal.lob.m
             ims_rating_type_id,
             ims_rating_type_name,
             ims_procedure_name,
-            excel_formula_calculation,
-            formula_calc_method,
-            premium_mappings
         } = req.body;
         
         if (!instanceId) {
@@ -565,22 +553,18 @@ router.put('/lines-of-business/:lobId', requirePermission('producer_portal.lob.m
                     rater_file_data = $10,
                     rater_file_content_type = $11,
                     rater_file_uploaded_at = $12,
-                    excel_formula_calculation = $13,
-                    formula_calc_method = $14,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE lob_id = $15 AND instance_id = $16
+                WHERE lob_id = $13 AND instance_id = $14
                 RETURNING lob_id, instance_id, line_name, line_code, description,
                          ims_line_guid, ims_company_guid, ims_procedure_name,
                          ims_rating_type_id, ims_rating_type_name,
                          rater_file_name, rater_file_uploaded_at,
-                         excel_formula_calculation, formula_calc_method,
                          is_active, created_at, updated_at
             `;
             queryParams = [
                 line_name, line_code, description, ims_line_guid, ims_company_guid,
                 ims_rating_type_id, ims_rating_type_name, ims_procedure_name,
                 req.file.originalname, req.file.buffer, req.file.mimetype, new Date(),
-                excel_formula_calculation !== 'false', formula_calc_method || 'none',
                 lobId, instanceId
             ];
         } else {
@@ -595,21 +579,17 @@ router.put('/lines-of-business/:lobId', requirePermission('producer_portal.lob.m
                     ims_rating_type_id = $6,
                     ims_rating_type_name = $7,
                     ims_procedure_name = $8,
-                    excel_formula_calculation = $9,
-                    formula_calc_method = $10,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE lob_id = $11 AND instance_id = $12
+                WHERE lob_id = $9 AND instance_id = $10
                 RETURNING lob_id, instance_id, line_name, line_code, description,
                          ims_line_guid, ims_company_guid, ims_procedure_name,
                          ims_rating_type_id, ims_rating_type_name,
                          rater_file_name, rater_file_uploaded_at,
-                         excel_formula_calculation, formula_calc_method,
                          is_active, created_at, updated_at
             `;
             queryParams = [
                 line_name, line_code, description, ims_line_guid, ims_company_guid,
                 ims_rating_type_id, ims_rating_type_name, ims_procedure_name,
-                excel_formula_calculation !== 'false', formula_calc_method || 'none',
                 lobId, instanceId
             ];
         }
@@ -620,30 +600,6 @@ router.put('/lines-of-business/:lobId', requirePermission('producer_portal.lob.m
             return res.status(404).json({ error: 'Line of business not found' });
         }
         
-        // Handle premium mappings if provided
-        if (premium_mappings) {
-            try {
-                const mappings = JSON.parse(premium_mappings);
-                
-                // Delete existing mappings
-                await pool.query(
-                    'DELETE FROM excel_premium_mappings WHERE lob_id = $1',
-                    [lobId]
-                );
-                
-                // Insert new mappings
-                for (const mapping of mappings) {
-                    await pool.query(`
-                        INSERT INTO excel_premium_mappings 
-                        (lob_id, sheet_name, cell_reference, mapping_type, priority)
-                        VALUES ($1, $2, $3, 'premium', $4)
-                    `, [lobId, mapping.sheet_name, mapping.cell_reference, mapping.priority]);
-                }
-            } catch (mappingError) {
-                console.error('Error updating premium mappings:', mappingError);
-                // Continue even if mappings fail
-            }
-        }
         
         res.json(result.rows[0]);
     } catch (error) {
